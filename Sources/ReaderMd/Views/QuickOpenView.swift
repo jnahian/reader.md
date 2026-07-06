@@ -1,10 +1,12 @@
 import SwiftUI
+import AppKit
 
 /// ⌘P command palette — fuzzy file switcher across all roots.
 struct QuickOpenView: View {
     @EnvironmentObject var state: AppState
     @State private var query = ""
     @State private var selection = 0
+    @State private var keyMonitor: Any?
     @FocusState private var focused: Bool
 
     private var matches: [QuickMatch] {
@@ -99,14 +101,28 @@ struct QuickOpenView: View {
             .shadow(color: .black.opacity(0.3), radius: 28, y: 12)
             .padding(.top, 90)
         }
-        .onMoveCommand { direction in
-            let count = matches.count
-            guard count > 0 else { return }
-            if direction == .down { selection = min(selection + 1, count - 1) }
-            else if direction == .up { selection = max(selection - 1, 0) }
-        }
         .onExitCommand { close() }
-        .onAppear { focused = true }
+        // The focused TextField swallows arrow keys before .onMoveCommand can see
+        // them, so intercept up/down with a local monitor while the palette is open.
+        .onAppear {
+            focused = true
+            keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                let count = matches.count
+                switch event.keyCode {
+                case 125: // down arrow
+                    if count > 0 { selection = min(selection + 1, count - 1) }
+                    return nil
+                case 126: // up arrow
+                    if count > 0 { selection = max(selection - 1, 0) }
+                    return nil
+                default:
+                    return event
+                }
+            }
+        }
+        .onDisappear {
+            if let m = keyMonitor { NSEvent.removeMonitor(m); keyMonitor = nil }
+        }
     }
 
     private func openSelected() {
