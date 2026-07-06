@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="styles/github.min.css" id="hljs-light" />
+  <link rel="stylesheet" href="styles/github-dark.min.css" id="hljs-dark" disabled />
+  <link rel="stylesheet" href="katex/katex.min.css" />
+  <style>
+    :root {
+      --bg: #ffffff; --fg: #1f2328; --border: #d8dee4; --accent: #0969da;
+      --code-bg: #f6f8fa; --blockquote: #656d76;
+      --content-width: 760px; --content-size: 16px;
+    }
+    html.dark {
+      --bg: #1e2228; --fg: #e6edf3; --border: #30363d; --accent: #4493f8;
+      --code-bg: #161b22; --blockquote: #8b949e;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--fg); }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .markdown-body {
+      max-width: var(--content-width); margin: 0 auto; padding: 28px 40px 160px;
+      line-height: 1.65; font-size: var(--content-size); word-wrap: break-word;
+      transition: max-width 0.2s ease;
+    }
+    h1, h2 { border-bottom: 1px solid var(--border); padding-bottom: 0.3em; }
+    h1, h2, h3, h4, h5, h6 { margin-top: 1.5em; margin-bottom: 0.6em; line-height: 1.25; scroll-margin-top: 24px; position: relative; }
+    /* hover anchor link */
+    .anchor { position: absolute; left: -22px; top: 0; opacity: 0; text-decoration: none; color: var(--accent); font-weight: 400; }
+    h1:hover .anchor, h2:hover .anchor, h3:hover .anchor, h4:hover .anchor { opacity: 0.6; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    img { max-width: 100%; cursor: zoom-in; border-radius: 6px; }
+    code {
+      background: var(--code-bg); padding: 0.2em 0.4em; border-radius: 5px; font-size: 85%;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+    }
+    pre {
+      position: relative;
+      background: var(--code-bg); border-radius: 8px; padding: 14px 16px;
+      overflow-x: auto; border: 1px solid var(--border);
+    }
+    pre code { background: none; padding: 0; font-size: 13px; line-height: 1.5; }
+    /* code copy button */
+    .copy-btn {
+      position: absolute; top: 8px; right: 8px; padding: 3px 9px; font-size: 11px;
+      border: 1px solid var(--border); border-radius: 6px; background: var(--bg);
+      color: var(--blockquote); cursor: pointer; opacity: 0; transition: opacity 0.12s;
+      font-family: -apple-system, sans-serif;
+    }
+    pre:hover .copy-btn { opacity: 1; }
+    .copy-btn:hover { color: var(--fg); }
+    .copy-btn.copied { color: #2da44e; border-color: #2da44e; }
+    blockquote { margin: 0; padding: 0 1em; color: var(--blockquote); border-left: 3px solid var(--border); }
+    table { border-collapse: collapse; margin: 1em 0; display: block; overflow-x: auto; }
+    th, td { border: 1px solid var(--border); padding: 6px 13px; }
+    th { background: var(--code-bg); }
+    hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+    .mermaid { display: flex; justify-content: center; margin: 1em 0; }
+    input[type="checkbox"] { margin-right: 6px; }
+    .error-msg { color: #d1242f; padding: 12px 0; }
+
+    /* image lightbox */
+    #lightbox {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.82); display: none;
+      align-items: center; justify-content: center; z-index: 999; cursor: zoom-out;
+    }
+    #lightbox.open { display: flex; }
+    #lightbox img { max-width: 92vw; max-height: 92vh; cursor: zoom-out; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <article id="content" class="markdown-body"></article>
+  <div id="lightbox"><img alt="" /></div>
+
+  <script src="marked.min.js"></script>
+  <script src="highlight.min.js"></script>
+  <script src="katex/katex.min.js"></script>
+  <script src="katex/auto-render.min.js"></script>
+  <script src="mermaid.min.js"></script>
+  <script src="bridge.js"></script>
+</body>
+</html>

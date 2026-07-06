@@ -1,0 +1,337 @@
+import SwiftUI
+import AppKit
+import Combine
+
+enum AppTheme: String, CaseIterable {
+    case light, dark
+
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .light: return .light
+        case .dark: return .dark
+        }
+    }
+
+    /// Icon reflects the mode you'd switch *to*.
+    var symbol: String {
+        switch self {
+        case .light: return "moon"
+        case .dark: return "sun.max"
+        }
+    }
+
+    var toggled: AppTheme { self == .dark ? .light : .dark }
+}
+
+/// A heading in the currently open document, used for the outline.
+struct TOCEntry: Identifiable, Equatable {
+    let id: String   // heading element id
+    let text: String
+    let level: Int   // 1...4
+}
+
+/// A markdown file paired with the root folder it lives under, for quick-open.
+struct IndexedFile: Identifiable {
+    let node: FileNode
+    let rootName: String      // display name of the owning root folder
+    let relativePath: String  // path from the root, e.g. "guides/setup.md"
+    var id: String { node.id }
+
+    /// Folder portion of the relative path (without the filename), or "" if at the root.
+    var relativeFolder: String {
+        let parts = relativePath.split(separator: "/")
+        guard parts.count > 1 else { return "" }
+        return parts.dropLast().joined(separator: "/")
+    }
+
+    /// Full text a fuzzy query is matched against: "root/folder/file.md".
+    var searchText: String { "\(rootName)/\(relativePath)" }
+
+    /// Human-readable location shown under the filename, e.g. "docs › guides".
+    var locationLabel: String {
+        let folder = relativeFolder
+        return folder.isEmpty ? rootName : "\(rootName) › \(folder.replacingOccurrences(of: "/", with: " › "))"
+    }
+}
+
+@MainActor
+final class AppState: ObservableObject {
+    @Published var roots: [RootFolder] = []
+    @Published var selectedFile: FileNode?
+    @Published var searchQuery: String = ""
+    @Published var theme: AppTheme = .light
+    @Published var showTOC: Bool = false
+    @Published var focusSearch: Bool = false   // toggled to request focus
+
+    // Outline state, populated by the web view.
+    @Published var toc: [TOCEntry] = []
+    @Published var activeHeadingID: String?
+    @Published var pendingScroll: String?   // heading id the TOC asked to scroll to
+    @Published var reloadToken: Int = 0      // bumped to force a re-read of the open file
+
+    // Reading / typography
+    @Published var fontScale: Double = 1.0     // 0.7 ... 1.6
+    @Published var wideReading: Bool = false
+
+    // Chrome layout
+    @Published var showSidebar: Bool = true
+    @Published var sidebarWidth: Double = 260
+
+    // Reading feedback (posted from the web view)
+    @Published var scrollProgress: Double = 0  // 0...1
+    @Published var wordCount: Int = 0
+
+    // Overlays
+    @Published var showQuickOpen: Bool = false
+    @Published var showFind: Bool = false
+    @Published var findQuery: String = ""
+
+    // One-shot triggers consumed by the web view
+    @Published var findNextToken: Int = 0
+    @Published var findPrevToken: Int = 0
+    @Published var exportToken: Int = 0
+
+    // Navigation history
+    @Published private(set) var recentFiles: [String] = []
+    private var backStack: [FileNode] = []
+    private var forwardStack: [FileNode] = []
+    var canGoBack: Bool { !backStack.isEmpty }
+    var canGoForward: Bool { !forwardStack.isEmpty }
+
+    func requestScroll(to id: String) {
+        activeHeadingID = id
+        pendingScroll = id
+    }
+
+    private var watchers: [FolderWatcher] = []
+
+    init() {
+        theme = Settings.loadTheme()
+        showTOC = Settings.loadShowTOC()
+        fontScale = Settings.loadFontScale()
+        wideReading = Settings.loadWideReading()
+        showSidebar = Settings.loadShowSidebar()
+        sidebarWidth = Settings.loadSidebarWidth()
+        recentFiles = Settings.loadRecents()
+        loadSavedRoots()
+    }
+
+    // MARK: - Folder management
+
+    private func loadSavedRoots() {
+        let paths = Settings.loadFolderPaths()
+        for path in paths where FileManager.default.fileExists(atPath: path) {
+            addRoot(URL(fileURLWithPath: path), persist: false)
+        }
+        persistRoots()
+    }
+
+    func pickFolders() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = true
+        panel.prompt = "Add"
+        if panel.runModal() == .OK {
+            for url in panel.urls { addRoot(url, persist: false) }
+            persistRoots()
+        }
+    }
+
+    /// Add a folder dropped onto the window.
+    func addDroppedFolder(_ url: URL) {
+        addRoot(url, persist: true)
+    }
+
+    private func addRoot(_ url: URL, persist: Bool) {
+        guard !roots.contains(where: { $0.id == url.path }) else { return }
+        let root = RootFolder(url: url)
+        roots.append(root)
+        let watcher = FolderWatcher(path: url.path) { [weak self] in
+            Task { @MainActor in self?.handleFolderChange() }
+        }
+        watchers.append(watcher)
+        if persist { persistRoots() }
+    }
+
+    func removeRoot(_ root: RootFolder) {
+        // Clear the open file if it lived inside the folder being removed.
+        if let file = selectedFile, file.url.path.hasPrefix(root.url.path + "/") {
+            selectedFile = nil
+            toc = []
+        }
+        roots.removeAll { $0.id == root.id }
+        rebuildWatchers()
+        persistRoots()
+    }
+
+    private func rebuildWatchers() {
+        for w in watchers { w.stop() }
+        watchers = roots.map { root in
+            FolderWatcher(path: root.url.path) { [weak self] in
+                Task { @MainActor in self?.handleFolderChange() }
+            }
+        }
+    }
+
+    private func handleFolderChange() {
+        for root in roots { root.rescan() }
+        objectWillChange.send()
+        if let file = selectedFile {
+            if FileManager.default.fileExists(atPath: file.url.path) {
+                // Open file may have been edited on disk → force a re-read.
+                reloadToken += 1
+            } else {
+                selectedFile = nil
+                toc = []
+            }
+        }
+    }
+
+    private func persistRoots() {
+        Settings.saveFolderPaths(roots.map { $0.url.path })
+    }
+
+    // MARK: - Theme / TOC persistence
+
+    func toggleTheme() {
+        theme = theme.toggled
+        Settings.saveTheme(theme)
+    }
+
+    func setShowTOC(_ value: Bool) {
+        showTOC = value
+        Settings.saveShowTOC(value)
+    }
+
+    // MARK: - Layout
+
+    func toggleSidebar() {
+        showSidebar.toggle()
+        Settings.saveShowSidebar(showSidebar)
+    }
+
+    func setSidebarWidth(_ w: Double) {
+        sidebarWidth = min(460, max(180, w))
+        Settings.saveSidebarWidth(sidebarWidth)
+    }
+
+    // MARK: - Typography
+
+    func adjustFontScale(_ delta: Double) {
+        setFontScale(fontScale + delta)
+    }
+
+    func setFontScale(_ value: Double) {
+        fontScale = min(1.6, max(0.7, (value * 100).rounded() / 100))
+        Settings.saveFontScale(fontScale)
+    }
+
+    func resetFontScale() { setFontScale(1.0) }
+
+    func toggleWideReading() {
+        wideReading.toggle()
+        Settings.saveWideReading(wideReading)
+    }
+
+    // MARK: - Navigation & history
+
+    /// Central entry point for opening a file — manages history + recents.
+    func open(_ node: FileNode) {
+        if let current = selectedFile {
+            if current.id == node.id { return }
+            backStack.append(current)
+            forwardStack.removeAll()
+        }
+        setCurrent(node)
+        pushRecent(node.url.path)
+    }
+
+    func openPath(_ path: String) {
+        open(FileNode(url: URL(fileURLWithPath: path), isDirectory: false))
+    }
+
+    func goBack() {
+        guard let previous = backStack.popLast() else { return }
+        if let current = selectedFile { forwardStack.append(current) }
+        setCurrent(previous)
+    }
+
+    func goForward() {
+        guard let next = forwardStack.popLast() else { return }
+        if let current = selectedFile { backStack.append(current) }
+        setCurrent(next)
+    }
+
+    private func setCurrent(_ node: FileNode) {
+        selectedFile = node
+        toc = []
+        activeHeadingID = nil
+        scrollProgress = 0
+    }
+
+    private func pushRecent(_ path: String) {
+        recentFiles.removeAll { $0 == path }
+        recentFiles.insert(path, at: 0)
+        if recentFiles.count > 12 { recentFiles = Array(recentFiles.prefix(12)) }
+        Settings.saveRecents(recentFiles)
+    }
+
+    func clearRecents() {
+        recentFiles = []
+        Settings.saveRecents([])
+    }
+
+    /// Flat list of every markdown file across all roots, for quick-open.
+    func allFiles() -> [FileNode] {
+        var result: [FileNode] = []
+        func walk(_ nodes: [FileNode]) {
+            for n in nodes {
+                if n.isDirectory { walk(n.children) } else { result.append(n) }
+            }
+        }
+        for root in roots { walk(root.children) }
+        return result
+    }
+
+    /// Every markdown file across all roots, each tagged with its owning root
+    /// and its path relative to that root — powers path-aware quick-open.
+    func allFilesIndexed() -> [IndexedFile] {
+        var result: [IndexedFile] = []
+        for root in roots {
+            let rootPath = root.url.path
+            func walk(_ nodes: [FileNode]) {
+                for n in nodes {
+                    if n.isDirectory {
+                        walk(n.children)
+                    } else {
+                        var rel = n.url.path
+                        if rel.hasPrefix(rootPath + "/") {
+                            rel = String(rel.dropFirst(rootPath.count + 1))
+                        }
+                        result.append(IndexedFile(node: n, rootName: root.name, relativePath: rel))
+                    }
+                }
+            }
+            walk(root.children)
+        }
+        return result
+    }
+
+    /// Rank of a file path in the recents list (0 = most recent), or nil if unseen.
+    func recentRank(_ path: String) -> Int? {
+        recentFiles.firstIndex(of: path)
+    }
+
+    // MARK: - In-document triggers
+
+    func triggerFindNext() { findNextToken += 1 }
+    func triggerFindPrev() { findPrevToken += 1 }
+    func triggerExport() { exportToken += 1 }
+
+    // MARK: - Search helpers
+
+    var normalizedQuery: String { searchQuery.trimmingCharacters(in: .whitespaces).lowercased() }
+
+    var readingMinutes: Int { max(1, Int((Double(wordCount) / 220.0).rounded())) }
+}

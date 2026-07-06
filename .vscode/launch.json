@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:reader.md}",
+            "name": "Debug ReaderMd",
+            "target": "ReaderMd",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug ReaderMd"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:reader.md}",
+            "name": "Release ReaderMd",
+            "target": "ReaderMd",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release ReaderMd"
+        }
+    ]
+}
