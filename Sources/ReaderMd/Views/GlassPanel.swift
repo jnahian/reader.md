@@ -5,8 +5,9 @@ import AppKit
 /// and above, falling back to an `NSVisualEffectView` material on macOS 13–15.
 ///
 /// Use as a `.background(...)`. Liquid Glass belongs on the *navigation / chrome* layer
-/// (topbar, sidebar, outline, floating panels) — never behind scrolling content, and never
-/// stacked glass-on-glass, per Apple's guidance.
+/// (topbar, sidebar, outline, floating panels) — never behind scrolling content. Don't stack
+/// glass *surfaces*, but interactive glass *controls* (e.g. the topbar buttons) may sit on a
+/// glass surface when grouped in a `GlassEffectContainer` — that's the sanctioned Tahoe pattern.
 struct GlassPanel: View {
     var cornerRadius: CGFloat = 0
     var material: NSVisualEffectView.Material = .sidebar
