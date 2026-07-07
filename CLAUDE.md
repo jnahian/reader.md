@@ -17,7 +17,7 @@ Native macOS markdown viewer: SwiftUI/AppKit shell wrapping a single `WKWebView`
 
 **Two-layer split:**
 - **Native shell** — `ContentView` (layout: topbar, resizable/collapsible sidebar, content, collapsible outline; find bar + quick-open as overlays). `Sources/ReaderMd/Views/` holds the SwiftUI pieces.
-- **Web content** — `MarkdownWebView` (`NSViewRepresentable` over `WKWebView`) loads bundled assets from `Sources/ReaderMd/Resources/web/` (marked, highlight.js, KaTeX + fonts, Mermaid, `bridge.js`). Loaded via `Bundle.module` — assets are copied resources, so `make-app.sh` places the `.bundle` next to the executable.
+- **Web content** — `MarkdownWebView` (`NSViewRepresentable` over `WKWebView`) loads bundled assets from `Sources/ReaderMd/Resources/web/` (marked, highlight.js, KaTeX + fonts, Mermaid, `bridge.js`). Loaded via `Bundle.resources` (a helper: `Bundle.main` in a packaged `.app`, falling back to `Bundle.module` under `swift run`). `make-app.sh` copies the resources into `Contents/Resources` and ad-hoc code-signs the bundle — the SwiftPM `.bundle` can't live at the `.app` root (where `Bundle.module` looks) because codesign rejects contents there.
 
 **`AppState`** (`@MainActor ObservableObject`) is the single source of truth: roots, selection, theme, outline, typography, layout, history, find/export state. Persists to `UserDefaults`. Injected as `@EnvironmentObject`.
 

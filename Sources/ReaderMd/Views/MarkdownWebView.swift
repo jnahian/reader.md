@@ -2,6 +2,16 @@ import SwiftUI
 import WebKit
 import UniformTypeIdentifiers
 
+extension Bundle {
+    /// Resource bundle that works both under `swift run` and inside a packaged .app.
+    /// Bundle.module's generated accessor looks next to the executable / at the .app
+    /// root — neither is signable. make-app.sh instead copies resources into
+    /// Contents/Resources, where Bundle.main finds them. Fall back to .module for dev.
+    static var resources: Bundle {
+        Bundle.main.url(forResource: "web", withExtension: nil) != nil ? .main : .module
+    }
+}
+
 /// Wraps a WKWebView that renders markdown via bundled JS (marked, highlight.js, KaTeX, Mermaid).
 struct MarkdownWebView: NSViewRepresentable {
     @EnvironmentObject var state: AppState
@@ -21,7 +31,7 @@ struct MarkdownWebView: NSViewRepresentable {
         webView.setValue(false, forKey: "drawsBackground") // transparent → matches theme
         context.coordinator.webView = webView
 
-        guard let webDir = Bundle.module.url(forResource: "web", withExtension: nil) else {
+        guard let webDir = Bundle.resources.url(forResource: "web", withExtension: nil) else {
             return webView
         }
         let template = webDir.appendingPathComponent("template.html")

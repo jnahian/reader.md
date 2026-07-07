@@ -20,9 +20,11 @@ mkdir -p "${APP}/Contents/MacOS" "${APP}/Contents/Resources"
 
 cp "${EXE}" "${APP}/Contents/MacOS/${APP_NAME}"
 
-# SwiftPM resource bundle must sit next to the executable for Bundle.module.
+# Copy resources into Contents/Resources (standard, signable). Bundle.resources
+# loads them via Bundle.main there. Placing the SwiftPM .bundle at the .app root
+# (where Bundle.module looks) is unsignable — codesign rejects contents at root.
 for b in "${BIN_DIR}"/*.bundle; do
-  [ -e "${b}" ] && cp -R "${b}" "${APP}/Contents/MacOS/"
+  [ -e "${b}" ] && cp -R "${b}"/* "${APP}/Contents/Resources/"
 done
 
 # App icon: PNG -> .icns
@@ -48,8 +50,8 @@ cat > "${APP}/Contents/Info.plist" <<PLIST
   <key>CFBundleExecutable</key><string>${APP_NAME}</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>1.0.0</string>
-  <key>CFBundleVersion</key><string>1</string>
+  <key>CFBundleShortVersionString</key><string>1.0.1</string>
+  <key>CFBundleVersion</key><string>2</string>
   <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>NSPrincipalClass</key><string>NSApplication</string>
@@ -57,5 +59,17 @@ cat > "${APP}/Contents/Info.plist" <<PLIST
 </plist>
 PLIST
 
+# Ad-hoc sign so a quarantined copy isn't rejected as "damaged" on other Macs.
+# ponytail: ad-hoc (-) is free/no Developer ID; teammates still right-click→Open once.
+codesign --force --deep --sign - "${APP}"
+codesign --verify --deep --strict "${APP}"
+
+# Zip for sharing. ditto preserves the bundle so it double-clicks on arrival.
+# No Developer ID here, so teammates clear quarantine once — see README.
+ZIP="build/${APP_NAME}.zip"
+rm -f "${ZIP}"
+ditto -c -k --sequesterRsrc --keepParent "${APP}" "${ZIP}"
+
 echo "Done: ${APP}"
 echo "Open with: open \"${APP}\""
+echo "Share:    ${ZIP}"

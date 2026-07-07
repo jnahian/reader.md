@@ -60,7 +60,16 @@ This launches the app directly. It's an unsandboxed executable, so it can read a
 open "build/Reader.md.app"
 ```
 
-`make-app.sh` builds a release binary, assembles `Reader.md.app` with the SwiftPM resource bundle alongside the executable, converts `AppIcon.png` to `.icns`, and writes `Info.plist`.
+`make-app.sh` builds a release binary, assembles `Reader.md.app` (web/KaTeX/etc. resources copied into `Contents/Resources`), converts `AppIcon.png` to `.icns`, writes `Info.plist`, **ad-hoc code-signs the bundle**, and produces `build/Reader.md.zip` for sharing.
+
+### Sharing with teammates
+
+The ad-hoc signature means a downloaded copy is **not** flagged as "damaged" — but because it isn't notarized with an Apple Developer ID, the first launch still shows *"Apple cannot check it for malicious software."* Teammates clear it once, either way:
+
+- **Right-click** the app → **Open** → **Open** in the dialog, or
+- Terminal: `xattr -dr com.apple.quarantine "/path/to/Reader.md.app"`
+
+For a launch with no prompt at all, sign with a Developer ID and notarize (Xcode's Archive flow).
 
 ## Open in Xcode
 

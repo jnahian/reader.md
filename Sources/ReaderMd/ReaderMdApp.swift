@@ -73,7 +73,7 @@ struct ReaderMdApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
-        if let url = Bundle.module.url(forResource: "AppIcon", withExtension: "png"),
+        if let url = Bundle.resources.url(forResource: "AppIcon", withExtension: "png"),
            let image = NSImage(contentsOf: url) {
             NSApp.applicationIconImage = image
         }
