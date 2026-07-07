@@ -164,7 +164,7 @@ struct RecentRow: View {
 struct RootSectionView: View {
     @EnvironmentObject var state: AppState
     @ObservedObject var root: RootFolder
-    @State private var expanded = true
+    @State private var expanded = false
     @State private var hovering = false
 
     var body: some View {
