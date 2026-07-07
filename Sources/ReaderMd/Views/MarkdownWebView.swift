@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 import WebKit
 import UniformTypeIdentifiers
 
@@ -43,7 +44,9 @@ struct MarkdownWebView: NSViewRepresentable {
     func makeNSView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         let controller = WKUserContentController()
-        for name in ["ready", "toc", "activeHeading", "openExternal", "openFile", "wordCount", "progress"] {
+        let messageNames = ["ready", "toc", "activeHeading", "openExternal", "openFile", "wordCount", "progress",
+                             "rendered", "textSelected", "markClicked", "marksApplied"]
+        for name in messageNames {
             controller.add(context.coordinator, name: name)
         }
         config.userContentController = controller
@@ -103,6 +106,14 @@ struct MarkdownWebView: NSViewRepresentable {
             coord.lastExport = state.exportToken
             coord.exportPDF()
         }
+
+        // Highlights: re-apply whenever the mark set changes (new/removed/recolored).
+        // A fresh render always re-applies too (see the "rendered" message handler),
+        // since re-rendering wipes the <mark> wrapper spans even when marks didn't change.
+        if coord.isReady, state.marks != coord.lastPushedMarks {
+            coord.lastPushedMarks = state.marks
+            coord.applyMarks(json: state.marksJSON())
+        }
     }
 
     // MARK: - Coordinator
@@ -116,10 +127,12 @@ struct MarkdownWebView: NSViewRepresentable {
         var lastFindNext: Int = 0
         var lastFindPrev: Int = 0
         var lastExport: Int = 0
+        var lastPushedMarks: [Mark] = []
         private var lastDark: Bool?
         private var lastScale: Double?
         private var lastWide: Bool?
         private var lastFindQuery: String = ""
+        private var activePopover: NSPopover?
 
         init(state: AppState) {
             self.state = state
@@ -172,6 +185,72 @@ struct MarkdownWebView: NSViewRepresentable {
 
         func scroll(to id: String) {
             webView?.evaluateJavaScript("window.ReaderMd.scrollToHeading(\(Self.encode(id)));")
+        }
+
+        // MARK: Highlights (#1)
+
+        func applyMarks(json: String) {
+            webView?.evaluateJavaScript("window.ReaderMd.applyMarks(\(Self.encode(json)));")
+        }
+
+        /// Selection popover: pick a color to create a new highlight.
+        private func showCreatePopover(anchor: TextAnchor, rect: [String: Double]) {
+            let view = HighlightSwatchView(existingColor: nil, onPick: { [weak self] color in
+                guard let self else { return }
+                Task { @MainActor in
+                    self.state.createMark(anchor: anchor, color: color)
+                }
+                self.hidePopover()
+            }, onRemove: nil)
+            presentPopover(view, rect: rect)
+        }
+
+        /// Existing-highlight popover: change color or remove.
+        private func showEditPopover(markID: UUID, rect: [String: Double]) {
+            Task { @MainActor in
+                guard let mark = self.state.marks.first(where: { $0.id == markID }) else { return }
+                let view = HighlightSwatchView(existingColor: mark.color, onPick: { [weak self] color in
+                    guard let self else { return }
+                    Task { @MainActor in
+                        self.state.setMarkColor(markID, color: color)
+                    }
+                    self.hidePopover()
+                }, onRemove: { [weak self] in
+                    guard let self else { return }
+                    Task { @MainActor in
+                        self.state.deleteMark(markID)
+                    }
+                    self.hidePopover()
+                })
+                self.presentPopover(view, rect: rect)
+            }
+        }
+
+        private func presentPopover(_ content: HighlightSwatchView, rect: [String: Double]) {
+            guard let webView else { return }
+            hidePopover()
+            let controller = NSHostingController(rootView: content)
+            let popover = NSPopover()
+            popover.contentViewController = controller
+            popover.behavior = .transient
+            activePopover = popover
+            popover.show(relativeTo: positioningRect(from: rect, in: webView), of: webView, preferredEdge: .maxY)
+        }
+
+        private func hidePopover() {
+            activePopover?.performClose(nil)
+            activePopover = nil
+        }
+
+        /// The `rect` payload from JS is viewport-relative CSS px (top-left origin);
+        /// convert to the webView's own coordinate space for NSPopover positioning.
+        private func positioningRect(from rect: [String: Double], in view: NSView) -> NSRect {
+            let x = rect["x"] ?? 0, y = rect["y"] ?? 0
+            let w = max(rect["width"] ?? 0, 1), h = max(rect["height"] ?? 0, 1)
+            if view.isFlipped {
+                return NSRect(x: x, y: y, width: w, height: h)
+            }
+            return NSRect(x: x, y: view.bounds.height - y - h, width: w, height: h)
         }
 
         // MARK: Find
@@ -277,6 +356,37 @@ struct MarkdownWebView: NSViewRepresentable {
                 if let path = message.body as? String {
                     Task { @MainActor in self.state.openPath(path) }
                 }
+
+            case "rendered":
+                // A fresh render wipes any <mark> wrapper spans — always re-apply.
+                Task { @MainActor in
+                    self.lastPushedMarks = self.state.marks
+                    self.applyMarks(json: self.state.marksJSON())
+                }
+
+            case "textSelected":
+                guard let payload = message.body as? [String: Any],
+                      let quote = payload["quote"] as? String,
+                      let prefix = payload["prefix"] as? String,
+                      let suffix = payload["suffix"] as? String,
+                      let startOffset = payload["startOffset"] as? Int,
+                      let rect = payload["rect"] as? [String: Double] else {
+                    hidePopover()
+                    return
+                }
+                let anchor = TextAnchor(quote: quote, prefix: prefix, suffix: suffix, startOffset: startOffset)
+                showCreatePopover(anchor: anchor, rect: rect)
+
+            case "markClicked":
+                guard let payload = message.body as? [String: Any],
+                      let idString = payload["id"] as? String,
+                      let id = UUID(uuidString: idString),
+                      let rect = payload["rect"] as? [String: Double] else { return }
+                showEditPopover(markID: id, rect: rect)
+
+            case "marksApplied":
+                guard let ids = message.body as? [String] else { return }
+                Task { @MainActor in self.state.setOrphanedMarkIDs(ids) }
 
             default:
                 break

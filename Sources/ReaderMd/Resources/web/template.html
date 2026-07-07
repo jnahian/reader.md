@@ -63,6 +63,22 @@
     input[type="checkbox"] { margin-right: 6px; }
     .error-msg { color: #d1242f; padding: 12px 0; }
 
+    /* text highlights (#1) */
+    mark.rmd-highlight {
+      border-radius: 3px; cursor: pointer; color: inherit;
+      box-decoration-break: clone; -webkit-box-decoration-break: clone;
+    }
+    mark.rmd-highlight[data-color="yellow"] { background: rgba(250, 216, 60, 0.45); }
+    mark.rmd-highlight[data-color="green"]  { background: rgba(126, 211, 111, 0.4); }
+    mark.rmd-highlight[data-color="blue"]   { background: rgba(101, 175, 250, 0.35); }
+    mark.rmd-highlight[data-color="pink"]   { background: rgba(240, 128, 178, 0.35); }
+    mark.rmd-highlight[data-color="purple"] { background: rgba(174, 129, 240, 0.35); }
+    html.dark mark.rmd-highlight[data-color="yellow"] { background: rgba(250, 216, 60, 0.3); }
+    html.dark mark.rmd-highlight[data-color="green"]  { background: rgba(126, 211, 111, 0.28); }
+    html.dark mark.rmd-highlight[data-color="blue"]   { background: rgba(101, 175, 250, 0.28); }
+    html.dark mark.rmd-highlight[data-color="pink"]   { background: rgba(240, 128, 178, 0.28); }
+    html.dark mark.rmd-highlight[data-color="purple"] { background: rgba(174, 129, 240, 0.28); }
+
     /* image lightbox */
     #lightbox {
       position: fixed; inset: 0; background: rgba(0,0,0,0.82); display: none;
