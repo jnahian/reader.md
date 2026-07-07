@@ -111,11 +111,12 @@ struct StatusBar: View {
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity)
 
-            HStack {
+            HStack(spacing: 10) {
                 Spacer()
+                ResolvedThreadsToggle()
                 OrphanedMarksBadge()
-                    .padding(.trailing, 10)
             }
+            .padding(.trailing, 10)
         }
         .frame(height: 24)
         .background(GlassPanel())

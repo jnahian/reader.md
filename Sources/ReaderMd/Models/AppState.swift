@@ -95,6 +95,7 @@ final class AppState: ObservableObject {
     // Highlights/annotations/comments (#1/#2/#3) for the current document.
     @Published var marks: [Mark] = []
     @Published var orphanedMarkIDs: Set<UUID> = []
+    @Published var showResolvedThreads: Bool = true
     private let markStore = MarkStore()
     private var currentMarkDoc: MarkDocument?
 
@@ -120,6 +121,7 @@ final class AppState: ObservableObject {
         showSidebar = Settings.loadShowSidebar()
         sidebarWidth = Settings.loadSidebarWidth()
         recentFiles = Settings.loadRecents()
+        showResolvedThreads = Settings.loadShowResolvedThreads()
         loadSavedRoots()
     }
 
@@ -428,28 +430,39 @@ final class AppState: ObservableObject {
         persistMarks()
     }
 
-    /// A mark carries at most one note for #2 — `comments` grows to a full
-    /// thread only with #3. Empty text is a no-op (use `deleteNote` to clear).
-    func setNote(_ id: UUID, text: String) {
+    /// Appends a message to the mark's thread — an append-only log, not
+    /// editable in place. The first message makes it an annotation (#2); a
+    /// second (or more) makes it a comment thread (#3). Empty text is a no-op.
+    func addComment(_ id: UUID, text: String) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, let idx = marks.firstIndex(where: { $0.id == id }) else { return }
-        if marks[idx].comments.isEmpty {
-            marks[idx].comments = [Comment(author: NSFullUserName(), text: trimmed, createdAt: Date())]
-        } else {
-            marks[idx].comments[0].text = trimmed
-            marks[idx].comments[0].editedAt = Date()
-        }
+        marks[idx].comments.append(Comment(author: NSFullUserName(), text: trimmed, createdAt: Date()))
         marks[idx].updatedAt = Date()
         persistMarks()
     }
 
-    /// Clears the note, reverting the mark back to a plain highlight — the
-    /// highlight itself is untouched.
-    func deleteNote(_ id: UUID) {
+    /// Clears every message, reverting the mark back to a plain highlight —
+    /// the highlight itself is untouched.
+    func deleteThread(_ id: UUID) {
         guard let idx = marks.firstIndex(where: { $0.id == id }) else { return }
         marks[idx].comments = []
+        marks[idx].resolved = false
         marks[idx].updatedAt = Date()
         persistMarks()
+    }
+
+    /// Resolve collapses/de-emphasizes a thread's anchor without discarding
+    /// it; reopen restores it. Meaningless (but harmless) on a bare highlight.
+    func setResolved(_ id: UUID, resolved: Bool) {
+        guard let idx = marks.firstIndex(where: { $0.id == id }) else { return }
+        marks[idx].resolved = resolved
+        marks[idx].updatedAt = Date()
+        persistMarks()
+    }
+
+    func toggleShowResolvedThreads() {
+        showResolvedThreads.toggle()
+        Settings.saveShowResolvedThreads(showResolvedThreads)
     }
 
     func setOrphanedMarkIDs(_ ids: [String]) {
@@ -464,15 +477,27 @@ final class AppState: ObservableObject {
     }
 
     /// Marks for the current document, serialized for `window.ReaderMd.applyMarks`.
+    /// Resolved marks are still sent (and anchor-resolved, so orphan detection
+    /// stays accurate) even when `showResolvedThreads` is off — `hidden` just
+    /// tells the JS side to skip wrapping/rendering them.
     func marksJSON() -> String {
         struct Wire: Codable {
             let id: String
             let anchor: TextAnchor
             let color: String
             let note: String?
+            let resolved: Bool
+            let hidden: Bool
         }
-        let wire = marks.map {
-            Wire(id: $0.id.uuidString, anchor: $0.anchor, color: $0.color.rawValue, note: $0.comments.first?.text)
+        let wire = marks.map { m -> Wire in
+            let preview: String?
+            switch m.comments.count {
+            case 0: preview = nil
+            case 1: preview = m.comments[0].text
+            default: preview = "\(m.comments.count) comments — \(m.comments.last?.text ?? "")"
+            }
+            return Wire(id: m.id.uuidString, anchor: m.anchor, color: m.color.rawValue,
+                        note: preview, resolved: m.resolved, hidden: m.resolved && !showResolvedThreads)
         }
         guard let data = try? JSONEncoder().encode(wire), let json = String(data: data, encoding: .utf8) else {
             return "[]"

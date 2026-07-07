@@ -396,9 +396,10 @@ function resolveAnchor(anchor) {
 
 // Wrap a (possibly multi-node) range in one <mark> per intersecting text node,
 // since surroundContents() rejects ranges that partially select non-text nodes.
-// `note` (#2), when present, gets a small dot badge + hover tooltip on the
-// first fragment only, so a multi-node highlight doesn't repeat it.
-function wrapRange(range, id, color, note) {
+// `note` (#2/#3), when present, gets a small dot badge + hover tooltip on the
+// first fragment only, so a multi-node highlight doesn't repeat it. `resolved`
+// (#3) de-emphasizes the anchor instead of hiding it.
+function wrapRange(range, id, color, note, resolved) {
   const nodes = [];
   const walker = document.createTreeWalker(contentEl, NodeFilter.SHOW_TEXT, {
     acceptNode: (node) => (range.intersectsNode(node) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT),
@@ -414,7 +415,7 @@ function wrapRange(range, id, color, note) {
     if (textNode === range.endContainer) nodeRange.setEnd(textNode, range.endOffset);
     if (nodeRange.collapsed) return;
     const mark = document.createElement('mark');
-    mark.className = 'rmd-highlight';
+    mark.className = 'rmd-highlight' + (resolved ? ' resolved' : '');
     mark.dataset.markId = id;
     mark.dataset.color = color;
     if (note && !markedFirst) {
@@ -426,6 +427,9 @@ function wrapRange(range, id, color, note) {
   });
 }
 
+// `hidden` (#3) marks are still anchor-resolved here — so orphan detection
+// stays accurate even while a resolved thread's visibility is toggled off —
+// just not wrapped/rendered into the DOM.
 function applyMarks(marksJSON) {
   let list = [];
   try { list = JSON.parse(marksJSON) || []; } catch { list = []; }
@@ -436,7 +440,7 @@ function applyMarks(marksJSON) {
     if (!offsets) { orphaned.push(m.id); continue; }
     const range = rangeFromOffsets(offsets.start, offsets.end);
     if (!range) { orphaned.push(m.id); continue; }
-    wrapRange(range, m.id, m.color, m.note);
+    if (!m.hidden) wrapRange(range, m.id, m.color, m.note, m.resolved);
   }
   post('marksApplied', orphaned);
 }
