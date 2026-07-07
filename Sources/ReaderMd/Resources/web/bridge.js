@@ -57,12 +57,50 @@ window.ReaderMd = {
 
 // ---- Rendering ----
 
+const esc = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const unquote = (s) => s.replace(/^(['"])([\s\S]*)\1$/, '$2');
+
+// Split a leading YAML frontmatter block (--- ... ---) off the document and
+// render it as a table (like VS Code's preview), so it isn't parsed as a
+// setext heading. Returns { table, body }; table is '' when no frontmatter.
+function splitFrontmatter(text) {
+  const m = text.match(/^﻿?---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/);
+  if (!m) return { table: '', body: text };
+
+  const rows = [];
+  const lines = m[1].split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const kv = lines[i].match(/^(\S[^:]*):[ \t]*(.*)$/);
+    if (!kv) continue;
+    const key = kv[1].trim();
+    let inline = kv[2].trim();
+    // Gather more-indented continuation lines (block scalars / lists).
+    const cont = [];
+    while (i + 1 < lines.length && /^[ \t]+\S/.test(lines[i + 1])) {
+      cont.push(lines[++i].trim());
+    }
+    let valHtml;
+    if (cont.length && cont.every((l) => l.startsWith('- '))) {
+      valHtml = '<ul>' + cont.map((l) => `<li>${esc(unquote(l.slice(2).trim()))}</li>`).join('') + '</ul>';
+    } else if (cont.length) {
+      // Folded/literal block scalar: drop the >, |, >- etc. indicator.
+      valHtml = esc(cont.join(inline === '|' || inline === '|-' ? '\n' : ' '));
+    } else {
+      valHtml = esc(unquote(inline));
+    }
+    rows.push(`<tr><td><strong>${esc(key)}</strong></td><td>${valHtml}</td></tr>`);
+  }
+  if (!rows.length) return { table: '', body: text };
+  return { table: `<table class="frontmatter">${rows.join('')}</table>`, body: text.slice(m[0].length) };
+}
+
 async function render(text, dir, keepScroll) {
   const prevScroll = keepScroll ? window.scrollY : 0;
   window.__lastMarkdown = text;
   currentDir = dir || '';
 
-  contentEl.innerHTML = marked.parse(text);
+  const { table, body } = splitFrontmatter(text);
+  contentEl.innerHTML = table + marked.parse(body);
 
   assignHeadingIds();
   fixRelativeImages();

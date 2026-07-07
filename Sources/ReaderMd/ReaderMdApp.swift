@@ -18,6 +18,10 @@ struct ReaderMdApp: App {
         }
         .windowStyle(.hiddenTitleBar)
         .commands {
+            CommandGroup(replacing: .appInfo) {
+                Button("About Reader.md") { showAboutPanel() }
+            }
+
             CommandGroup(replacing: .newItem) {
                 Button("Open File…") { state.pickFile() }
                     .keyboardShortcut("o", modifiers: .command)
@@ -72,6 +76,26 @@ struct ReaderMdApp: App {
             }
         }
     }
+}
+
+// ponytail: fallback version for `swift run` (no Info.plist); keep in sync with make-app.sh.
+private func showAboutPanel() {
+    let info = Bundle.main.infoDictionary
+    let version = info?["CFBundleShortVersionString"] as? String ?? "1.3.1"
+    let build = info?["CFBundleVersion"] as? String ?? "dev"
+    let credits = NSAttributedString(
+        string: "A native macOS markdown viewer.\nMermaid & LaTeX, live reload, PDF export.",
+        attributes: [
+            .font: NSFont.systemFont(ofSize: 11),
+            .foregroundColor: NSColor.secondaryLabelColor,
+        ])
+    NSApp.orderFrontStandardAboutPanel(options: [
+        .applicationName: "Reader.md",
+        .applicationVersion: version,
+        .version: build,
+        .credits: credits,
+    ])
+    NSApp.activate(ignoringOtherApps: true)
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
