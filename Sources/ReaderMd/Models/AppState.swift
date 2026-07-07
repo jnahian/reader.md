@@ -144,6 +144,18 @@ final class AppState: ObservableObject {
         addRoot(url, persist: true)
     }
 
+    /// Handle a file/folder dropped onto the window or content body:
+    /// folders register as roots, markdown files open directly.
+    func openDropped(_ url: URL) {
+        var isDir: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir) else { return }
+        if isDir.boolValue {
+            addDroppedFolder(url)
+        } else if FileScanner.markdownExtensions.contains(url.pathExtension.lowercased()) {
+            open(FileNode(url: url, isDirectory: false))
+        }
+    }
+
     /// Open a single markdown file (not tied to any root folder).
     func pickFile() {
         let panel = NSOpenPanel()
@@ -286,6 +298,11 @@ final class AppState: ObservableObject {
         recentFiles.removeAll { $0 == path }
         recentFiles.insert(path, at: 0)
         if recentFiles.count > 12 { recentFiles = Array(recentFiles.prefix(12)) }
+        Settings.saveRecents(recentFiles)
+    }
+
+    func removeRecent(_ path: String) {
+        recentFiles.removeAll { $0 == path }
         Settings.saveRecents(recentFiles)
     }
 

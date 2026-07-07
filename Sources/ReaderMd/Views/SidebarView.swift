@@ -35,7 +35,15 @@ struct SidebarView: View {
                 LazyVStack(alignment: .leading, spacing: 1) {
                     // Recents section
                     if state.normalizedQuery.isEmpty && !state.recentFiles.isEmpty {
-                        sectionHeader("RECENTS")
+                        HStack {
+                            sectionHeader("RECENTS")
+                            Button("Clear") { state.clearRecents() }
+                                .buttonStyle(.plain)
+                                .font(.system(size: 11))
+                                .foregroundStyle(.tertiary)
+                                .padding(.trailing, 12)
+                                .help("Clear recent files")
+                        }
                         ForEach(state.recentFiles.prefix(6), id: \.self) { path in
                             RecentRow(path: path)
                         }
@@ -128,6 +136,14 @@ struct RecentRow: View {
                 .foregroundStyle(isSelected ? Color.white : Color.primary)
                 .lineLimit(1)
             Spacer(minLength: 0)
+            if hovering {
+                Button { state.removeRecent(path) } label: {
+                    Image(systemName: "xmark").font(.system(size: 10))
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(isSelected ? Color.white : Color.secondary)
+                .help("Remove from recents")
+            }
         }
         .padding(.vertical, 4)
         .padding(.leading, 10)

@@ -12,6 +12,28 @@ extension Bundle {
     }
 }
 
+/// WKWebView that accepts file/folder drops (the plain web view swallows the
+/// drag before SwiftUI's .onDrop can see it, so drops over the body do nothing).
+final class DropWebView: WKWebView {
+    var onDrop: ((URL) -> Void)?
+
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        droppedURLs(sender).isEmpty ? super.draggingEntered(sender) : .copy
+    }
+
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        let urls = droppedURLs(sender)
+        guard !urls.isEmpty else { return super.performDragOperation(sender) }
+        urls.forEach { onDrop?($0) }
+        return true
+    }
+
+    private func droppedURLs(_ sender: NSDraggingInfo) -> [URL] {
+        sender.draggingPasteboard.readObjects(forClasses: [NSURL.self],
+            options: [.urlReadingFileURLsOnly: true]) as? [URL] ?? []
+    }
+}
+
 /// Wraps a WKWebView that renders markdown via bundled JS (marked, highlight.js, KaTeX, Mermaid).
 struct MarkdownWebView: NSViewRepresentable {
     @EnvironmentObject var state: AppState
@@ -26,7 +48,11 @@ struct MarkdownWebView: NSViewRepresentable {
         }
         config.userContentController = controller
 
-        let webView = WKWebView(frame: .zero, configuration: config)
+        let webView = DropWebView(frame: .zero, configuration: config)
+        webView.registerForDraggedTypes([.fileURL])
+        webView.onDrop = { [weak coord = context.coordinator] url in
+            Task { @MainActor in coord?.state.openDropped(url) }
+        }
         webView.navigationDelegate = context.coordinator
         webView.setValue(false, forKey: "drawsBackground") // transparent → matches theme
         context.coordinator.webView = webView
