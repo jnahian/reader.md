@@ -441,11 +441,14 @@ function reportSelection() {
   if (!sel || sel.isCollapsed || sel.rangeCount === 0) { post('textSelected', null); return; }
   const range = sel.getRangeAt(0);
   if (!contentEl.contains(range.commonAncestorContainer)) { post('textSelected', null); return; }
-  const quote = sel.toString();
-  if (!quote.trim()) { post('textSelected', null); return; }
   const offsets = offsetsFromRange(range);
   if (!offsets) { post('textSelected', null); return; }
   const text = contentEl.textContent;
+  // Derive the quote from textContent, not sel.toString() — the latter inserts
+  // "\n" at block boundaries, so a selection spanning two blocks would yield a
+  // quote that isn't a substring of textContent and orphan on the next resolve.
+  const quote = text.slice(offsets.start, offsets.end);
+  if (!quote.trim()) { post('textSelected', null); return; }
   const rect = range.getBoundingClientRect();
   post('textSelected', {
     quote,
