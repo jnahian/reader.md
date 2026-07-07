@@ -43,19 +43,32 @@ private struct OrphanedMarksList: View {
                 .foregroundStyle(.secondary)
             Divider()
             ForEach(orphaned) { mark in
-                HStack(spacing: 8) {
-                    Circle().fill(mark.color.swiftUIColor).frame(width: 8, height: 8)
-                    Text(mark.anchor.quote)
-                        .font(.system(size: 11))
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                    Spacer(minLength: 8)
-                    Button {
-                        state.deleteMark(mark.id)
-                    } label: {
-                        Image(systemName: "trash")
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 8) {
+                        Circle().fill(mark.color.swiftUIColor).frame(width: 8, height: 8)
+                        Text(mark.anchor.quote)
+                            .font(.system(size: 11))
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        Spacer(minLength: 8)
+                        Button {
+                            state.deleteMark(mark.id)
+                        } label: {
+                            Image(systemName: "trash")
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
+                    if let note = mark.comments.first?.text {
+                        HStack(spacing: 4) {
+                            Image(systemName: "note.text")
+                            Text(note)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                        }
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                        .padding(.leading, 16)
+                    }
                 }
             }
         }

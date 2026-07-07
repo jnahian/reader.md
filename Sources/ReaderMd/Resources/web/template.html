@@ -78,6 +78,11 @@
     html.dark mark.rmd-highlight[data-color="blue"]   { background: rgba(101, 175, 250, 0.28); }
     html.dark mark.rmd-highlight[data-color="pink"]   { background: rgba(240, 128, 178, 0.28); }
     html.dark mark.rmd-highlight[data-color="purple"] { background: rgba(174, 129, 240, 0.28); }
+    /* note indicator (#2) */
+    mark.rmd-highlight.has-note::after {
+      content: ''; display: inline-block; width: 5px; height: 5px; border-radius: 50%;
+      background: currentColor; opacity: 0.55; margin: 0 0 3px 3px; vertical-align: super;
+    }
 
     /* image lightbox */
     #lightbox {
