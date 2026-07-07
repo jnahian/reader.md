@@ -1,8 +1,10 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SidebarView: View {
     @EnvironmentObject var state: AppState
     @FocusState private var searchFocused: Bool
+    @State private var draggingRootID: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -60,7 +62,7 @@ struct SidebarView: View {
                             .padding(.top, 4)
                     }
                     ForEach(state.roots) { root in
-                        RootSectionView(root: root)
+                        RootSectionView(root: root, draggingRootID: $draggingRootID)
                     }
                     if searchYieldsNothing {
                         Text("No matching files")
@@ -164,6 +166,7 @@ struct RecentRow: View {
 struct RootSectionView: View {
     @EnvironmentObject var state: AppState
     @ObservedObject var root: RootFolder
+    @Binding var draggingRootID: String?
     @State private var expanded = false
     @State private var hovering = false
 
@@ -196,6 +199,13 @@ struct RootSectionView: View {
             .contentShape(Rectangle())
             .onTapGesture { withAnimation(.easeInOut(duration: 0.12)) { expanded.toggle() } }
             .onHover { hovering = $0 }
+            .opacity(draggingRootID == root.id ? 0.4 : 1)
+            .onDrag {
+                draggingRootID = root.id
+                return NSItemProvider(object: root.id as NSString)
+            }
+            .onDrop(of: [.text],
+                    delegate: RootReorderDelegate(target: root, draggingRootID: $draggingRootID, state: state))
 
             if expanded || !q.isEmpty {
                 ForEach(root.children.filter { $0.matches(q) }) { node in
@@ -203,5 +213,28 @@ struct RootSectionView: View {
                 }
             }
         }
+    }
+}
+
+/// Live-reorders roots as a dragged folder hovers over another.
+struct RootReorderDelegate: DropDelegate {
+    let target: RootFolder
+    @Binding var draggingRootID: String?
+    let state: AppState
+
+    func dropEntered(info: DropInfo) {
+        guard let dragging = draggingRootID, dragging != target.id,
+              let from = state.roots.firstIndex(where: { $0.id == dragging }),
+              let to = state.roots.firstIndex(where: { $0.id == target.id }) else { return }
+        withAnimation(.easeInOut(duration: 0.15)) {
+            state.moveRoot(from: from, to: to > from ? to + 1 : to)
+        }
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal { DropProposal(operation: .move) }
+
+    func performDrop(info: DropInfo) -> Bool {
+        draggingRootID = nil
+        return true
     }
 }

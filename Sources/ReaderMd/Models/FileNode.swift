@@ -37,10 +37,12 @@ enum FileScanner {
     static func scan(_ directory: URL, depth: Int = 0) -> [FileNode] {
         guard depth <= 12 else { return [] }
         let fm = FileManager.default
+        // Note: hidden (dot-prefixed) entries are included so folders like
+        // `.github` are scanned; noisy dot-dirs are still pruned via ignoredDirs.
         guard let entries = try? fm.contentsOfDirectory(
             at: directory,
             includingPropertiesForKeys: [.isDirectoryKey],
-            options: [.skipsHiddenFiles]
+            options: []
         ) else { return [] }
 
         var nodes: [FileNode] = []

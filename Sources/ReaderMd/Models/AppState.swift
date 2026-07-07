@@ -178,6 +178,13 @@ final class AppState: ObservableObject {
         if persist { persistRoots() }
     }
 
+    /// Reorder roots by drag-and-drop in the sidebar.
+    func moveRoot(from: Int, to: Int) {
+        guard from != to, roots.indices.contains(from) else { return }
+        roots.move(fromOffsets: IndexSet(integer: from), toOffset: to)
+        persistRoots()
+    }
+
     func removeRoot(_ root: RootFolder) {
         // Clear the open file if it lived inside the folder being removed.
         if let file = selectedFile, file.url.path.hasPrefix(root.url.path + "/") {
