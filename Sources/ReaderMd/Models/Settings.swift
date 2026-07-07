@@ -11,6 +11,7 @@ enum Settings {
     private static let showSidebarKey = "reader.md.showSidebar"
     private static let sidebarWidthKey = "reader.md.sidebarWidth"
     private static let recentsKey = "reader.md.recents"
+    private static let showResolvedThreadsKey = "reader.md.showResolvedThreads"
 
     private static var defaults: UserDefaults { .standard }
 
@@ -82,5 +83,13 @@ enum Settings {
     }
     static func saveRecents(_ paths: [String]) {
         defaults.set(paths, forKey: recentsKey)
+    }
+
+    // Comment threads (#3)
+    static func loadShowResolvedThreads() -> Bool {
+        defaults.object(forKey: showResolvedThreadsKey) as? Bool ?? true
+    }
+    static func saveShowResolvedThreads(_ value: Bool) {
+        defaults.set(value, forKey: showResolvedThreadsKey)
     }
 }

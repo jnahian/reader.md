@@ -107,11 +107,12 @@ struct MarkdownWebView: NSViewRepresentable {
             coord.exportPDF()
         }
 
-        // Highlights: re-apply whenever the mark set changes (new/removed/recolored).
-        // A fresh render always re-applies too (see the "rendered" message handler),
-        // since re-rendering wipes the <mark> wrapper spans even when marks didn't change.
-        if coord.isReady, state.marks != coord.lastPushedMarks {
+        // Highlights: re-apply whenever the mark set OR resolved-thread visibility
+        // changes. A fresh render always re-applies too (see the "rendered" message
+        // handler), since re-rendering wipes the <mark> wrapper spans regardless.
+        if coord.isReady, state.marks != coord.lastPushedMarks || state.showResolvedThreads != coord.lastShowResolved {
             coord.lastPushedMarks = state.marks
+            coord.lastShowResolved = state.showResolvedThreads
             coord.applyMarks(json: state.marksJSON())
         }
     }
@@ -128,6 +129,7 @@ struct MarkdownWebView: NSViewRepresentable {
         var lastFindPrev: Int = 0
         var lastExport: Int = 0
         var lastPushedMarks: [Mark] = []
+        var lastShowResolved: Bool = true
         private var lastDark: Bool?
         private var lastScale: Double?
         private var lastWide: Bool?
@@ -193,48 +195,62 @@ struct MarkdownWebView: NSViewRepresentable {
             webView?.evaluateJavaScript("window.ReaderMd.applyMarks(\(Self.encode(json)));")
         }
 
-        /// Selection popover: pick a color and/or a note to create a new highlight.
+        /// Selection popover: pick a color and/or start a thread on a new highlight.
         private func showCreatePopover(anchor: TextAnchor, rect: [String: Double]) {
             let defaultColor = HighlightColor.yellow
             let view = MarkPopoverView(
                 color: nil,
-                existingNote: nil,
+                comments: [],
+                resolved: false,
                 onPickColor: { [weak self] color in
                     guard let self else { return }
                     Task { @MainActor in self.state.createMark(anchor: anchor, color: color) }
                     self.hidePopover()
                 },
-                onSaveNote: { [weak self] text in
+                onReply: { [weak self] text in
                     guard let self else { return }
                     Task { @MainActor in self.state.createMark(anchor: anchor, color: defaultColor, note: text) }
                     self.hidePopover()
                 },
-                onDeleteNote: nil,
+                onDeleteThread: nil,
+                onToggleResolved: nil,
                 onRemoveMark: nil
             )
             presentPopover(view, rect: rect)
         }
 
-        /// Existing-highlight popover: change color, add/edit/delete its note, or remove it.
+        /// Existing-highlight popover: change color, manage its thread, or remove it.
         private func showEditPopover(markID: UUID, rect: [String: Double]) {
             Task { @MainActor in
                 guard let mark = self.state.marks.first(where: { $0.id == markID }) else { return }
                 let view = MarkPopoverView(
                     color: mark.color,
-                    existingNote: mark.comments.first?.text,
+                    comments: mark.comments,
+                    resolved: mark.resolved,
                     onPickColor: { [weak self] color in
                         guard let self else { return }
                         Task { @MainActor in self.state.setMarkColor(markID, color: color) }
                         self.hidePopover()
                     },
-                    onSaveNote: { [weak self] text in
+                    onReply: { [weak self] text in
                         guard let self else { return }
-                        Task { @MainActor in self.state.setNote(markID, text: text) }
+                        // Re-show (not just hide) so the thread list reflects the new
+                        // reply — the popover's view was built from a value snapshot,
+                        // it doesn't observe AppState changes on its own.
+                        Task { @MainActor in
+                            self.state.addComment(markID, text: text)
+                            self.hidePopover()
+                            self.showEditPopover(markID: markID, rect: rect)
+                        }
+                    },
+                    onDeleteThread: { [weak self] in
+                        guard let self else { return }
+                        Task { @MainActor in self.state.deleteThread(markID) }
                         self.hidePopover()
                     },
-                    onDeleteNote: { [weak self] in
+                    onToggleResolved: { [weak self] in
                         guard let self else { return }
-                        Task { @MainActor in self.state.deleteNote(markID) }
+                        Task { @MainActor in self.state.setResolved(markID, resolved: !mark.resolved) }
                         self.hidePopover()
                     },
                     onRemoveMark: { [weak self] in
@@ -382,6 +398,7 @@ struct MarkdownWebView: NSViewRepresentable {
                 // A fresh render wipes any <mark> wrapper spans — always re-apply.
                 Task { @MainActor in
                     self.lastPushedMarks = self.state.marks
+                    self.lastShowResolved = self.state.showResolvedThreads
                     self.applyMarks(json: self.state.marksJSON())
                 }
 

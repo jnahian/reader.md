@@ -83,6 +83,9 @@
       content: ''; display: inline-block; width: 5px; height: 5px; border-radius: 50%;
       background: currentColor; opacity: 0.55; margin: 0 0 3px 3px; vertical-align: super;
     }
+    /* resolved comment thread (#3): de-emphasized, not hidden */
+    mark.rmd-highlight.resolved { opacity: 0.5; filter: saturate(0.45); }
+    mark.rmd-highlight.resolved.has-note::after { background: #57ab5a; opacity: 0.8; }
 
     /* image lightbox */
     #lightbox {
