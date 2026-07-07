@@ -450,7 +450,16 @@ function applyMarks(marksJSON) {
 // (keyboard selection); a collapsed/empty selection posts null to dismiss.
 function reportSelection() {
   const sel = window.getSelection();
-  if (!sel || sel.isCollapsed || sel.rangeCount === 0) { post('textSelected', null); return; }
+  if (!sel || sel.isCollapsed || sel.rangeCount === 0) {
+    // A plain click (collapsed) inside an existing highlight must not dismiss:
+    // markClicked is about to open the edit popover (with the no-color remove
+    // swatch), and posting null here would race-hide it.
+    const n = sel && sel.anchorNode;
+    const el = n && (n.nodeType === 1 ? n : n.parentElement);
+    if (el && el.closest && el.closest('mark.rmd-highlight')) return;
+    post('textSelected', null);
+    return;
+  }
   const range = sel.getRangeAt(0);
   if (!contentEl.contains(range.commonAncestorContainer)) { post('textSelected', null); return; }
   const offsets = offsetsFromRange(range);

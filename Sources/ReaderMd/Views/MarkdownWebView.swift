@@ -284,10 +284,11 @@ struct MarkdownWebView: NSViewRepresentable {
         private func positioningRect(from rect: [String: Double], in view: NSView) -> NSRect {
             let x = rect["x"] ?? 0, y = rect["y"] ?? 0
             let w = max(rect["width"] ?? 0, 1), h = max(rect["height"] ?? 0, 1)
-            if view.isFlipped {
-                return NSRect(x: x, y: y, width: w, height: h)
-            }
-            return NSRect(x: x, y: view.bounds.height - y - h, width: w, height: h)
+            // getBoundingClientRect gives top-left viewport px; this WKWebView is
+            // isFlipped, and NSPopover positions the rect in that same top-left
+            // space — so pass y straight through. Measured on-device: flipping via
+            // bounds.height mirrors the anchor to the wrong end. Do not flip.
+            return NSRect(x: x, y: y, width: w, height: h)
         }
 
         // MARK: Find

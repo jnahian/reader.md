@@ -52,6 +52,27 @@ struct MarkPopoverView: View {
                     .buttonStyle(.plain)
                 }
 
+                // "No color" swatch — removes the highlight. Only on an existing
+                // mark (nil onRemoveMark on a fresh selection, nothing to remove).
+                if let onRemoveMark {
+                    Button(action: onRemoveMark) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.clear)
+                                .overlay(Circle().strokeBorder(Color.secondary.opacity(0.6), lineWidth: 1))
+                            Path { p in
+                                p.move(to: CGPoint(x: 4, y: 16))
+                                p.addLine(to: CGPoint(x: 16, y: 4))
+                            }
+                            .stroke(Color.secondary, lineWidth: 1.5)
+                        }
+                        .frame(width: 20, height: 20)
+                        .contentShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("Remove highlight")
+                }
+
                 Divider().frame(height: 18)
 
                 Button {
@@ -62,15 +83,7 @@ struct MarkPopoverView: View {
                         .foregroundStyle(comments.isEmpty ? Color.secondary : Color.accentColor)
                 }
                 .buttonStyle(.plain)
-
-                if let onRemoveMark {
-                    Button(action: onRemoveMark) {
-                        Image(systemName: "trash")
-                            .font(.system(size: 13))
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                }
+                .help(comments.isEmpty ? "Add a note" : "Show comments")
             }
 
             if showThread {
@@ -104,7 +117,10 @@ struct MarkPopoverView: View {
                                     .foregroundStyle(.secondary)
                                 Text(comment.text)
                                     .font(.system(size: 11))
+                                    .multilineTextAlignment(.leading)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
                     .padding(.vertical, 2)
