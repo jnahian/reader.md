@@ -12,12 +12,16 @@ struct ReaderMdApp: App {
                 .environmentObject(state)
                 .frame(minWidth: 720, minHeight: 460)
                 .preferredColorScheme(state.theme.colorScheme)
+                .onOpenURL { url in
+                    if url.isFileURL { state.open(FileNode(url: url, isDirectory: false)) }
+                }
         }
         .windowStyle(.hiddenTitleBar)
         .commands {
             CommandGroup(replacing: .newItem) {
-                Button("Add Folder…") { state.pickFolders() }
+                Button("Open File…") { state.pickFile() }
                     .keyboardShortcut("o", modifiers: .command)
+                Button("Add Folder…") { state.pickFolders() }
                 Button("Quick Open…") { state.showQuickOpen = true }
                     .keyboardShortcut("p", modifiers: .command)
                 Divider()

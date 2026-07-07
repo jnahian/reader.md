@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import Combine
+import UniformTypeIdentifiers
 
 enum AppTheme: String, CaseIterable {
     case light, dark
@@ -141,6 +142,17 @@ final class AppState: ObservableObject {
     /// Add a folder dropped onto the window.
     func addDroppedFolder(_ url: URL) {
         addRoot(url, persist: true)
+    }
+
+    /// Open a single markdown file (not tied to any root folder).
+    func pickFile() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowedContentTypes = FileScanner.markdownExtensions.compactMap { UTType(filenameExtension: $0) }
+        if panel.runModal() == .OK, let url = panel.url {
+            open(FileNode(url: url, isDirectory: false))
+        }
     }
 
     private func addRoot(_ url: URL, persist: Bool) {

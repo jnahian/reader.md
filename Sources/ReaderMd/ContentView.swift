@@ -94,8 +94,11 @@ struct ContentView: View {
             _ = provider.loadObject(ofClass: URL.self) { url, _ in
                 guard let url else { return }
                 var isDir: ObjCBool = false
-                if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue {
+                guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir) else { return }
+                if isDir.boolValue {
                     Task { @MainActor in state.addDroppedFolder(url) }
+                } else if FileScanner.markdownExtensions.contains(url.pathExtension.lowercased()) {
+                    Task { @MainActor in state.open(FileNode(url: url, isDirectory: false)) }
                 }
             }
         }
