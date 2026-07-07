@@ -92,6 +92,12 @@ final class AppState: ObservableObject {
     @Published var findPrevToken: Int = 0
     @Published var exportToken: Int = 0
 
+    // Highlights/annotations/comments (#1/#2/#3) for the current document.
+    @Published var marks: [Mark] = []
+    @Published var orphanedMarkIDs: Set<UUID> = []
+    private let markStore = MarkStore()
+    private var currentMarkDoc: MarkDocument?
+
     // Navigation history
     @Published private(set) var recentFiles: [String] = []
     private var backStack: [FileNode] = []
@@ -190,6 +196,7 @@ final class AppState: ObservableObject {
         if let file = selectedFile, file.url.path.hasPrefix(root.url.path + "/") {
             selectedFile = nil
             toc = []
+            loadMarksForCurrentFile()
         }
         roots.removeAll { $0.id == root.id }
         rebuildWatchers()
@@ -215,6 +222,7 @@ final class AppState: ObservableObject {
             } else {
                 selectedFile = nil
                 toc = []
+                loadMarksForCurrentFile()
             }
         }
     }
@@ -299,6 +307,7 @@ final class AppState: ObservableObject {
         toc = []
         activeHeadingID = nil
         scrollProgress = 0
+        loadMarksForCurrentFile()
     }
 
     private func pushRecent(_ path: String) {
@@ -370,4 +379,71 @@ final class AppState: ObservableObject {
     var normalizedQuery: String { searchQuery.trimmingCharacters(in: .whitespaces).lowercased() }
 
     var readingMinutes: Int { max(1, Int((Double(wordCount) / 220.0).rounded())) }
+
+    // MARK: - Marks (highlighting / annotations / comments)
+
+    private func loadMarksForCurrentFile() {
+        guard let path = selectedFile?.url.path else {
+            currentMarkDoc = nil
+            marks = []
+            orphanedMarkIDs = []
+            return
+        }
+        if let doc = markStore.load(path: path) {
+            currentMarkDoc = doc
+            marks = doc.marks
+        } else {
+            let content = (try? String(contentsOfFile: path, encoding: .utf8)) ?? ""
+            currentMarkDoc = MarkDocument(schemaVersion: 1, filePath: path,
+                                           contentHash: MarkStore.sha256(content), marks: [])
+            marks = []
+        }
+        orphanedMarkIDs = []
+    }
+
+    @discardableResult
+    func createMark(anchor: TextAnchor, color: HighlightColor) -> Mark {
+        let mark = Mark(anchor: anchor, color: color)
+        marks.append(mark)
+        persistMarks()
+        return mark
+    }
+
+    func setMarkColor(_ id: UUID, color: HighlightColor) {
+        guard let idx = marks.firstIndex(where: { $0.id == id }) else { return }
+        marks[idx].color = color
+        marks[idx].updatedAt = Date()
+        persistMarks()
+    }
+
+    func deleteMark(_ id: UUID) {
+        marks.removeAll { $0.id == id }
+        orphanedMarkIDs.remove(id)
+        persistMarks()
+    }
+
+    func setOrphanedMarkIDs(_ ids: [String]) {
+        orphanedMarkIDs = Set(ids.compactMap { UUID(uuidString: $0) })
+    }
+
+    private func persistMarks() {
+        guard var doc = currentMarkDoc else { return }
+        doc.marks = marks
+        currentMarkDoc = doc
+        markStore.save(doc)
+    }
+
+    /// Marks for the current document, serialized for `window.ReaderMd.applyMarks`.
+    func marksJSON() -> String {
+        struct Wire: Codable {
+            let id: String
+            let anchor: TextAnchor
+            let color: String
+        }
+        let wire = marks.map { Wire(id: $0.id.uuidString, anchor: $0.anchor, color: $0.color.rawValue) }
+        guard let data = try? JSONEncoder().encode(wire), let json = String(data: data, encoding: .utf8) else {
+            return "[]"
+        }
+        return json
+    }
 }

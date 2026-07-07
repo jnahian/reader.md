@@ -105,12 +105,20 @@ struct StatusBar: View {
     @EnvironmentObject var state: AppState
 
     var body: some View {
-        Text(statusText)
-            .font(.system(size: 11))
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity)
-            .frame(height: 24)
-            .background(GlassPanel())
+        ZStack {
+            Text(statusText)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity)
+
+            HStack {
+                Spacer()
+                OrphanedMarksBadge()
+                    .padding(.trailing, 10)
+            }
+        }
+        .frame(height: 24)
+        .background(GlassPanel())
     }
 
     private var statusText: String {
