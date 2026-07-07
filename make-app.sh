@@ -20,6 +20,12 @@ mkdir -p "${APP}/Contents/MacOS" "${APP}/Contents/Resources"
 
 cp "${EXE}" "${APP}/Contents/MacOS/${APP_NAME}"
 
+# Bundle Sparkle.framework (auto-update) and point the binary at ../Frameworks.
+SPARKLE_FW="$(find .build/artifacts/sparkle/Sparkle/Sparkle.xcframework -type d -name Sparkle.framework -path '*macos*' | head -1)"
+mkdir -p "${APP}/Contents/Frameworks"
+cp -R "${SPARKLE_FW}" "${APP}/Contents/Frameworks/"
+install_name_tool -add_rpath "@executable_path/../Frameworks" "${APP}/Contents/MacOS/${APP_NAME}" 2>/dev/null || true
+
 # Copy resources into Contents/Resources (standard, signable). Bundle.resources
 # loads them via Bundle.main there. Placing the SwiftPM .bundle at the .app root
 # (where Bundle.module looks) is unsignable — codesign rejects contents at root.
@@ -50,10 +56,13 @@ cat > "${APP}/Contents/Info.plist" <<PLIST
   <key>CFBundleExecutable</key><string>${APP_NAME}</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>1.3.1</string>
-  <key>CFBundleVersion</key><string>6</string>
+  <key>CFBundleShortVersionString</key><string>1.3.2</string>
+  <key>CFBundleVersion</key><string>7</string>
   <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>NSHighResolutionCapable</key><true/>
+  <key>SUFeedURL</key><string>https://github.com/jnahian/reader.md/releases/latest/download/appcast.xml</string>
+  <key>SUPublicEDKey</key><string>tNhNMsfHkLZmnS/mTWYiAVIzYcj7yDjsHJWLgtB0Xe8=</string>
+  <key>SUEnableAutomaticChecks</key><true/>
   <key>NSPrincipalClass</key><string>NSApplication</string>
   <key>CFBundleDocumentTypes</key>
   <array>
@@ -94,6 +103,52 @@ ZIP="build/${APP_NAME}.zip"
 rm -f "${ZIP}"
 ditto -c -k --sequesterRsrc --keepParent "${APP}" "${ZIP}"
 
+# Styled drag-to-Applications installer DMG. Native only (hdiutil + Finder via
+# osascript, no create-dmg dep): build a read-write image, lay out the icons over
+# a background picture, then convert to a compressed read-only .dmg.
+DMG="build/${APP_NAME}.dmg"
+RW="build/rw.dmg"
+VOL="/Volumes/${APP_NAME}"
+
+swift dmg-background.swift build/dmg-bg.png
+
+rm -f "${DMG}" "${RW}"
+hdiutil detach "${VOL}" >/dev/null 2>&1 || true
+hdiutil create -size 100m -fs HFS+ -volname "${APP_NAME}" -ov "${RW}" >/dev/null
+hdiutil attach "${RW}" -readwrite -noverify -noautoopen -mountpoint "${VOL}" >/dev/null
+
+cp -R "${APP}" "${VOL}/"
+ln -s /Applications "${VOL}/Applications"
+mkdir "${VOL}/.background"
+cp build/dmg-bg.png "${VOL}/.background/bg.png"
+
+osascript <<APPLESCRIPT
+tell application "Finder"
+  tell disk "${APP_NAME}"
+    open
+    set current view of container window to icon view
+    set toolbar visible of container window to false
+    set statusbar visible of container window to false
+    set the bounds of container window to {400, 100, 1040, 500}
+    set opts to the icon view options of container window
+    set arrangement of opts to not arranged
+    set icon size of opts to 128
+    set background picture of opts to file ".background:bg.png"
+    set position of item "${APP_NAME}.app" of container window to {160, 205}
+    set position of item "Applications" of container window to {480, 205}
+    update without registering applications
+    delay 1
+    close
+  end tell
+end tell
+APPLESCRIPT
+
+sync
+hdiutil detach "${VOL}" >/dev/null
+hdiutil convert "${RW}" -format UDZO -ov -o "${DMG}" >/dev/null
+rm -f "${RW}"
+
 echo "Done: ${APP}"
 echo "Open with: open \"${APP}\""
 echo "Share:    ${ZIP}"
+echo "Installer: ${DMG}"

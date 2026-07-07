@@ -34,5 +34,9 @@ Native macOS markdown viewer: SwiftUI/AppKit shell wrapping a single `WKWebView`
 
 ## Conventions
 
-- The app is **not sandboxed** — folder access is direct paths, no security-scoped bookmarks. The `WKWebView` gets broad `file://` read access so markdown-referenced local images resolve. Nothing is fetched from the network; all rendering assets are bundled.
+- The app is **not sandboxed** — folder access is direct paths, no security-scoped bookmarks. The `WKWebView` gets broad `file://` read access so markdown-referenced local images resolve. All rendering assets are bundled; the only network access is Sparkle's auto-update check (fetching the appcast + update DMG).
 - Any macOS 26-only API needs an availability guard with a pre-26 fallback (deployment target is 13).
+
+## Auto-update (Sparkle)
+
+`SPUStandardUpdaterController` (`ReaderMdApp.swift`) drives auto-update; it only starts in the packaged `.app` (gated on `SUFeedURL` in Info.plist) so `swift run` doesn't error. `make-app.sh` bundles `Sparkle.framework` into `Contents/Frameworks`, adds the `@executable_path/../Frameworks` rpath, and injects `SUFeedURL`/`SUPublicEDKey`. The feed is `releases/latest/download/appcast.xml` on GitHub, so the newest release's appcast is always served. `release.sh` signs the DMG (EdDSA private key in the login keychain), runs `generate_appcast`, and uploads the DMG + appcast to a `v<version>` GitHub release. To cut a release: bump **both** `CFBundleShortVersionString` (display) and `CFBundleVersion` (the integer Sparkle actually compares — must increase every release) in `make-app.sh`, run `./make-app.sh`, then `./release.sh` (which refuses to publish if `CFBundleVersion` didn't increase past the published one). The binary is arm64-only, so updates are offered to Apple-silicon Macs only.

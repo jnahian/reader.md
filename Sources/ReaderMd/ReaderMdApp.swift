@@ -1,5 +1,13 @@
 import SwiftUI
 import AppKit
+import Sparkle
+
+// Auto-update via Sparkle. Only starts in the packaged .app (SUFeedURL in
+// Info.plist); nil under `swift run` so dev launches don't error on a missing feed.
+private let updaterController: SPUStandardUpdaterController? = {
+    guard Bundle.main.object(forInfoDictionaryKey: "SUFeedURL") != nil else { return nil }
+    return SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+}()
 
 @main
 struct ReaderMdApp: App {
@@ -20,6 +28,8 @@ struct ReaderMdApp: App {
         .commands {
             CommandGroup(replacing: .appInfo) {
                 Button("About Reader.md") { showAboutPanel() }
+                Button("Check for Updates…") { updaterController?.checkForUpdates(nil) }
+                    .disabled(updaterController == nil)
             }
 
             CommandGroup(replacing: .newItem) {
