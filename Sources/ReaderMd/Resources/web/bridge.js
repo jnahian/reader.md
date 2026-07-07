@@ -396,7 +396,9 @@ function resolveAnchor(anchor) {
 
 // Wrap a (possibly multi-node) range in one <mark> per intersecting text node,
 // since surroundContents() rejects ranges that partially select non-text nodes.
-function wrapRange(range, id, color) {
+// `note` (#2), when present, gets a small dot badge + hover tooltip on the
+// first fragment only, so a multi-node highlight doesn't repeat it.
+function wrapRange(range, id, color, note) {
   const nodes = [];
   const walker = document.createTreeWalker(contentEl, NodeFilter.SHOW_TEXT, {
     acceptNode: (node) => (range.intersectsNode(node) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT),
@@ -404,6 +406,7 @@ function wrapRange(range, id, color) {
   let node;
   while ((node = walker.nextNode())) nodes.push(node);
 
+  let markedFirst = false;
   nodes.forEach((textNode) => {
     const nodeRange = document.createRange();
     nodeRange.selectNodeContents(textNode);
@@ -414,6 +417,11 @@ function wrapRange(range, id, color) {
     mark.className = 'rmd-highlight';
     mark.dataset.markId = id;
     mark.dataset.color = color;
+    if (note && !markedFirst) {
+      mark.classList.add('has-note');
+      mark.title = note;
+      markedFirst = true;
+    }
     nodeRange.surroundContents(mark);
   });
 }
@@ -428,7 +436,7 @@ function applyMarks(marksJSON) {
     if (!offsets) { orphaned.push(m.id); continue; }
     const range = rangeFromOffsets(offsets.start, offsets.end);
     if (!range) { orphaned.push(m.id); continue; }
-    wrapRange(range, m.id, m.color);
+    wrapRange(range, m.id, m.color, m.note);
   }
   post('marksApplied', orphaned);
 }

@@ -401,9 +401,15 @@ final class AppState: ObservableObject {
         orphanedMarkIDs = []
     }
 
+    /// `note` is an optional convenience for creating an annotation (#2) in one
+    /// step — a Mark with a note is exactly a Mark with one `comments` entry,
+    /// there's no separate storage system for annotations.
     @discardableResult
-    func createMark(anchor: TextAnchor, color: HighlightColor) -> Mark {
-        let mark = Mark(anchor: anchor, color: color)
+    func createMark(anchor: TextAnchor, color: HighlightColor, note: String? = nil) -> Mark {
+        var mark = Mark(anchor: anchor, color: color)
+        if let trimmed = note?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty {
+            mark.comments = [Comment(author: NSFullUserName(), text: trimmed, createdAt: Date())]
+        }
         marks.append(mark)
         persistMarks()
         return mark
@@ -419,6 +425,30 @@ final class AppState: ObservableObject {
     func deleteMark(_ id: UUID) {
         marks.removeAll { $0.id == id }
         orphanedMarkIDs.remove(id)
+        persistMarks()
+    }
+
+    /// A mark carries at most one note for #2 — `comments` grows to a full
+    /// thread only with #3. Empty text is a no-op (use `deleteNote` to clear).
+    func setNote(_ id: UUID, text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, let idx = marks.firstIndex(where: { $0.id == id }) else { return }
+        if marks[idx].comments.isEmpty {
+            marks[idx].comments = [Comment(author: NSFullUserName(), text: trimmed, createdAt: Date())]
+        } else {
+            marks[idx].comments[0].text = trimmed
+            marks[idx].comments[0].editedAt = Date()
+        }
+        marks[idx].updatedAt = Date()
+        persistMarks()
+    }
+
+    /// Clears the note, reverting the mark back to a plain highlight — the
+    /// highlight itself is untouched.
+    func deleteNote(_ id: UUID) {
+        guard let idx = marks.firstIndex(where: { $0.id == id }) else { return }
+        marks[idx].comments = []
+        marks[idx].updatedAt = Date()
         persistMarks()
     }
 
@@ -439,8 +469,11 @@ final class AppState: ObservableObject {
             let id: String
             let anchor: TextAnchor
             let color: String
+            let note: String?
         }
-        let wire = marks.map { Wire(id: $0.id.uuidString, anchor: $0.anchor, color: $0.color.rawValue) }
+        let wire = marks.map {
+            Wire(id: $0.id.uuidString, anchor: $0.anchor, color: $0.color.rawValue, note: $0.comments.first?.text)
+        }
         guard let data = try? JSONEncoder().encode(wire), let json = String(data: data, encoding: .utf8) else {
             return "[]"
         }

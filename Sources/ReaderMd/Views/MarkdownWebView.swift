@@ -193,40 +193,61 @@ struct MarkdownWebView: NSViewRepresentable {
             webView?.evaluateJavaScript("window.ReaderMd.applyMarks(\(Self.encode(json)));")
         }
 
-        /// Selection popover: pick a color to create a new highlight.
+        /// Selection popover: pick a color and/or a note to create a new highlight.
         private func showCreatePopover(anchor: TextAnchor, rect: [String: Double]) {
-            let view = HighlightSwatchView(existingColor: nil, onPick: { [weak self] color in
-                guard let self else { return }
-                Task { @MainActor in
-                    self.state.createMark(anchor: anchor, color: color)
-                }
-                self.hidePopover()
-            }, onRemove: nil)
+            let defaultColor = HighlightColor.yellow
+            let view = MarkPopoverView(
+                color: nil,
+                existingNote: nil,
+                onPickColor: { [weak self] color in
+                    guard let self else { return }
+                    Task { @MainActor in self.state.createMark(anchor: anchor, color: color) }
+                    self.hidePopover()
+                },
+                onSaveNote: { [weak self] text in
+                    guard let self else { return }
+                    Task { @MainActor in self.state.createMark(anchor: anchor, color: defaultColor, note: text) }
+                    self.hidePopover()
+                },
+                onDeleteNote: nil,
+                onRemoveMark: nil
+            )
             presentPopover(view, rect: rect)
         }
 
-        /// Existing-highlight popover: change color or remove.
+        /// Existing-highlight popover: change color, add/edit/delete its note, or remove it.
         private func showEditPopover(markID: UUID, rect: [String: Double]) {
             Task { @MainActor in
                 guard let mark = self.state.marks.first(where: { $0.id == markID }) else { return }
-                let view = HighlightSwatchView(existingColor: mark.color, onPick: { [weak self] color in
-                    guard let self else { return }
-                    Task { @MainActor in
-                        self.state.setMarkColor(markID, color: color)
+                let view = MarkPopoverView(
+                    color: mark.color,
+                    existingNote: mark.comments.first?.text,
+                    onPickColor: { [weak self] color in
+                        guard let self else { return }
+                        Task { @MainActor in self.state.setMarkColor(markID, color: color) }
+                        self.hidePopover()
+                    },
+                    onSaveNote: { [weak self] text in
+                        guard let self else { return }
+                        Task { @MainActor in self.state.setNote(markID, text: text) }
+                        self.hidePopover()
+                    },
+                    onDeleteNote: { [weak self] in
+                        guard let self else { return }
+                        Task { @MainActor in self.state.deleteNote(markID) }
+                        self.hidePopover()
+                    },
+                    onRemoveMark: { [weak self] in
+                        guard let self else { return }
+                        Task { @MainActor in self.state.deleteMark(markID) }
+                        self.hidePopover()
                     }
-                    self.hidePopover()
-                }, onRemove: { [weak self] in
-                    guard let self else { return }
-                    Task { @MainActor in
-                        self.state.deleteMark(markID)
-                    }
-                    self.hidePopover()
-                })
+                )
                 self.presentPopover(view, rect: rect)
             }
         }
 
-        private func presentPopover(_ content: HighlightSwatchView, rect: [String: Double]) {
+        private func presentPopover<Content: View>(_ content: Content, rect: [String: Double]) {
             guard let webView else { return }
             hidePopover()
             let controller = NSHostingController(rootView: content)
