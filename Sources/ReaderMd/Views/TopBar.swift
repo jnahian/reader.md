@@ -4,6 +4,29 @@ struct TopBar: View {
     @EnvironmentObject var state: AppState
 
     var body: some View {
+        barContainer
+            .padding(.horizontal, 12)
+            .frame(height: ChromeMetrics.topBarHeight)
+            .background(
+                ZStack {
+                    GlassPanel()
+                    BackgroundDrag() // transparent hit layer for window dragging
+                    TrafficLightConfigurator() // centers the native window buttons in the bar
+                }
+            )
+    }
+
+    // Group the glass buttons so adjacent ones (e.g. back/forward) blend and
+    // morph together, per Apple's Liquid Glass guidance. macOS 26 only.
+    @ViewBuilder private var barContainer: some View {
+        if #available(macOS 26.0, *) {
+            GlassEffectContainer(spacing: 5) { bar }
+        } else {
+            bar
+        }
+    }
+
+    private var bar: some View {
         HStack(spacing: 8) {
             // leave just enough room for the native traffic lights (pinned by
             // TrafficLightConfigurator); the sidebar toggle sits right after them.
@@ -47,6 +70,7 @@ struct TopBar: View {
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
             .frame(width: 30, height: 24)
+            .toolbarGlassCapsule()
             .help("Text size & width")
 
             if !state.toc.isEmpty {
@@ -62,15 +86,6 @@ struct TopBar: View {
             .help(state.theme == .dark ? "Switch to light mode" : "Switch to dark mode")
         }
         .buttonStyle(ToolbarIconButtonStyle())
-        .padding(.horizontal, 12)
-        .frame(height: ChromeMetrics.topBarHeight)
-        .background(
-            ZStack {
-                GlassPanel()
-                BackgroundDrag() // transparent hit layer for window dragging
-                TrafficLightConfigurator() // centers the native window buttons in the bar
-            }
-        )
     }
 
     @ViewBuilder private var breadcrumb: some View {
