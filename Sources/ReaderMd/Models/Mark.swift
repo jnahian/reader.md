@@ -2,7 +2,8 @@ import SwiftUI
 
 /// A single anchored mark over rendered document text. Highlight, annotation, and
 /// comment-thread (issues #1/#2/#3) are all this one entity — they differ only in
-/// how many `comments` it has. #1 (highlighting) only ever produces empty `comments`.
+/// how many `comments` it has: `[]` is a highlight, one is an annotation (#2),
+/// more than one (with `resolved` toggled) is a comment thread (#3).
 struct Mark: Codable, Identifiable, Equatable {
     let id: UUID
     var anchor: TextAnchor
@@ -31,6 +32,14 @@ struct Comment: Codable, Identifiable, Equatable {
     var text: String
     let createdAt: Date
     var editedAt: Date?
+
+    init(id: UUID = UUID(), author: String, text: String, createdAt: Date = Date(), editedAt: Date? = nil) {
+        self.id = id
+        self.author = author
+        self.text = text
+        self.createdAt = createdAt
+        self.editedAt = editedAt
+    }
 }
 
 enum HighlightColor: String, Codable, CaseIterable, Equatable {
