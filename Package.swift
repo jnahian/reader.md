@@ -14,6 +14,11 @@ let package = Package(
                 .copy("Resources/web"),
                 .copy("Resources/AppIcon.png")
             ]
+        ),
+        .testTarget(
+            name: "ReaderMdTests",
+            dependencies: ["ReaderMd"],
+            path: "Tests/ReaderMdTests"
         )
     ]
 )

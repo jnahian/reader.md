@@ -14,9 +14,11 @@ A native macOS rebuild of the markdown viewer using SwiftUI and AppKit. The whol
 
 ## Features
 
-- **Multi-folder browser** — add any number of roots (⌘O, multi-select, or drag a folder onto the window); each is a collapsible section with a hover-to-reveal remove button
+- **Open anything** — a single `.md` file (⌘O or double-click in Finder), whole folders, or a mix; set Reader.md as your default markdown handler
+- **Multi-folder browser** — add any number of roots (multi-select, or drag folders onto the window); each is a collapsible section with a hover-to-reveal remove button, and roots reorder by drag
+- **Drag-and-drop** — drop a markdown file onto the content pane to open it
 - **Quick open** — ⌘P fuzzy file switcher across all roots, with keyboard navigation
-- **History** — back/forward (⌘[ / ⌘]) plus a recent-files list in the empty state
+- **History & recents** — back/forward (⌘[ / ⌘]) plus a managed recent-files list in the empty state
 - **File filter** — ⌘F filters the tree live across all roots
 - **In-page find** — ⇧⌘F native find bar with match highlighting (⌘G / ⇧⌘G for next/prev)
 - **Outline** — collapsible right pane (⌘⇧O) with a sliding accent rail marker and scrollspy
@@ -27,8 +29,11 @@ A native macOS rebuild of the markdown viewer using SwiftUI and AppKit. The whol
 - **Export to PDF** — ⌘E via the web view's native PDF renderer
 - **Liquid Glass chrome** — on macOS 26 (Tahoe) the topbar, sidebar, outline, find bar, and quick-open palette use Apple's `glassEffect`; on macOS 13–15 they fall back to translucent `NSVisualEffectView` material. Collapsible + resizable sidebar (⌘\, width persisted); breadcrumb reveals the file in Finder
 - **Syntax highlighting, Mermaid, LaTeX math** — via the bundled JS engines
+- **YAML frontmatter** — rendered as a clean key/value table at the top of the document
 - **Dark mode** — system / light / dark cycle, applied to both native chrome and web content
 - **Live reload** — the open file re-renders (scroll preserved) and the tree refreshes on disk changes
+- **Auto-update** — the packaged `.app` checks for and installs new releases via Sparkle
+- **About panel** — version and credits from the standard macOS About window
 
 ## Keyboard shortcuts
 
@@ -78,4 +83,14 @@ For a launch with no prompt at all, sign with a Developer ID and notarize (Xcode
 ## Notes
 
 - The app is **not** sandboxed, so it reads user-selected folders directly (no security-scoped bookmarks). For Mac App Store distribution you'd enable the sandbox and wrap folder access in bookmarks.
-- The `WKWebView` is granted broad file read access so `file://` images referenced by your markdown resolve; all rendering assets are local, nothing is fetched from the network.
+- The `WKWebView` is granted broad file read access so `file://` images referenced by your markdown resolve; all rendering assets are local — the only network access is Sparkle's auto-update check.
+
+## Contributing
+
+Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for setup,
+conventions, and the PR flow. By participating you agree to the
+[Code of Conduct](CODE_OF_CONDUCT.md).
+
+## License
+
+[MIT](LICENSE) © Julkar Naen Nahian
