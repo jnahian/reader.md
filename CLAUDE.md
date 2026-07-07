@@ -30,7 +30,7 @@ Native macOS markdown viewer: SwiftUI/AppKit shell wrapping a single `WKWebView`
 
 **File tree:** `FileScanner` / `RootFolder` (`FileNode.swift`) do a recursive markdown-only scan, pruning `node_modules`, `.git`, etc. `FolderWatcher` (FSEvents) watches each root subtree with a debounced callback; on disk change it bumps `reloadToken` (re-render, scroll preserved) and refreshes the tree.
 
-**Chrome / Liquid Glass:** `GlassPanel` applies `glassEffect` on macOS 26, falling back to `VisualEffectView` (an `NSVisualEffectView` wrapper) on 13–15. Glass is applied only to navigation layers (topbar, sidebar, outline, find bar, quick-open) — never behind scrolling content.
+**Chrome / Liquid Glass:** `GlassPanel` applies `glassEffect` on macOS 26, falling back to `VisualEffectView` (an `NSVisualEffectView` wrapper) on 13–15. Glass is applied only to navigation layers (topbar, sidebar, outline, find bar, quick-open) — never behind scrolling content. Don't stack glass *surfaces*, but interactive glass *controls* may sit on a glass surface when grouped in a `GlassEffectContainer` — that's the sanctioned Tahoe pattern, used by the topbar buttons (`ToolbarIconButtonStyle` / `toolbarGlassCapsule`).
 
 ## Conventions
 
