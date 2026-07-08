@@ -47,8 +47,9 @@ extension RemoteSync {
         process.executableURL = URL(fileURLWithPath: "/usr/bin/rsync")
         process.arguments = arguments(for: spec)
         let errPipe = Pipe()
+        // ponytail: rsync stderr on failure is a few lines — well under the pipe buffer; drain incrementally if verbose flags are ever added
         process.standardError = errPipe
-        process.standardOutput = Pipe()
+        process.standardOutput = FileHandle.nullDevice
 
         return await withCheckedContinuation { continuation in
             process.terminationHandler = { proc in
