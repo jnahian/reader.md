@@ -86,6 +86,7 @@ final class AppState: ObservableObject {
     @Published var showQuickOpen: Bool = false
     @Published var showFind: Bool = false
     @Published var findQuery: String = ""
+    @Published var showAddRemote: Bool = false
 
     // One-shot triggers consumed by the web view
     @Published var findNextToken: Int = 0
@@ -123,6 +124,7 @@ final class AppState: ObservableObject {
         recentFiles = Settings.loadRecents()
         showResolvedThreads = Settings.loadShowResolvedThreads()
         loadSavedRoots()
+        loadSavedRemotes()
     }
 
     // MARK: - Folder management
@@ -191,6 +193,7 @@ final class AppState: ObservableObject {
         guard from != to, roots.indices.contains(from) else { return }
         roots.move(fromOffsets: IndexSet(integer: from), toOffset: to)
         persistRoots()
+        persistRemotes()
     }
 
     func removeRoot(_ root: RootFolder) {
@@ -203,6 +206,7 @@ final class AppState: ObservableObject {
         roots.removeAll { $0.id == root.id }
         rebuildWatchers()
         persistRoots()
+        persistRemotes()
     }
 
     private func rebuildWatchers() {
@@ -230,7 +234,52 @@ final class AppState: ObservableObject {
     }
 
     private func persistRoots() {
-        Settings.saveFolderPaths(roots.map { $0.url.path })
+        Settings.saveFolderPaths(roots.filter { $0.remote == nil }.map { $0.url.path })
+    }
+
+    private func persistRemotes() {
+        Settings.saveRemotes(roots.compactMap { $0.remote })
+    }
+
+    // MARK: - Remote folders
+
+    private func loadSavedRemotes() {
+        for spec in Settings.loadRemotes() {
+            registerRemote(spec)
+            Task { await syncRemote(spec) }   // background auto-sync; quiet on failure
+        }
+    }
+
+    func addRemote(_ spec: RemoteSpec) {
+        guard !roots.contains(where: { $0.id == spec.id }) else { return }
+        registerRemote(spec)
+        persistRemotes()
+        Task { await syncRemote(spec) }
+    }
+
+    /// Creates the cache dir, appends a remote-tagged root + FSEvents watcher.
+    private func registerRemote(_ spec: RemoteSpec) {
+        try? FileManager.default.createDirectory(at: spec.cacheURL, withIntermediateDirectories: true)
+        roots.append(RootFolder(url: spec.cacheURL, remote: spec))
+        let watcher = FolderWatcher(path: spec.cacheURL.path) { [weak self] in
+            Task { @MainActor in self?.handleFolderChange() }
+        }
+        watchers.append(watcher)
+    }
+
+    func syncRemote(_ spec: RemoteSpec) async {
+        guard let root = roots.first(where: { $0.id == spec.id }) else { return }
+        root.syncStatus = .syncing
+        let result = await RemoteSync.run(spec)
+        if result.success {
+            root.syncStatus = .idle
+            root.rescan()
+            if let file = selectedFile, file.url.path.hasPrefix(root.url.path + "/") {
+                reloadToken += 1
+            }
+        } else {
+            root.syncStatus = .failed(result.message)
+        }
     }
 
     // MARK: - Theme / TOC persistence
