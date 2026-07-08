@@ -16,6 +16,7 @@ let package = Package(
             path: "Sources/ReaderMd",
             resources: [
                 .copy("Resources/web"),
+                .copy("Resources/docs"),
                 .copy("Resources/AppIcon.png")
             ]
         ),

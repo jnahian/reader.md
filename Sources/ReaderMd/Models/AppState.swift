@@ -355,6 +355,22 @@ final class AppState: ObservableObject {
         open(FileNode(url: URL(fileURLWithPath: path), isDirectory: false))
     }
 
+    /// Open a bundled help document (FAQ / SHORTCUTS / CHANGELOG) in the reader.
+    func openBundledDoc(_ name: String) {
+        guard let url = Bundle.resources.url(forResource: name, withExtension: "md", subdirectory: "docs") else { return }
+        open(FileNode(url: url, isDirectory: false))
+    }
+
+    /// Show the changelog once after the app updates to a new build. Skips the
+    /// first launch (fresh install) so new users aren't nagged, and no-ops under
+    /// `swift run` where there's no CFBundleVersion.
+    func checkWhatsNew() {
+        guard let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String else { return }
+        let seen = UserDefaults.standard.string(forKey: "lastSeenBuild")
+        UserDefaults.standard.set(build, forKey: "lastSeenBuild")
+        if let seen, seen != build { openBundledDoc("CHANGELOG") }
+    }
+
     func goBack() {
         guard let previous = backStack.popLast() else { return }
         if let current = selectedFile { forwardStack.append(current) }

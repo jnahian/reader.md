@@ -23,6 +23,7 @@ struct ReaderMdApp: App {
                 .onOpenURL { url in
                     if url.isFileURL { state.open(FileNode(url: url, isDirectory: false)) }
                 }
+                .onAppear { state.checkWhatsNew() }
         }
         .windowStyle(.hiddenTitleBar)
         .commands {
@@ -86,6 +87,20 @@ struct ReaderMdApp: App {
                 Button("Forward") { state.goForward() }
                     .keyboardShortcut("]", modifiers: .command)
                     .disabled(!state.canGoForward)
+            }
+
+            CommandGroup(replacing: .help) {
+                Button("Reader.md FAQ") { state.openBundledDoc("FAQ") }
+                Button("Keyboard Shortcuts") { state.openBundledDoc("SHORTCUTS") }
+                    .keyboardShortcut("/", modifiers: .command)
+                Button("Release Notes") { state.openBundledDoc("CHANGELOG") }
+                Divider()
+                Button("Report an Issue…") {
+                    NSWorkspace.shared.open(URL(string: "https://github.com/jnahian/reader.md/issues/new")!)
+                }
+                Button("View on GitHub") {
+                    NSWorkspace.shared.open(URL(string: "https://github.com/jnahian/reader.md")!)
+                }
             }
         }
     }
