@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// One row in the file tree — a directory (expandable) or a markdown file.
 struct FileTreeRow: View {
@@ -30,6 +31,13 @@ struct FileTreeRow: View {
         VStack(alignment: .leading, spacing: 1) {
             row(icon: "folder.fill", chevron: true, selected: false)
                 .onTapGesture { withAnimation(.easeInOut(duration: 0.12)) { expanded.toggle() } }
+                .contextMenu {
+                    Button(expanded ? "Collapse" : "Expand") {
+                        withAnimation(.easeInOut(duration: 0.12)) { expanded.toggle() }
+                    }
+                    Button("Reveal in Finder") { revealInFinder() }
+                    Button("Copy Path") { copyPath() }
+                }
 
             if expanded || isSearching {
                 ForEach(node.children.filter { $0.matches(query) }) { child in
@@ -43,6 +51,20 @@ struct FileTreeRow: View {
         row(icon: "doc.text", chevron: false, selected: isSelected)
             .contentShape(Rectangle())
             .onTapGesture { state.open(node) }
+            .contextMenu {
+                Button("Open") { state.open(node) }
+                Button("Reveal in Finder") { revealInFinder() }
+                Button("Copy Path") { copyPath() }
+            }
+    }
+
+    private func revealInFinder() {
+        NSWorkspace.shared.activateFileViewerSelecting([node.url])
+    }
+
+    private func copyPath() {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(node.url.path, forType: .string)
     }
 
     private func row(icon: String, chevron: Bool, selected: Bool) -> some View {

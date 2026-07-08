@@ -7,6 +7,7 @@ A native macOS rebuild of the markdown viewer using SwiftUI and AppKit. The whol
 - **SwiftUI shell** — `ContentView` lays out a draggable topbar, a resizable/collapsible sidebar, the content pane, and a collapsible outline; overlays host the find bar and quick-open palette.
 - **`AppState`** (`ObservableObject`, `@MainActor`) — roots, selection, theme, search, outline, typography, layout, history, and find/export triggers; persists to `UserDefaults`.
 - **`FileScanner` / `RootFolder`** — recursive markdown-only tree scan, pruning `node_modules`, `.git`, etc.
+- **`RemoteSpec` / `RemoteSync`** — a remote (SSH) folder is `rsync`'d read-only into a stable local cache dir, which registers as an ordinary root; `RemoteSync` builds the `rsync -e ssh` invocation (mirroring the scanner's include/ignore filters) and runs it via `Process`. Credentials come from the user's `~/.ssh` config/keys — none are stored in-app. The stable cache path keeps annotations intact across re-syncs.
 - **`FolderWatcher`** — FSEvents subtree watcher with a debounced callback for live reload.
 - **`MarkdownWebView`** — `NSViewRepresentable` around `WKWebView`. Swift ↔ JS bridge: Swift pushes markdown / theme / font settings via `evaluateJavaScript`; JS posts the outline, active heading, word count, scroll progress, and link clicks back through `WKScriptMessageHandler`. Native `WKWebView.find` powers in-page search; `createPDF` powers export.
 - **`GlassPanel` / `VisualEffectView`** — chrome surfaces use Apple's **Liquid Glass** (`glassEffect`) on macOS 26 (Tahoe) and fall back to an `NSVisualEffectView` material on macOS 13–15. Glass is applied only to the navigation layer (topbar, sidebar, outline, find bar, quick-open), never behind scrolling content.
@@ -15,7 +16,9 @@ A native macOS rebuild of the markdown viewer using SwiftUI and AppKit. The whol
 ## Features
 
 - **Open anything** — a single `.md` file (⌘O or double-click in Finder), whole folders, or a mix; set Reader.md as your default markdown handler
-- **Multi-folder browser** — add any number of roots (multi-select, or drag folders onto the window); each is a collapsible section with a hover-to-reveal remove button, and roots reorder by drag
+- **Multi-folder browser** — add any number of roots (multi-select, or drag folders onto the window); each is a collapsible section with hover-to-reveal actions, and roots reorder by drag
+- **Remote (SSH) folders** — add a folder from a VPS: Reader.md `rsync`s it read-only into a local cache and shows it like any root. Auto-syncs on launch (quietly), manual re-sync, edit-the-connection-in-place, and a cloud badge with sync/error state. Reuses your `~/.ssh` config and keys — no credentials stored. Add via the **Add Remote** button in the sidebar footer
+- **Context menus** — right-click any file, folder, root, or recent for Open / Reveal in Finder / Copy Path / Remove (and Edit Connection · Re-sync on remote roots)
 - **Drag-and-drop** — drop a markdown file onto the content pane to open it
 - **Quick open** — ⌘P fuzzy file switcher across all roots, with keyboard navigation
 - **History & recents** — back/forward (⌘[ / ⌘]) plus a managed recent-files list in the empty state
@@ -23,10 +26,10 @@ A native macOS rebuild of the markdown viewer using SwiftUI and AppKit. The whol
 - **In-page find** — ⇧⌘F native find bar with match highlighting (⌘G / ⇧⌘G for next/prev)
 - **Outline** — collapsible right pane (⌘⇧O) with a sliding accent rail marker and scrollspy
 - **Typography** — font size (⌘+ / ⌘− / ⌘0) and a wide/narrow reading-column toggle, both persisted
-- **Finder-style chrome** — capsule search field, grouped rounded toolbar icon buttons, a "FOLDERS" section header with tinted icons and a full-width selection pill, and a bottom status bar (markdown file count, or word count / reading-time for the open file), mirroring the macOS 26 Finder
+- **Finder-style chrome** — capsule search field; topbar controls grouped into left/right glass capsules with divider separators; a "FOLDERS" section header with tinted icons and a full-width selection pill; and a bottom status bar (markdown file count, or word count / reading-time for the open file), mirroring the macOS 26 Finder
 - **Reading feedback** — accent progress bar under the topbar; word count and reading time in the status bar
 - **Code copy buttons**, **image click-to-zoom** lightbox, and hover **heading anchors**
-- **Export to PDF** — ⌘E via the web view's native PDF renderer
+- **Export to PDF** (⌘E) and **manual reload** (⌘R) — toolbar buttons on the right, plus the web view's native PDF renderer
 - **Liquid Glass chrome** — on macOS 26 (Tahoe) the topbar, sidebar, outline, find bar, and quick-open palette use Apple's `glassEffect`; on macOS 13–15 they fall back to translucent `NSVisualEffectView` material. Collapsible + resizable sidebar (⌘\, width persisted); breadcrumb reveals the file in Finder
 - **Syntax highlighting, Mermaid, LaTeX math** — via the bundled JS engines
 - **YAML frontmatter** — rendered as a clean key/value table at the top of the document
@@ -44,6 +47,7 @@ A native macOS rebuild of the markdown viewer using SwiftUI and AppKit. The whol
 | ⌘G / ⇧⌘G | Find next / previous | ⌘[ / ⌘] | Back / forward |
 | ⌘\ | Toggle sidebar | ⌘⇧O | Toggle outline |
 | ⌘+ / ⌘− / ⌘0 | Text bigger / smaller / reset | ⌘E | Export PDF |
+| ⌘R | Reload | | |
 
 ## Requirements
 
@@ -83,7 +87,8 @@ For a launch with no prompt at all, sign with a Developer ID and notarize (Xcode
 ## Notes
 
 - The app is **not** sandboxed, so it reads user-selected folders directly (no security-scoped bookmarks). For Mac App Store distribution you'd enable the sandbox and wrap folder access in bookmarks.
-- The `WKWebView` is granted broad file read access so `file://` images referenced by your markdown resolve; all rendering assets are local — the only network access is Sparkle's auto-update check.
+- The `WKWebView` is granted broad file read access so `file://` images referenced by your markdown resolve; all rendering assets are local — the only network access is Sparkle's auto-update check and, for remote folders, `rsync`/`ssh` to the hosts you add.
+- **Remote folders** require `rsync` and `ssh` on your Mac (both ship with macOS) and rely on your `~/.ssh` config for reaching the host. Sync is read-only and pull-based (on launch + manual re-sync); Reader.md never writes back to the remote.
 
 ## Contributing
 

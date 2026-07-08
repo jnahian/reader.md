@@ -32,14 +32,16 @@ struct TopBar: View {
             // TrafficLightConfigurator); the sidebar toggle sits right after them.
             Color.clear.frame(width: 72, height: 1)
 
-            // Sidebar toggle
-            Button { state.toggleSidebar() } label: {
-                Image(systemName: "sidebar.left")
-            }
-            .help("Toggle sidebar (⌘\\)")
+            // Left-side controls — one glass capsule, segments split by a divider.
+            HStack(spacing: 0) {
+                Button { state.toggleSidebar() } label: {
+                    Image(systemName: "sidebar.left")
+                }
+                .help("Toggle sidebar (⌘\\)")
 
-            // Back / forward, grouped like Finder
-            HStack(spacing: 2) {
+                Divider().frame(height: 16)
+
+                // Back / forward, kept together like Finder.
                 Button { state.goBack() } label: { Image(systemName: "chevron.left") }
                     .disabled(!state.canGoBack)
                     .help("Back (⌘[)")
@@ -47,45 +49,65 @@ struct TopBar: View {
                     .disabled(!state.canGoForward)
                     .help("Forward (⌘])")
             }
-            .padding(.leading, 2)
+            .buttonStyle(ToolbarIconButtonStyle(glass: false))
+            .glassCapsule()
 
             breadcrumb
                 .padding(.leading, 4)
 
             Spacer(minLength: 8)
 
-            // Typography controls
-            Menu {
-                Button("Increase Text  ⌘+") { state.adjustFontScale(0.1) }
-                Button("Decrease Text  ⌘−") { state.adjustFontScale(-0.1) }
-                Button("Actual Size  ⌘0") { state.resetFontScale() }
-                Divider()
-                Toggle("Wide Reading Column", isOn: Binding(
-                    get: { state.wideReading },
-                    set: { _ in state.toggleWideReading() }
-                ))
-            } label: {
-                Image(systemName: "textformat.size")
-            }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .frame(width: 30, height: 24)
-            .toolbarGlassCapsule()
-            .help("Text size & width")
-
-            if !state.toc.isEmpty {
-                Button { state.setShowTOC(!state.showTOC) } label: {
-                    Image(systemName: "list.bullet")
+            // Right-side controls — one glass capsule, segments split by dividers.
+            HStack(spacing: 0) {
+                // Typography controls
+                Menu {
+                    Button("Increase Text  ⌘+") { state.adjustFontScale(0.1) }
+                    Button("Decrease Text  ⌘−") { state.adjustFontScale(-0.1) }
+                    Button("Actual Size  ⌘0") { state.resetFontScale() }
+                    Divider()
+                    Toggle("Wide Reading Column", isOn: Binding(
+                        get: { state.wideReading },
+                        set: { _ in state.toggleWideReading() }
+                    ))
+                } label: {
+                    Image(systemName: "textformat.size")
                 }
-                .help("Toggle outline (⌘⇧O)")
-            }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .frame(width: 30, height: 24)
+                .help("Text size & width")
 
-            Button { state.toggleTheme() } label: {
-                Image(systemName: state.theme.symbol)
+                if !state.toc.isEmpty {
+                    Divider().frame(height: 16)
+                    Button { state.setShowTOC(!state.showTOC) } label: {
+                        Image(systemName: "list.bullet")
+                    }
+                    .help("Toggle outline (⌘⇧O)")
+                }
+
+                Divider().frame(height: 16)
+                Button { state.triggerReload() } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .disabled(state.selectedFile == nil)
+                .help("Reload (⌘R)")
+
+                Divider().frame(height: 16)
+                Button { state.triggerExport() } label: {
+                    Image(systemName: "square.and.arrow.up")
+                }
+                .disabled(state.selectedFile == nil)
+                .help("Export as PDF (⌘E)")
+
+                Divider().frame(height: 16)
+                Button { state.toggleTheme() } label: {
+                    Image(systemName: state.theme.symbol)
+                }
+                .help(state.theme == .dark ? "Switch to light mode" : "Switch to dark mode")
             }
-            .help(state.theme == .dark ? "Switch to light mode" : "Switch to dark mode")
+            .buttonStyle(ToolbarIconButtonStyle(glass: false))
+            .glassCapsule()
         }
-        .buttonStyle(ToolbarIconButtonStyle())
     }
 
     @ViewBuilder private var breadcrumb: some View {

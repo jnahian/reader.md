@@ -1,10 +1,12 @@
 import SwiftUI
+import AppKit
 import UniformTypeIdentifiers
 
 struct SidebarView: View {
     @EnvironmentObject var state: AppState
     @FocusState private var searchFocused: Bool
     @State private var draggingRootID: String?
+    @State private var addHover = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -79,28 +81,67 @@ struct SidebarView: View {
             Divider().opacity(0.5)
 
             // Bottom add-folder bar, like Finder's sidebar footer controls
-            HStack(spacing: 4) {
-                Button { state.pickFolders() } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 12, weight: .medium))
-                        Text("Add Folder")
-                            .font(.system(size: 12))
+            HStack {
+                Spacer(minLength: 0)
+                HStack(spacing: 0) {
+                    Button { state.pickFolders() } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 13))
+                                .foregroundStyle(Color.accentColor)
+                            Text("Add Folder")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(.primary)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .contentShape(Rectangle())
                     }
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
-                    .contentShape(Rectangle())
+                    .buttonStyle(.plain)
+                    .help("Add a local folder")
+
+                    Divider().frame(height: 14)
+
+                    Button { state.showAddRemote = true } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "cloud")
+                                .font(.system(size: 12))
+                                .foregroundStyle(.secondary)
+                            Text("Add Remote")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(.primary)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("Add a remote (SSH) folder")
                 }
-                .buttonStyle(.plain)
-                .help("Add folder (⌘O)")
-                Spacer()
+                .fixedSize()
+                .glassCapsule(hovering: addHover)
+                .onHover { addHover = $0 }
+                Spacer(minLength: 0)
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
         }
         .background(GlassPanel())
         .onChange(of: state.focusSearch) { _ in searchFocused = true }
+        .sheet(isPresented: $state.showAddRemote) {
+            AddRemoteView().environmentObject(state)
+        }
+        .sheet(item: $state.editingRemote) { spec in
+            AddRemoteView(existing: spec).environmentObject(state)
+        }
+        .alert("Sync failed", isPresented: Binding(
+            get: { state.syncAlertError != nil },
+            set: { if !$0 { state.syncAlertError = nil } }
+        )) {
+            Button("OK") { state.syncAlertError = nil }
+        } message: {
+            Text(state.syncAlertError ?? "")
+        }
     }
 
     private func sectionHeader(_ title: String) -> some View {
@@ -159,6 +200,17 @@ struct RecentRow: View {
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
         .onTapGesture { state.openPath(path) }
+        .contextMenu {
+            Button("Reveal in Finder") {
+                NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
+            }
+            Button("Copy Path") {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(path, forType: .string)
+            }
+            Divider()
+            Button("Remove from Recents") { state.removeRecent(path) }
+        }
     }
 }
 
@@ -184,8 +236,41 @@ struct RootSectionView: View {
                 Text(root.name)
                     .font(.system(size: 13, weight: .semibold))
                     .lineLimit(1)
+                if root.isRemote {
+                    Image(systemName: "cloud")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                        .help("Remote folder")
+                    switch root.syncStatus {
+                    case .syncing:
+                        ProgressView().controlSize(.small).scaleEffect(0.7)
+                    case .failed(let msg):
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.orange)
+                            .help(msg)
+                    case .idle:
+                        EmptyView()
+                    }
+                }
                 Spacer(minLength: 4)
                 if hovering {
+                    if let spec = root.remote {
+                        Button { state.editingRemote = spec } label: {
+                            Image(systemName: "pencil").font(.system(size: 10))
+                        }
+                        .buttonStyle(.borderless)
+                        .foregroundStyle(.secondary)
+                        .help("Edit connection")
+                        Button {
+                            Task { await state.syncRemote(spec, surfaceErrors: true) }
+                        } label: {
+                            Image(systemName: "arrow.clockwise").font(.system(size: 10))
+                        }
+                        .buttonStyle(.borderless)
+                        .foregroundStyle(.secondary)
+                        .help("Re-sync")
+                    }
                     Button { state.removeRoot(root) } label: {
                         Image(systemName: "xmark").font(.system(size: 10))
                     }
@@ -206,6 +291,23 @@ struct RootSectionView: View {
             }
             .onDrop(of: [.text],
                     delegate: RootReorderDelegate(target: root, draggingRootID: $draggingRootID, state: state))
+            .contextMenu {
+                Button(expanded ? "Collapse" : "Expand") {
+                    withAnimation(.easeInOut(duration: 0.12)) { expanded.toggle() }
+                }
+                Button("Reveal in Finder") {
+                    NSWorkspace.shared.activateFileViewerSelecting([root.url])
+                }
+                if let spec = root.remote {
+                    Divider()
+                    Button("Edit Connection…") { state.editingRemote = spec }
+                    Button("Re-sync") { Task { await state.syncRemote(spec, surfaceErrors: true) } }
+                }
+                Divider()
+                Button(root.isRemote ? "Remove Remote Folder" : "Remove Folder") {
+                    state.removeRoot(root)
+                }
+            }
 
             if expanded || !q.isEmpty {
                 ForEach(root.children.filter { $0.matches(q) }) { node in

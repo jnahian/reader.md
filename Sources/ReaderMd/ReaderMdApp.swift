@@ -42,6 +42,9 @@ struct ReaderMdApp: App {
                 Button("Export as PDF…") { state.triggerExport() }
                     .keyboardShortcut("e", modifiers: .command)
                     .disabled(state.selectedFile == nil)
+                Button("Reload") { state.triggerReload() }
+                    .keyboardShortcut("r", modifiers: .command)
+                    .disabled(state.selectedFile == nil)
             }
 
             CommandMenu("Find") {

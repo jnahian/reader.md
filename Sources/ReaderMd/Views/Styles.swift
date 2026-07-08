@@ -5,15 +5,19 @@ import SwiftUI
 struct ToolbarIconButtonStyle: ButtonStyle {
     var width: CGFloat = 28
     var height: CGFloat = 24
+    /// When false, the button never draws its own glass surface — use inside a
+    /// grouped glass capsule so glass isn't stacked (only the subtle hover fill).
+    var glass: Bool = true
 
     func makeBody(configuration: Configuration) -> some View {
-        IconButton(configuration: configuration, width: width, height: height)
+        IconButton(configuration: configuration, width: width, height: height, glass: glass)
     }
 
     private struct IconButton: View {
         let configuration: ButtonStyleConfiguration
         let width: CGFloat
         let height: CGFloat
+        let glass: Bool
         @Environment(\.isEnabled) private var isEnabled
         @State private var hovering = false
 
@@ -25,13 +29,13 @@ struct ToolbarIconButtonStyle: ButtonStyle {
         }
 
         // macOS 26: an interactive Liquid Glass surface (reacts to hover/press on
-        // its own). Pre-26: the previous subtle rounded hover/press fill.
+        // its own). Pre-26, or when grouped in a capsule: the subtle hover/press fill.
         @ViewBuilder private var styledLabel: some View {
             let label = configuration.label
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.primary)
                 .frame(width: width, height: height)
-            if #available(macOS 26.0, *) {
+            if glass, #available(macOS 26.0, *) {
                 label.glassEffect(.regular.interactive(), in: Capsule())
             } else {
                 label.background(Capsule().fill(fillColor))
@@ -54,6 +58,18 @@ extension View {
             glassEffect(.regular.interactive(), in: Capsule())
         } else {
             self
+        }
+    }
+
+    /// A grouped glass capsule (e.g. the sidebar footer add-buttons or a topbar
+    /// button cluster): interactive Liquid Glass on macOS 26, a subtle fill +
+    /// stroke that brightens on hover below.
+    @ViewBuilder func glassCapsule(hovering: Bool = false) -> some View {
+        if #available(macOS 26.0, *) {
+            glassEffect(.regular.interactive(), in: Capsule())
+        } else {
+            background(Capsule().fill(Color.primary.opacity(hovering ? 0.10 : 0.06)))
+                .overlay(Capsule().stroke(Color.primary.opacity(0.08)))
         }
     }
 }
