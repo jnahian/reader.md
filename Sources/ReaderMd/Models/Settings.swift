@@ -4,6 +4,7 @@ import AppKit
 /// Lightweight persistence via UserDefaults.
 enum Settings {
     private static let foldersKey = "reader.md.folders"
+    private static let remotesKey = "reader.md.remotes"
     private static let themeKey = "reader.md.theme"
     private static let showTOCKey = "reader.md.showTOC"
     private static let fontScaleKey = "reader.md.fontScale"
@@ -21,6 +22,17 @@ enum Settings {
     }
     static func saveFolderPaths(_ paths: [String]) {
         defaults.set(paths, forKey: foldersKey)
+    }
+
+    // Remotes
+    static func loadRemotes() -> [RemoteSpec] {
+        guard let data = defaults.data(forKey: remotesKey),
+              let specs = try? JSONDecoder().decode([RemoteSpec].self, from: data) else { return [] }
+        return specs
+    }
+    static func saveRemotes(_ specs: [RemoteSpec]) {
+        guard let data = try? JSONEncoder().encode(specs) else { return }
+        defaults.set(data, forKey: remotesKey)
     }
 
     // Theme
