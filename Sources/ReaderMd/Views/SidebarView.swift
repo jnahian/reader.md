@@ -80,7 +80,10 @@ struct SidebarView: View {
 
             // Bottom add-folder bar, like Finder's sidebar footer controls
             HStack(spacing: 4) {
-                Button { state.pickFolders() } label: {
+                Menu {
+                    Button("Add Folder…") { state.pickFolders() }
+                    Button("Add Remote Folder…") { state.showAddRemote = true }
+                } label: {
                     HStack(spacing: 5) {
                         Image(systemName: "plus")
                             .font(.system(size: 12, weight: .medium))
@@ -92,8 +95,9 @@ struct SidebarView: View {
                     .padding(.vertical, 3)
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
-                .help("Add folder (⌘O)")
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                .help("Add a local or remote folder")
                 Spacer()
             }
             .padding(.horizontal, 8)
@@ -101,6 +105,9 @@ struct SidebarView: View {
         }
         .background(GlassPanel())
         .onChange(of: state.focusSearch) { _ in searchFocused = true }
+        .sheet(isPresented: $state.showAddRemote) {
+            AddRemoteView().environmentObject(state)
+        }
     }
 
     private func sectionHeader(_ title: String) -> some View {
