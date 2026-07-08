@@ -32,14 +32,16 @@ struct TopBar: View {
             // TrafficLightConfigurator); the sidebar toggle sits right after them.
             Color.clear.frame(width: 72, height: 1)
 
-            // Sidebar toggle
-            Button { state.toggleSidebar() } label: {
-                Image(systemName: "sidebar.left")
-            }
-            .help("Toggle sidebar (⌘\\)")
+            // Left-side controls — one glass capsule, segments split by a divider.
+            HStack(spacing: 0) {
+                Button { state.toggleSidebar() } label: {
+                    Image(systemName: "sidebar.left")
+                }
+                .help("Toggle sidebar (⌘\\)")
 
-            // Back / forward, grouped like Finder
-            HStack(spacing: 2) {
+                Divider().frame(height: 16)
+
+                // Back / forward, kept together like Finder.
                 Button { state.goBack() } label: { Image(systemName: "chevron.left") }
                     .disabled(!state.canGoBack)
                     .help("Back (⌘[)")
@@ -47,7 +49,8 @@ struct TopBar: View {
                     .disabled(!state.canGoForward)
                     .help("Forward (⌘])")
             }
-            .padding(.leading, 2)
+            .buttonStyle(ToolbarIconButtonStyle(glass: false))
+            .glassCapsule()
 
             breadcrumb
                 .padding(.leading, 4)
@@ -105,7 +108,6 @@ struct TopBar: View {
             .buttonStyle(ToolbarIconButtonStyle(glass: false))
             .glassCapsule()
         }
-        .buttonStyle(ToolbarIconButtonStyle())
     }
 
     @ViewBuilder private var breadcrumb: some View {
