@@ -87,6 +87,7 @@ final class AppState: ObservableObject {
     @Published var showFind: Bool = false
     @Published var findQuery: String = ""
     @Published var showAddRemote: Bool = false
+    @Published var syncAlertError: String? = nil
 
     // One-shot triggers consumed by the web view
     @Published var findNextToken: Int = 0
@@ -254,7 +255,7 @@ final class AppState: ObservableObject {
         guard !roots.contains(where: { $0.id == spec.id }) else { return }
         registerRemote(spec)
         persistRemotes()
-        Task { await syncRemote(spec) }
+        Task { await syncRemote(spec, surfaceErrors: true) }
     }
 
     /// Creates the cache dir, appends a remote-tagged root + FSEvents watcher.
@@ -267,7 +268,7 @@ final class AppState: ObservableObject {
         watchers.append(watcher)
     }
 
-    func syncRemote(_ spec: RemoteSpec) async {
+    func syncRemote(_ spec: RemoteSpec, surfaceErrors: Bool = false) async {
         guard let root = roots.first(where: { $0.id == spec.id }) else { return }
         guard root.syncStatus != .syncing else { return }
         root.syncStatus = .syncing
@@ -280,6 +281,7 @@ final class AppState: ObservableObject {
             }
         } else {
             root.syncStatus = .failed(result.message)
+            if surfaceErrors { syncAlertError = result.message }
         }
     }
 

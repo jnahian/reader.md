@@ -108,6 +108,14 @@ struct SidebarView: View {
         .sheet(isPresented: $state.showAddRemote) {
             AddRemoteView().environmentObject(state)
         }
+        .alert("Sync failed", isPresented: Binding(
+            get: { state.syncAlertError != nil },
+            set: { if !$0 { state.syncAlertError = nil } }
+        )) {
+            Button("OK") { state.syncAlertError = nil }
+        } message: {
+            Text(state.syncAlertError ?? "")
+        }
     }
 
     private func sectionHeader(_ title: String) -> some View {
@@ -176,7 +184,6 @@ struct RootSectionView: View {
     @Binding var draggingRootID: String?
     @State private var expanded = false
     @State private var hovering = false
-    @State private var syncError: String?
 
     var body: some View {
         let q = state.normalizedQuery
@@ -213,10 +220,7 @@ struct RootSectionView: View {
                 if hovering {
                     if let spec = root.remote {
                         Button {
-                            Task {
-                                await state.syncRemote(spec)
-                                if case .failed(let msg) = root.syncStatus { syncError = msg }
-                            }
+                            Task { await state.syncRemote(spec, surfaceErrors: true) }
                         } label: {
                             Image(systemName: "arrow.clockwise").font(.system(size: 10))
                         }
@@ -244,14 +248,6 @@ struct RootSectionView: View {
             }
             .onDrop(of: [.text],
                     delegate: RootReorderDelegate(target: root, draggingRootID: $draggingRootID, state: state))
-            .alert("Sync failed", isPresented: Binding(
-                get: { syncError != nil },
-                set: { if !$0 { syncError = nil } }
-            )) {
-                Button("OK") { syncError = nil }
-            } message: {
-                Text(syncError ?? "")
-            }
 
             if expanded || !q.isEmpty {
                 ForEach(root.children.filter { $0.matches(q) }) { node in
