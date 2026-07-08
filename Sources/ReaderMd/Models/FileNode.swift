@@ -1,5 +1,11 @@
 import Foundation
 
+enum RemoteSyncStatus: Equatable {
+    case idle
+    case syncing
+    case failed(String)
+}
+
 /// A node in the markdown file tree — either a directory or a markdown file.
 final class FileNode: Identifiable, Hashable {
     let id: String          // full path, unique
@@ -68,19 +74,24 @@ enum FileScanner {
     }
 }
 
-/// One root folder shown in the sidebar.
+/// One root folder shown in the sidebar. `remote` is non-nil when this root
+/// is the local cache of a synced remote folder.
 final class RootFolder: Identifiable, ObservableObject {
     let id: String
     let url: URL
+    let remote: RemoteSpec?
     @Published var children: [FileNode]
+    @Published var syncStatus: RemoteSyncStatus = .idle
 
-    init(url: URL) {
-        self.id = url.path
+    init(url: URL, remote: RemoteSpec? = nil) {
+        self.id = remote?.id ?? url.path
         self.url = url
+        self.remote = remote
         self.children = FileScanner.scan(url)
     }
 
-    var name: String { url.lastPathComponent }
+    var name: String { remote?.name ?? url.lastPathComponent }
+    var isRemote: Bool { remote != nil }
 
     func rescan() {
         children = FileScanner.scan(url)
