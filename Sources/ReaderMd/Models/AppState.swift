@@ -438,6 +438,7 @@ final class AppState: ObservableObject {
     func triggerFindNext() { findNextToken += 1 }
     func triggerFindPrev() { findPrevToken += 1 }
     func triggerExport() { exportToken += 1 }
+    func triggerReload() { reloadToken += 1 }
 
     // MARK: - Search helpers
 

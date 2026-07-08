@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 import UniformTypeIdentifiers
 
 struct SidebarView: View {
@@ -80,7 +81,8 @@ struct SidebarView: View {
             Divider().opacity(0.5)
 
             // Bottom add-folder bar, like Finder's sidebar footer controls
-            HStack(spacing: 4) {
+            HStack {
+                Spacer(minLength: 0)
                 HStack(spacing: 0) {
                     Button { state.pickFolders() } label: {
                         HStack(spacing: 6) {
@@ -117,9 +119,9 @@ struct SidebarView: View {
                     .help("Add a remote (SSH) folder")
                 }
                 .fixedSize()
-                .addFolderCapsule(hovering: addHover)
+                .glassCapsule(hovering: addHover)
                 .onHover { addHover = $0 }
-                Spacer()
+                Spacer(minLength: 0)
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
@@ -198,6 +200,17 @@ struct RecentRow: View {
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
         .onTapGesture { state.openPath(path) }
+        .contextMenu {
+            Button("Reveal in Finder") {
+                NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
+            }
+            Button("Copy Path") {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(path, forType: .string)
+            }
+            Divider()
+            Button("Remove from Recents") { state.removeRecent(path) }
+        }
     }
 }
 
@@ -278,6 +291,23 @@ struct RootSectionView: View {
             }
             .onDrop(of: [.text],
                     delegate: RootReorderDelegate(target: root, draggingRootID: $draggingRootID, state: state))
+            .contextMenu {
+                Button(expanded ? "Collapse" : "Expand") {
+                    withAnimation(.easeInOut(duration: 0.12)) { expanded.toggle() }
+                }
+                Button("Reveal in Finder") {
+                    NSWorkspace.shared.activateFileViewerSelecting([root.url])
+                }
+                if let spec = root.remote {
+                    Divider()
+                    Button("Edit Connection…") { state.editingRemote = spec }
+                    Button("Re-sync") { Task { await state.syncRemote(spec, surfaceErrors: true) } }
+                }
+                Divider()
+                Button(root.isRemote ? "Remove Remote Folder" : "Remove Folder") {
+                    state.removeRoot(root)
+                }
+            }
 
             if expanded || !q.isEmpty {
                 ForEach(root.children.filter { $0.matches(q) }) { node in
