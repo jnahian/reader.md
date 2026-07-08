@@ -158,10 +158,9 @@ struct RecentRow: View {
             Spacer(minLength: 0)
             if hovering {
                 Button { state.removeRecent(path) } label: {
-                    Image(systemName: "xmark").font(.system(size: 10))
+                    Image(systemName: "xmark")
                 }
-                .buttonStyle(.borderless)
-                .foregroundStyle(isSelected ? Color.white : Color.secondary)
+                .buttonStyle(ToolbarIconButtonStyle(width: 22, height: 20))
                 .help("Remove from recents")
             }
         }
@@ -221,28 +220,25 @@ struct RootSectionView: View {
                 }
                 Spacer(minLength: 4)
                 if hovering {
-                    if let spec = root.remote {
-                        Button { state.editingRemote = spec } label: {
-                            Image(systemName: "pencil").font(.system(size: 10))
+                    HStack(spacing: 2) {
+                        if let spec = root.remote {
+                            Button { state.editingRemote = spec } label: {
+                                Image(systemName: "pencil")
+                            }
+                            .help("Edit connection")
+                            Button {
+                                Task { await state.syncRemote(spec, surfaceErrors: true) }
+                            } label: {
+                                Image(systemName: "arrow.clockwise")
+                            }
+                            .help("Re-sync")
                         }
-                        .buttonStyle(.borderless)
-                        .foregroundStyle(.secondary)
-                        .help("Edit connection")
-                        Button {
-                            Task { await state.syncRemote(spec, surfaceErrors: true) }
-                        } label: {
-                            Image(systemName: "arrow.clockwise").font(.system(size: 10))
+                        Button { state.removeRoot(root) } label: {
+                            Image(systemName: "xmark")
                         }
-                        .buttonStyle(.borderless)
-                        .foregroundStyle(.secondary)
-                        .help("Re-sync")
+                        .help("Remove folder")
                     }
-                    Button { state.removeRoot(root) } label: {
-                        Image(systemName: "xmark").font(.system(size: 10))
-                    }
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(.secondary)
-                    .help("Remove folder")
+                    .buttonStyle(ToolbarIconButtonStyle(width: 22, height: 20))
                 }
             }
             .padding(.vertical, 5)
