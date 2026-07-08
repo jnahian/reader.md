@@ -108,6 +108,9 @@ struct SidebarView: View {
         .sheet(isPresented: $state.showAddRemote) {
             AddRemoteView().environmentObject(state)
         }
+        .sheet(item: $state.editingRemote) { spec in
+            AddRemoteView(existing: spec).environmentObject(state)
+        }
         .alert("Sync failed", isPresented: Binding(
             get: { state.syncAlertError != nil },
             set: { if !$0 { state.syncAlertError = nil } }
@@ -219,6 +222,12 @@ struct RootSectionView: View {
                 Spacer(minLength: 4)
                 if hovering {
                     if let spec = root.remote {
+                        Button { state.editingRemote = spec } label: {
+                            Image(systemName: "pencil").font(.system(size: 10))
+                        }
+                        .buttonStyle(.borderless)
+                        .foregroundStyle(.secondary)
+                        .help("Edit connection")
                         Button {
                             Task { await state.syncRemote(spec, surfaceErrors: true) }
                         } label: {
