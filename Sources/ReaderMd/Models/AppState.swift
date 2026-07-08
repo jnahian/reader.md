@@ -269,6 +269,7 @@ final class AppState: ObservableObject {
 
     func syncRemote(_ spec: RemoteSpec) async {
         guard let root = roots.first(where: { $0.id == spec.id }) else { return }
+        guard root.syncStatus != .syncing else { return }
         root.syncStatus = .syncing
         let result = await RemoteSync.run(spec)
         if result.success {
