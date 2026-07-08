@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.5.0 — 2026-07-08
 
 - **Remote (SSH) folders** — add a remote folder and Reader.md syncs it
   read-only to a local cache via rsync.
