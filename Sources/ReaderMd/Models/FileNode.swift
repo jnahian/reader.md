@@ -79,7 +79,7 @@ enum FileScanner {
 final class RootFolder: Identifiable, ObservableObject {
     let id: String
     let url: URL
-    let remote: RemoteSpec?
+    @Published var remote: RemoteSpec?
     @Published var children: [FileNode]
     @Published var syncStatus: RemoteSyncStatus = .idle
 

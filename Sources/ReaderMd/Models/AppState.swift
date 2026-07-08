@@ -87,6 +87,7 @@ final class AppState: ObservableObject {
     @Published var showFind: Bool = false
     @Published var findQuery: String = ""
     @Published var showAddRemote: Bool = false
+    @Published var editingRemote: RemoteSpec? = nil
     @Published var syncAlertError: String? = nil
 
     // One-shot triggers consumed by the web view
@@ -254,6 +255,16 @@ final class AppState: ObservableObject {
     func addRemote(_ spec: RemoteSpec) {
         guard !roots.contains(where: { $0.id == spec.id }) else { return }
         registerRemote(spec)
+        persistRemotes()
+        Task { await syncRemote(spec, surfaceErrors: true) }
+    }
+
+    /// Edit an existing remote in place. The spec keeps its original `id`
+    /// (so `cacheURL` — and thus marks — are unchanged); only name/host/path
+    /// change. Persists and re-syncs (loud, user-initiated).
+    func updateRemote(_ spec: RemoteSpec) {
+        guard let root = roots.first(where: { $0.id == spec.id }) else { return }
+        root.remote = spec
         persistRemotes()
         Task { await syncRemote(spec, surfaceErrors: true) }
     }
