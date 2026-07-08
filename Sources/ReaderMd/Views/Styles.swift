@@ -56,4 +56,15 @@ extension View {
             self
         }
     }
+
+    /// Sidebar footer "Add Folder" capsule: interactive Liquid Glass on macOS 26,
+    /// a subtle fill + stroke that brightens on hover below.
+    @ViewBuilder func addFolderCapsule(hovering: Bool) -> some View {
+        if #available(macOS 26.0, *) {
+            glassEffect(.regular.interactive(), in: Capsule())
+        } else {
+            background(Capsule().fill(Color.primary.opacity(hovering ? 0.10 : 0.06)))
+                .overlay(Capsule().stroke(Color.primary.opacity(0.08)))
+        }
+    }
 }

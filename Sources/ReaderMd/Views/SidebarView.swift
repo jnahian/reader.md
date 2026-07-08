@@ -5,6 +5,7 @@ struct SidebarView: View {
     @EnvironmentObject var state: AppState
     @FocusState private var searchFocused: Bool
     @State private var draggingRootID: String?
+    @State private var addHover = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -84,19 +85,26 @@ struct SidebarView: View {
                     Button("Add Folder…") { state.pickFolders() }
                     Button("Add Remote Folder…") { state.showAddRemote = true }
                 } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 12, weight: .medium))
+                    HStack(spacing: 6) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Color.accentColor)
                         Text("Add Folder")
-                            .font(.system(size: 12))
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.primary)
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(.secondary)
                     }
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
-                    .contentShape(Rectangle())
+                    .padding(.horizontal, 11)
+                    .padding(.vertical, 5)
+                    .contentShape(Capsule())
                 }
                 .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
                 .fixedSize()
+                .addFolderCapsule(hovering: addHover)
+                .onHover { addHover = $0 }
                 .help("Add a local or remote folder")
                 Spacer()
             }
