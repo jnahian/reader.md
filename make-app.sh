@@ -6,6 +6,9 @@ set -euo pipefail
 cd "$(dirname "$0")"
 APP_NAME="Reader.md"
 BUNDLE_ID="com.nahian.reader-md"
+# CFBundleVersion is what Sparkle compares; derive it from the build time so it's
+# always monotonic — no manual bump, no silent "no update" from a stale integer.
+BUILD_NUMBER="$(date +%Y%m%d%H%M)"
 
 echo "Building release..."
 swift build -c release
@@ -57,7 +60,7 @@ cat > "${APP}/Contents/Info.plist" <<PLIST
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>1.4.0</string>
-  <key>CFBundleVersion</key><string>8</string>
+  <key>CFBundleVersion</key><string>${BUILD_NUMBER}</string>
   <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>SUFeedURL</key><string>https://github.com/jnahian/reader.md/releases/latest/download/appcast.xml</string>
