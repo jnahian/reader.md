@@ -176,6 +176,7 @@ struct RootSectionView: View {
     @Binding var draggingRootID: String?
     @State private var expanded = false
     @State private var hovering = false
+    @State private var syncError: String?
 
     var body: some View {
         let q = state.normalizedQuery
@@ -191,8 +192,38 @@ struct RootSectionView: View {
                 Text(root.name)
                     .font(.system(size: 13, weight: .semibold))
                     .lineLimit(1)
+                if root.isRemote {
+                    Image(systemName: "cloud")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                        .help("Remote folder")
+                    switch root.syncStatus {
+                    case .syncing:
+                        ProgressView().controlSize(.small).scaleEffect(0.7)
+                    case .failed(let msg):
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.orange)
+                            .help(msg)
+                    case .idle:
+                        EmptyView()
+                    }
+                }
                 Spacer(minLength: 4)
                 if hovering {
+                    if let spec = root.remote {
+                        Button {
+                            Task {
+                                await state.syncRemote(spec)
+                                if case .failed(let msg) = root.syncStatus { syncError = msg }
+                            }
+                        } label: {
+                            Image(systemName: "arrow.clockwise").font(.system(size: 10))
+                        }
+                        .buttonStyle(.borderless)
+                        .foregroundStyle(.secondary)
+                        .help("Re-sync")
+                    }
                     Button { state.removeRoot(root) } label: {
                         Image(systemName: "xmark").font(.system(size: 10))
                     }
@@ -213,6 +244,14 @@ struct RootSectionView: View {
             }
             .onDrop(of: [.text],
                     delegate: RootReorderDelegate(target: root, draggingRootID: $draggingRootID, state: state))
+            .alert("Sync failed", isPresented: Binding(
+                get: { syncError != nil },
+                set: { if !$0 { syncError = nil } }
+            )) {
+                Button("OK") { syncError = nil }
+            } message: {
+                Text(syncError ?? "")
+            }
 
             if expanded || !q.isEmpty {
                 ForEach(root.children.filter { $0.matches(q) }) { node in
