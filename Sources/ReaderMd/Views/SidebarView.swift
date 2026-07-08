@@ -81,31 +81,44 @@ struct SidebarView: View {
 
             // Bottom add-folder bar, like Finder's sidebar footer controls
             HStack(spacing: 4) {
-                Menu {
-                    Button("Add Folder…") { state.pickFolders() }
-                    Button("Add Remote Folder…") { state.showAddRemote = true }
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 13))
-                            .foregroundStyle(Color.accentColor)
-                        Text("Add Folder")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(.primary)
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundStyle(.secondary)
+                HStack(spacing: 0) {
+                    Button { state.pickFolders() } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 13))
+                                .foregroundStyle(Color.accentColor)
+                            Text("Add Folder")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(.primary)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .contentShape(Rectangle())
                     }
-                    .padding(.horizontal, 11)
-                    .padding(.vertical, 5)
-                    .contentShape(Capsule())
+                    .buttonStyle(.plain)
+                    .help("Add a local folder")
+
+                    Divider().frame(height: 14)
+
+                    Button { state.showAddRemote = true } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "cloud")
+                                .font(.system(size: 12))
+                                .foregroundStyle(.secondary)
+                            Text("Add Remote")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(.primary)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("Add a remote (SSH) folder")
                 }
-                .menuStyle(.borderlessButton)
-                .menuIndicator(.hidden)
                 .fixedSize()
                 .addFolderCapsule(hovering: addHover)
                 .onHover { addHover = $0 }
-                .help("Add a local or remote folder")
                 Spacer()
             }
             .padding(.horizontal, 8)
