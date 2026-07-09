@@ -1,5 +1,8 @@
 ---
 import "../styles/global.css";
+import SunMoon from "@lucide/astro/icons/sun-moon";
+import Sun from "@lucide/astro/icons/sun";
+import Moon from "@lucide/astro/icons/moon";
 
 interface Props {
   title: string;
@@ -24,10 +27,15 @@ const nav = [
 <!doctype html>
 <html lang="en">
   <head>
+    <script is:inline>
+      const t = localStorage.getItem("theme");
+      if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+    </script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="/icon.png" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
@@ -45,6 +53,17 @@ const nav = [
             <a href={item.href} class="hover:text-fg">{item.label}</a>
           ))}
           <a href={repo} class="hover:text-fg">GitHub</a>
+          <button
+            type="button"
+            id="theme-toggle"
+            class="text-muted hover:text-fg"
+            aria-label="Theme: system (click to switch to light)"
+            title="Theme: system (click to switch to light)"
+          >
+            <SunMoon class="theme-icon-system size-4" />
+            <Sun class="theme-icon-light size-4" />
+            <Moon class="theme-icon-dark size-4" />
+          </button>
         </div>
       </nav>
     </header>
@@ -54,5 +73,46 @@ const nav = [
     <footer class="border-t border-border py-12 text-center text-sm text-muted">
       <p>MIT © Julkar Naen Nahian · <a href={repo} class="underline hover:text-fg">GitHub</a> · <a href={`${repo}/releases`} class="underline hover:text-fg">Releases</a></p>
     </footer>
+    <script is:inline>
+      const btn = document.getElementById("theme-toggle");
+      const labels = { system: "system (click to switch to light)", light: "light (click to switch to dark)", dark: "dark (click to switch to system)" };
+      const label = (theme) => "Theme: " + labels[theme];
+      btn.setAttribute("aria-label", label(document.documentElement.dataset.theme || "system"));
+      btn.setAttribute("title", label(document.documentElement.dataset.theme || "system"));
+      btn.addEventListener("click", () => {
+        const current = document.documentElement.dataset.theme || "system";
+        const next = current === "system" ? "light" : current === "light" ? "dark" : "system";
+        if (next === "system") {
+          delete document.documentElement.dataset.theme;
+          localStorage.removeItem("theme");
+        } else {
+          document.documentElement.dataset.theme = next;
+          localStorage.setItem("theme", next);
+        }
+        btn.setAttribute("aria-label", label(next));
+        btn.setAttribute("title", label(next));
+      });
+    </script>
   </body>
 </html>
+
+<style is:global>
+  .theme-icon-light,
+  .theme-icon-dark {
+    display: none;
+  }
+  html[data-theme="light"] .theme-icon-system,
+  html[data-theme="dark"] .theme-icon-system {
+    display: none;
+  }
+  html[data-theme="light"] .theme-icon-light {
+    display: block;
+  }
+  html[data-theme="dark"] .theme-icon-dark {
+    display: block;
+  }
+  #theme-toggle {
+    display: flex;
+    align-items: center;
+  }
+</style>
