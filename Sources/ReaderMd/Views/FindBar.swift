@@ -51,7 +51,9 @@ struct FindBar: View {
         .background(GlassPanel(cornerRadius: 12, material: .hudWindow))
         .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Color.white.opacity(0.12)))
         .shadow(color: .black.opacity(0.18), radius: 12, y: 3)
-        .onAppear { focused = true }
+        // Async for the same reason as QuickOpenView: ⌘F is a menu command, and AppKit
+        // restores the window's first responder after the menu dismisses.
+        .onAppear { DispatchQueue.main.async { focused = true } }
     }
 
     private func close() {

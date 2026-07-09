@@ -105,7 +105,11 @@ struct QuickOpenView: View {
         // The focused TextField swallows arrow keys before .onMoveCommand can see
         // them, so intercept up/down with a local monitor while the palette is open.
         .onAppear {
-            focused = true
+            // Async, not direct: ⌘P arrives as a menu command, and AppKit restores the
+            // window's first responder *after* the menu dismisses — clobbering a focus
+            // set synchronously here. One runloop turn later, the restore has happened
+            // and the field keeps focus.
+            DispatchQueue.main.async { focused = true }
             keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
                 let count = matches.count
                 switch event.keyCode {
