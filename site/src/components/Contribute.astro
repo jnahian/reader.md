@@ -1,22 +1,26 @@
 ---
+import Star from "@lucide/astro/icons/star";
+import MessageSquare from "@lucide/astro/icons/message-square";
+import GitPullRequest from "@lucide/astro/icons/git-pull-request";
+
 const repo = "https://github.com/jnahian/reader.md";
 const links = [
   {
-    icon: "⭐️",
+    icon: Star,
     title: "Star the repo",
     body: "Reader.md is free and MIT-licensed. A star helps others find it.",
     href: repo,
     cta: "Star on GitHub",
   },
   {
-    icon: "💬",
+    icon: MessageSquare,
     title: "Share feedback",
     body: "Found a bug or wish it did something more? Open an issue — every report gets read.",
     href: `${repo}/issues/new`,
     cta: "Report an issue",
   },
   {
-    icon: "🛠",
+    icon: GitPullRequest,
     title: "Contribute",
     body: "PRs welcome — the contributing guide covers setup, conventions, and the PR flow.",
     href: `${repo}/blob/main/CONTRIBUTING.md`,
@@ -29,12 +33,14 @@ const links = [
   <div class="mx-auto max-w-5xl px-6">
     <h2 class="mb-12 text-center text-3xl font-bold tracking-tight">Open source, open ears</h2>
     <div class="grid gap-5 md:grid-cols-3">
-      {links.map((l) => (
+      {links.map(({ icon: Icon, title, body, href, cta }) => (
         <div class="rounded-2xl border border-border bg-card p-6 text-center">
-          <div class="text-2xl">{l.icon}</div>
-          <h3 class="mb-1.5 mt-2.5 text-lg font-semibold">{l.title}</h3>
-          <p class="mb-4 text-sm text-muted">{l.body}</p>
-          <a href={l.href} class="text-sm font-medium text-accent hover:underline">{l.cta} →</a>
+          <div class="flex justify-center">
+            <Icon class="size-6 text-accent" />
+          </div>
+          <h3 class="mb-1.5 mt-2.5 text-lg font-semibold">{title}</h3>
+          <p class="mb-4 text-sm text-muted">{body}</p>
+          <a href={href} class="text-sm font-medium text-accent hover:underline">{cta} →</a>
         </div>
       ))}
     </div>
