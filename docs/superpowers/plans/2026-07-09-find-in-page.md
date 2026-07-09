@@ -621,7 +621,7 @@ next/prev when there are zero matches instead of on empty query."
 - Consumes: `AppState.showFind: Bool`, `AppState.selectedFile: FileNode?`.
 - Produces: nothing new.
 
-- [ ] **Step 1: Add the `magnifyingglass` button**
+- [x] **Step 1: Add the `magnifyingglass` button**
 
 In `Sources/ReaderMd/Views/TopBar.swift`, in the right-hand glass capsule, insert the find button between the outline (`if !state.toc.isEmpty { … }`) block and the reload divider (currently the reload block starts at line 88). Insert immediately before this existing code:
 
@@ -647,7 +647,7 @@ the new block:
 
 (Result order in the capsule: typography menu · [outline] · **find** · reload · export · theme. The find button follows the existing `ToolbarIconButtonStyle(glass: false)` + `.glassCapsule()` grouping applied to the whole `HStack`.)
 
-- [ ] **Step 2: Build**
+- [x] **Step 2: Build**
 
 Run: `swift build`
 Expected: `Build complete!`
@@ -658,7 +658,7 @@ Run: `swift run`.
 - With no file open: the topbar shows a magnifying-glass button in the right capsule and it is **disabled** (dimmed), matching reload/export.
 - Add `/tmp/reader-find-fixtures`, open `basic.md`: the button enables. Hover shows the tooltip "Find in page (⌘F)". Click it: the find bar appears.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add Sources/ReaderMd/Views/TopBar.swift
