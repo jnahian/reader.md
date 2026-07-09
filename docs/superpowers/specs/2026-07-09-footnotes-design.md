@@ -35,12 +35,22 @@ Vendor `marked-footnote@1.4.0` rather than hand-rolling a tokenizer.
 - peers on `marked >= 7.0.0`; the bundled `marked` is v12.0.2
 - ships `dist/index.umd.js`, which exposes `window.markedFootnote`
 
-Its output, confirmed by reading its source, is the standard GFM footnote shape:
+Its output, confirmed by reading its source, is the standard GFM footnote shape.
+**It must be configured** — two of its defaults are wrong for us:
+
+```js
+marked.use(markedFootnote({ footnoteDivider: true }));
+```
+
+`footnoteDivider` defaults to `false` (`footnoteDivider: f = !1` in the minified
+source), so **the `<hr>` is not emitted unless we ask for it** — request item 3A
+would silently never render. With it on:
 
 ```html
 Body text<sup><a id="footnote-ref-1" href="#footnote-1" data-footnote-ref>1</a></sup>
 
-<section data-footnotes>
+<section class="footnotes" data-footnotes>
+  <h2 id="footnote-label" class="sr-only">Footnotes</h2>
   <hr data-footnotes>
   <ol>
     <li id="footnote-1">The note. <a href="#footnote-ref-1" data-footnote-backref>↩</a></li>
@@ -48,12 +58,23 @@ Body text<sup><a id="footnote-ref-1" href="#footnote-1" data-footnote-ref>1</a><
 </section>
 ```
 
-That output satisfies three of the four sub-requests with no code of our own:
+The `<h2 class="sr-only">Footnotes</h2>` is not optional — the extension always
+emits it as an accessibility label (`headingClass: o = "sr-only"`), and there is no
+option to suppress it. `sr-only` is a Bootstrap/Tailwind convention that **does not
+exist in this app's CSS**, so without a rule for it the word "Footnotes" renders
+visibly. It also has two knock-on effects we must handle, because `bridge.js`
+post-processes headings after `marked` runs:
+
+- `postTOC()` scans `h1,h2,h3,h4` → "Footnotes" would appear in the sidebar outline.
+- `assignHeadingIds()` scans the same set → it overwrites `id="footnote-label"`.
+- `addHeadingAnchors()` would give it a hover `#` anchor.
+
+That output satisfies three of the four sub-requests with no rendering code of our own:
 
 | Request | Satisfied by |
 | --- | --- |
 | 2 — links to the footnotes | `data-footnote-ref` and `data-footnote-backref` anchors, in both directions |
-| 3A — separate section with a horizontal line at the end of the doc | `<section data-footnotes>` preceded by `<hr data-footnotes>` |
+| 3A — separate section with a horizontal line at the end of the doc | `<section data-footnotes>` containing `<hr data-footnotes>` — **only with `footnoteDivider: true`** |
 | 3B — numbered order instead of `[^1]` | `<sup>1</sup>` |
 
 The existing `interceptLinks()` in `bridge.js` already routes any `href`
@@ -61,7 +82,21 @@ beginning with `#` through `scrollToHeading()`, which is a plain
 `getElementById` + `scrollIntoView`. Footnote refs and backrefs are exactly such
 anchors, so **both scroll directions work with no new Swift and no new JS.**
 
-Only 3C — sizing — is code we write.
+Code we write: 3C's sizing, a `.sr-only` rule, and a heading-exclusion guard.
+
+```css
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+```
+
+`assignHeadingIds()`, `postTOC()`, and `addHeadingAnchors()` each gain the same
+one-line guard — skip any heading inside the footnote section:
+
+```js
+if (h.closest('section[data-footnotes]')) return;
+```
 
 ## Changes
 
@@ -91,11 +126,15 @@ because it is `em` relative to `.markdown-body`'s `font-size: var(--content-size
 it scales correctly with the ⌘+/⌘− font-scale controls.
 
 **`Sources/ReaderMd/Resources/web/bridge.js`**
-One line, beside the existing `marked.setOptions`:
+Beside the existing `marked.setOptions`:
 
 ```js
-marked.use(markedFootnote());
+marked.use(markedFootnote({ footnoteDivider: true }));
 ```
+
+Plus the guard in `assignHeadingIds()`, `postTOC()`, and `addHeadingAnchors()`, so
+the extension's `sr-only` "Footnotes" heading stays out of the outline, keeps its
+`footnote-label` id, and gets no hover anchor.
 
 **`make-app.sh`** — confirm the new `.js` is copied into `Contents/Resources`.
 The script copies the `web/` directory wholesale, so this is a verification step,
@@ -128,3 +167,6 @@ A fixture document exercising:
 6. ⌘+ / ⌘− → footnote text scales with the body
 7. Light and dark → the rule and backref use `--border` / `--blockquote`
 8. A document with *no* footnotes → no empty `<section>`, no stray rule
+9. The word "Footnotes" is **not visible** anywhere on the page (`.sr-only` works)
+10. The sidebar outline shows no "Footnotes" entry, and the footnote section's
+    heading has no hover `#` anchor
