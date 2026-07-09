@@ -1,7 +1,12 @@
 ---
 import Base from "../layouts/Base.astro";
+import Hero from "../components/Hero.astro";
+import AppMock from "../components/AppMock.astro";
 ---
 
 <Base title="Reader.md — a native markdown reader for macOS">
-  <p class="p-10">sections land in Tasks 4–6</p>
+  <Hero />
+  <div class="px-6">
+    <AppMock />
+  </div>
 </Base>
