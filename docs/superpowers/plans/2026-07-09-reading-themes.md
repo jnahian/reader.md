@@ -634,7 +634,7 @@ The hex values from Task 3 for Editorial/Terminal are starting points. This task
 - Consumes: everything from Tasks 3–6.
 - Produces: final tuned palettes; a recorded release-note line (added to the changelog later by the `release` skill, not here).
 
-- [ ] **Step 1: Create the verification fixture**
+- [x] **Step 1: Create the verification fixture** — written to `/tmp/theme-fixture.md` for the human to open during the visual walk.
 
 Write this to a scratch path (it is a throwaway, not committed):
 
@@ -685,7 +685,7 @@ $$\int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}$$
 EOF
 ```
 
-- [ ] **Step 2: Walk all six theme × mode combinations (Verification items 1, 2, 4, 9)**
+- [ ] **Step 2: Walk all six theme × mode combinations (Verification items 1, 2, 4, 9)** — REQUIRES-HUMAN (on-screen).
 
 Run: `swift run`, then File → open `/tmp/theme-fixture.md` (or drag it onto the window).
 For each of the three themes, and within each toggle light↔dark (☀/☽):
@@ -696,21 +696,21 @@ For each of the three themes, and within each toggle light↔dark (☀/☽):
 
 Note any palette that reads poorly (low contrast, muddy accent, code-bg too close to bg).
 
-- [ ] **Step 3: Verify scroll preservation and text scaling (Verification items 3, 8)**
+- [ ] **Step 3: Verify scroll preservation and text scaling (Verification items 3, 8)** — REQUIRES-HUMAN (on-screen).
 
 - **Item 3:** scroll to the Table section, switch theme via the Aa menu — scroll position is preserved (the `keepScroll` re-render path).
 - **Item 8:** in each theme, press ⌘+ / ⌘− / ⌘0 — text scales in the content pane regardless of theme.
 
-- [ ] **Step 4: Verify persistence across restart (Verification item 5)**
+- [ ] **Step 4: Verify persistence across restart (Verification item 5)** — REQUIRES-HUMAN (on-screen).
 
 Pick **Terminal**, quit (⌘Q), relaunch `swift run`.
 Expected: the app reopens in Terminal (the `reader.md.readingTheme` key survived). Item 6 (unknown-name fallback) and item 7 (existing `reader.md.theme="dark"` → Standard-dark) were already proven in Task 2 Step 7 and Task 1 Step 6.
 
-- [ ] **Step 5: Tune palettes if Step 2 flagged issues**
+- [ ] **Step 5: Tune palettes if Step 2 flagged issues** — REQUIRES-HUMAN (eyes-based). Editorial/Terminal hexes are the plan's starting values; no tuning performed (cannot judge contrast without a screen).
 
 If any Editorial/Terminal value read poorly, edit the corresponding `html[data-theme=…]` block in `Sources/ReaderMd/Resources/web/template.html`. Keep changes to the four themed blocks only — `:root`/`html.dark` (Standard) stay verbatim. Re-run Step 2's walk to confirm. If no tuning is needed, note that and skip the edit.
 
-- [ ] **Step 6: Verify themed PDF export (spec Consequences) and record the release note**
+- [ ] **Step 6: Verify themed PDF export (spec Consequences) and record the release note** — PDF export verification is REQUIRES-HUMAN (on-screen). Release note recorded below verbatim for the `release` skill.
 
 Run: `swift run`, open the fixture in **Editorial dark**, press ⌘E, save, and open the PDF.
 Expected: the PDF is themed (Editorial dark palette + serif body), consistent with how light/dark export already behaves.
@@ -719,7 +719,7 @@ Record this line verbatim for the eventual changelog (the `release` skill adds i
 
 > Reading themes: Standard, Editorial, and Terminal, each with its own light/dark palette, body font, and syntax colors — pick one from the text-size (Aa) menu. PDF export (⌘E) renders through the active theme.
 
-- [ ] **Step 7: Commit (only if Step 5 changed the template)**
+- [x] **Step 7: Commit (only if Step 5 changed the template)** — N/A: no tuning was performed (REQUIRES-HUMAN), so the template is unchanged and there is nothing to commit here.
 
 ```bash
 git add Sources/ReaderMd/Resources/web/template.html
