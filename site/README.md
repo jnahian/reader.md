@@ -1,43 +1,24 @@
-# Astro Starter Kit: Minimal
+# Reader.md landing site
 
-```sh
-npm create astro@latest -- --template minimal
+Astro + Tailwind static site for https://github.com/jnahian/reader.md.
+
+## Develop
+
+```bash
+npm install
+npm run dev      # copies bundled docs (predev) then serves on :4321
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+`src/generated/` holds build-time copies of the app's bundled
+`CHANGELOG.md` / `FAQ.md` / `SHORTCUTS.md` (source of truth:
+`../Sources/ReaderMd/Resources/docs/`). Never edit the copies.
 
-## 🚀 Project Structure
+## Deploy (Vercel or Netlify)
 
-Inside of your Astro project, you'll see the following folders and files:
+Import the repo and set:
 
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
-```
+- **Root directory:** `site`
+- **Framework preset:** Astro (auto-detected)
+- Build command `npm run build`, output `dist` (preset defaults)
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
-
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
-
-Any static assets, like images, can be placed in the `public/` directory.
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+Every push to `main` redeploys.
