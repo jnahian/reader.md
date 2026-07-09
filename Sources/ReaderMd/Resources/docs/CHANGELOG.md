@@ -6,6 +6,13 @@
   steps through matches with ⌘G / ⇧⌘G or the find-bar chevrons. Reachable from
   the new topbar search button.
 - **Find in Page moved to ⌘F**; **Filter Files (sidebar) moved to ⇧⌘F**.
+- **Drag and drop now shows a drop target.** Dropping a file or folder onto the
+  window always worked, but nothing highlighted while dragging, so it looked
+  unsupported.
+- Fixed: the find bar (⌘F) and quick-open (⌘P) fields now take keyboard focus
+  immediately, instead of needing a click first.
+- Fixed: the empty-state hints listed the wrong shortcuts — ⌘O opens a file (it
+  does not add a folder), and the sidebar filter is ⇧⌘F.
 
 ## 1.5.0 — 2026-07-08
 

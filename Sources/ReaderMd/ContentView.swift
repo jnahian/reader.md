@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 struct ContentView: View {
     @EnvironmentObject var state: AppState
     @State private var dragStartWidth: Double?
+    @State private var dropTargeted = false
 
     var body: some View {
         ZStack {
@@ -21,6 +22,12 @@ struct ContentView: View {
                     .transition(.opacity)
                     .zIndex(2)
             }
+
+            if dropTargeted {
+                DropTargetOverlay()
+                    .transition(.opacity)
+                    .zIndex(3)
+            }
         }
         // Extend our custom topbar all the way to the top of the window, replacing
         // the default titlebar entirely.
@@ -28,7 +35,8 @@ struct ContentView: View {
         .animation(.easeInOut(duration: 0.15), value: state.showSidebar)
         .animation(.easeInOut(duration: 0.15), value: state.showTOC)
         .animation(.easeInOut(duration: 0.12), value: state.showQuickOpen)
-        .onDrop(of: [UTType.fileURL], isTargeted: nil, perform: handleDrop)
+        .animation(.easeInOut(duration: 0.12), value: dropTargeted)
+        .onDrop(of: [UTType.fileURL], isTargeted: $dropTargeted, perform: handleDrop)
     }
 
     private var contentRow: some View {
@@ -100,6 +108,37 @@ struct ContentView: View {
     }
 }
 
+/// Shown while a valid file drag is over the window. Drop already worked; without
+/// this there was no sign of it, so people assumed it wasn't supported.
+struct DropTargetOverlay: View {
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.28)
+
+            VStack(spacing: 12) {
+                Image(systemName: "arrow.down.doc")
+                    .font(.system(size: 34, weight: .light))
+                Text("Drop to open")
+                    .font(.system(size: 17, weight: .semibold))
+                Text("A markdown file, or a folder to add")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+            .foregroundStyle(.primary)
+            .padding(.horizontal, 34)
+            .padding(.vertical, 26)
+            .background(GlassPanel(cornerRadius: 16, material: .hudWindow))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 2, dash: [7, 5]))
+            )
+        }
+        .ignoresSafeArea()
+        // Never intercept the drag this overlay exists to advertise.
+        .allowsHitTesting(false)
+    }
+}
+
 /// Finder-style bottom status bar with a centered summary.
 struct StatusBar: View {
     @EnvironmentObject var state: AppState
@@ -155,10 +194,11 @@ struct EmptyStateView: View {
     @EnvironmentObject var state: AppState
 
     private let hints: [(String, String, String)] = [
-        ("folder.badge.plus", "Add a folder", "⌘O"),
+        ("doc.text", "Open a file", "⌘O"),
+        ("folder.badge.plus", "Add a folder", ""),
         ("magnifyingglass", "Quick-open a file", "⌘P"),
-        ("sidebar.left", "Filter files in the sidebar", "⌘F"),
-        ("arrow.down.doc", "…or drag a folder onto the window", ""),
+        ("sidebar.left", "Filter files in the sidebar", "⇧⌘F"),
+        ("arrow.down.doc", "…or drag a file or folder onto the window", ""),
     ]
 
     var body: some View {
