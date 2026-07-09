@@ -50,8 +50,8 @@ site/
 ## Data flow
 
 - **Doc pages:** `scripts/copy-docs.mjs` runs as `predev`/`prebuild`, copying the
-  three markdown files (repo-root `CHANGELOG.md`, bundled `FAQ.md` /
-  `SHORTCUTS.md`) into `site/src/generated/` (gitignored). Pages import the
+  three bundled markdown files (`CHANGELOG.md`, `FAQ.md`, `SHORTCUTS.md`, all in
+  `Sources/ReaderMd/Resources/docs/`) into `site/src/generated/` (gitignored). Pages import the
   copies as Astro markdown. Single source of truth stays in the app repo; the
   site never reaches outside `site/` at build time.
 - **Landing copy:** feature cards and shortcut rows are small const arrays in
