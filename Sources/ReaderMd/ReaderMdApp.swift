@@ -108,7 +108,7 @@ struct ReaderMdApp: App {
 // ponytail: fallback version for `swift run` (no Info.plist); keep in sync with make-app.sh.
 private func showAboutPanel() {
     let info = Bundle.main.infoDictionary
-    let version = info?["CFBundleShortVersionString"] as? String ?? "1.5.0"
+    let version = info?["CFBundleShortVersionString"] as? String ?? "1.6.0"
     let build = info?["CFBundleVersion"] as? String ?? "dev"
     let credits = NSAttributedString(
         string: "A native macOS markdown viewer.\nMermaid & LaTeX, live reload, PDF export.",

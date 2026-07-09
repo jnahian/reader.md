@@ -1,15 +1,23 @@
 # Changelog
 
-## Unreleased
+## 1.6.0 — 2026-07-10
 
-- **Links follow your macOS accent color.** In the default theme, links, heading
-  anchors, and markers now use the accent color you picked in System Settings,
-  updating live when you change it or switch light/dark. The Editorial and
-  Terminal reading themes keep their own tuned accents.
 - **Find in Page** — highlights every match, shows a live "N of M" count, and
   steps through matches with ⌘G / ⇧⌘G or the find-bar chevrons. Reachable from
   the new topbar search button.
 - **Find in Page moved to ⌘F**; **Filter Files (sidebar) moved to ⇧⌘F**.
+- **Reading themes** — pick Standard, Editorial, or Terminal from the text-size
+  menu. Each brings its own typography, accent, and syntax highlighting, and the
+  choice persists across launches.
+- **Footnotes** render as a linked, styled section at the end of the document.
+- **Links follow your macOS accent color.** In the Standard theme, links, heading
+  anchors, and markers now use the accent color you picked in System Settings,
+  updating live when you change it or switch light/dark. The Editorial and
+  Terminal reading themes keep their own tuned accents.
+- **The topbar follows macOS Preview** — the find bar now lives in the topbar
+  rather than as a separate strip, and the controls have room to breathe.
+- **Install with Homebrew** — `brew tap jnahian/reader.md https://github.com/jnahian/reader.md`,
+  then `brew install --cask reader-md`.
 - **Drag and drop now works, and shows a drop target.** Dropping a file or folder
   onto the reading pane never actually worked while a document was open — WebKit
   refused the drop — and nothing highlighted while dragging, so it looked
@@ -18,6 +26,8 @@
   immediately, instead of needing a click first.
 - Fixed: the empty-state hints listed the wrong shortcuts — ⌘O opens a file (it
   does not add a folder), and the sidebar filter is ⇧⌘F.
+- Fixed: opening the FAQ, shortcuts, or release notes from the Help menu no
+  longer pushes them into your recent files.
 
 ## 1.5.0 — 2026-07-08
 
