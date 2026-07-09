@@ -92,7 +92,10 @@ version and **Help → Release Notes** shows the new changelog entry.
 `release.sh` re-checks that the time-based `CFBundleVersion` exceeds the
 published build (it always will, short of clock skew) and refuses otherwise. It
 signs the DMG, generates `appcast.xml`, and uploads both to the `vNEW_DISPLAY`
-GitHub release.
+GitHub release. It then rewrites `Casks/reader-md.rb` with the new version and
+the uploaded DMG's sha256 and commits that (`chore: update Homebrew cask …`), so
+the `brew install --cask` tap tracks the release automatically — nothing to bump
+by hand.
 
 ## 9. Confirm
 
@@ -111,3 +114,4 @@ The release must be the newest non-prerelease (so
 | About fallback not synced | `swift run` shows the old version |
 | Changelog `Unreleased` not renamed | Release Notes still say "Unreleased" |
 | Bump not committed/pushed before release | Tag points at old source; DMG ≠ tag |
+| `release.sh` cask commit not pushed | `brew install --cask` serves the previous version |
