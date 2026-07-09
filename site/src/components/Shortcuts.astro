@@ -1,0 +1,33 @@
+---
+const keys = [
+  { action: "Quick open", keys: "⌘P" },
+  { action: "Open file", keys: "⌘O" },
+  { action: "Find in page", keys: "⌘F" },
+  { action: "Filter files", keys: "⇧⌘F" },
+  { action: "Find next / previous", keys: "⌘G / ⇧⌘G" },
+  { action: "Back / forward", keys: "⌘[ / ⌘]" },
+  { action: "Toggle sidebar", keys: "⌘\\" },
+  { action: "Toggle outline", keys: "⇧⌘O" },
+  { action: "Text size", keys: "⌘+ / ⌘− / ⌘0" },
+  { action: "Export PDF", keys: "⌘E" },
+  { action: "Reload", keys: "⌘R" },
+  { action: "Shortcuts help", keys: "⌘/" },
+];
+---
+
+<section class="bg-bg-alt py-16">
+  <div class="mx-auto max-w-3xl px-6">
+    <h2 class="mb-12 text-center text-3xl font-bold tracking-tight">Keyboard-first</h2>
+    <div class="grid gap-x-10 sm:grid-cols-2">
+      {keys.map((k) => (
+        <div class="flex items-center justify-between border-b border-border py-2.5 text-sm">
+          <span class="text-muted">{k.action}</span>
+          <kbd class="whitespace-nowrap rounded-md border border-border bg-kbd px-2 py-0.5 font-sans text-xs">{k.keys}</kbd>
+        </div>
+      ))}
+    </div>
+    <p class="mt-6 text-center text-sm text-muted">
+      <a href="/shortcuts" class="underline hover:text-fg">See the full list →</a>
+    </p>
+  </div>
+</section>
