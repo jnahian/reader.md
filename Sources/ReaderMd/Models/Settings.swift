@@ -36,8 +36,8 @@ enum Settings {
     }
 
     // Theme
-    static func loadTheme() -> AppTheme {
-        if let raw = defaults.string(forKey: themeKey), let theme = AppTheme(rawValue: raw) {
+    static func loadTheme() -> AppearanceMode {
+        if let raw = defaults.string(forKey: themeKey), let theme = AppearanceMode(rawValue: raw) {
             return theme
         }
         // First launch: match the current system appearance.
@@ -45,7 +45,7 @@ enum Settings {
             .bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
         return isDark ? .dark : .light
     }
-    static func saveTheme(_ theme: AppTheme) {
+    static func saveTheme(_ theme: AppearanceMode) {
         defaults.set(theme.rawValue, forKey: themeKey)
     }
 

@@ -66,7 +66,7 @@ Sequenced first, with its own commit, so the mechanical rename never tangles wit
 - Consumes: nothing.
 - Produces: `enum AppearanceMode: String, CaseIterable { case light, dark }` with `var colorScheme: ColorScheme?`, `var symbol: String`, `var toggled: AppearanceMode`. `AppState.theme: AppearanceMode`. `Settings.loadTheme() -> AppearanceMode`, `Settings.saveTheme(_ theme: AppearanceMode)`.
 
-- [ ] **Step 1: Rename the enum declaration and its self-referencing return type in AppState.swift**
+- [x] **Step 1: Rename the enum declaration and its self-referencing return type in AppState.swift**
 
 In `Sources/ReaderMd/Models/AppState.swift`, change line 6:
 
@@ -88,7 +88,7 @@ and line 63:
 
 Leave `case light, dark`, `colorScheme`, `symbol`, the `theme` property NAME, and `toggleTheme()` unchanged.
 
-- [ ] **Step 2: Rename the type in Settings.swift signatures**
+- [x] **Step 2: Rename the type in Settings.swift signatures**
 
 In `Sources/ReaderMd/Models/Settings.swift`, line 39:
 
@@ -110,22 +110,22 @@ line 48:
 
 Leave `themeKey = "reader.md.theme"` and `theme.rawValue` unchanged.
 
-- [ ] **Step 3: Verify no stray `AppTheme` remains**
+- [x] **Step 3: Verify no stray `AppTheme` remains** — done: `grep -rn AppTheme Sources/ Tests/` returned no matches.
 
 Run: `grep -rn "AppTheme" Sources/ Tests/`
 Expected: no output (exit 1).
 
-- [ ] **Step 4: Build**
+- [x] **Step 4: Build** — done: `Build complete!`
 
 Run: `swift build`
 Expected: `Build complete!` with no errors.
 
-- [ ] **Step 5: Run the existing test suite (regression guard)**
+- [x] **Step 5: Run the existing test suite (regression guard)** — done: 14 tests, 0 failures.
 
 Run: `swift test`
 Expected: all existing tests pass (`FuzzyScoreTests`, `RemoteSpecTests`, `RemoteSyncTests`) — the rename must not break the build the tests link against.
 
-- [ ] **Step 6: Verify persistence unchanged — upgrade path (Verification item 7)**
+- [ ] **Step 6: Verify persistence unchanged — upgrade path (Verification item 7)** — REQUIRES-HUMAN (GUI launch). Rawvalues `"light"`/`"dark"` and the `reader.md.theme` key are untouched, so decoding is unchanged by construction; the visual launch check needs a human.
 
 Simulate an existing user whose saved appearance is dark:
 
@@ -138,7 +138,7 @@ Expected: the app launches in **dark** mode (dark content pane), proving the per
 
 > Note: the bundle identifier for `defaults` is whatever `UserDefaults.standard` uses under `swift run`. If `com.reader.md` shows no effect, find the domain with `defaults domains | tr ',' '\n' | grep -i reader` and retry against that domain. The point of the check is: a pre-existing `reader.md.theme="dark"` yields dark on launch, unchanged from before.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add Sources/ReaderMd/Models/AppState.swift Sources/ReaderMd/Models/Settings.swift

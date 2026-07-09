@@ -3,7 +3,7 @@ import AppKit
 import Combine
 import UniformTypeIdentifiers
 
-enum AppTheme: String, CaseIterable {
+enum AppearanceMode: String, CaseIterable {
     case light, dark
 
     var colorScheme: ColorScheme? {
@@ -21,7 +21,7 @@ enum AppTheme: String, CaseIterable {
         }
     }
 
-    var toggled: AppTheme { self == .dark ? .light : .dark }
+    var toggled: AppearanceMode { self == .dark ? .light : .dark }
 }
 
 /// A heading in the currently open document, used for the outline.
@@ -60,7 +60,7 @@ final class AppState: ObservableObject {
     @Published var roots: [RootFolder] = []
     @Published var selectedFile: FileNode?
     @Published var searchQuery: String = ""
-    @Published var theme: AppTheme = .light
+    @Published var theme: AppearanceMode = .light
     @Published var showTOC: Bool = false
     @Published var focusSearch: Bool = false   // toggled to request focus
 
