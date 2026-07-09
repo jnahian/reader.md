@@ -108,6 +108,7 @@ struct MarkdownWebView: NSViewRepresentable {
         let coord = context.coordinator
         coord.state = state
         coord.applyTheme(isDark: context.environment.colorScheme == .dark)
+        coord.applyAccent(isDark: context.environment.colorScheme == .dark)
         coord.applyReadingTheme(state.readingTheme.rawValue)
         coord.applyTypography(scale: state.fontScale, wide: state.wideReading)
 
@@ -167,6 +168,7 @@ struct MarkdownWebView: NSViewRepresentable {
         var lastPushedMarks: [Mark] = []
         var lastShowResolved: Bool = true
         private var lastDark: Bool?
+        private var lastAccent: String?
         private var lastReadingTheme: String?
         private var lastScale: Double?
         private var lastWide: Bool?
@@ -175,6 +177,21 @@ struct MarkdownWebView: NSViewRepresentable {
 
         init(state: AppState) {
             self.state = state
+            super.init()
+            // Re-push when the user changes their accent in System Settings.
+            NotificationCenter.default.addObserver(
+                self, selector: #selector(systemColorsChanged),
+                name: NSColor.systemColorsDidChangeNotification, object: nil)
+        }
+
+        deinit { NotificationCenter.default.removeObserver(self) }
+
+        @objc private func systemColorsChanged() {
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.lastAccent = nil // force a re-push; the accent name → hex mapping changed
+                self.applyAccent(isDark: self.lastDark ?? false)
+            }
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {}
@@ -183,6 +200,33 @@ struct MarkdownWebView: NSViewRepresentable {
             guard isReady, lastDark != isDark else { lastDark = isDark; return }
             lastDark = isDark
             webView?.evaluateJavaScript("window.ReaderMd.setTheme(\(isDark));")
+        }
+
+        /// Push the macOS accent color into the content pane so the standard theme's
+        /// links follow System Settings. Resolved per light/dark, since the accent
+        /// maps to a different concrete color in each. bridge.js applies it to the
+        /// standard theme only — custom reading themes keep their own accents.
+        func applyAccent(isDark: Bool) {
+            let hex = Self.accentHex(isDark: isDark)
+            guard isReady, lastAccent != hex else { lastAccent = hex; return }
+            lastAccent = hex
+            webView?.evaluateJavaScript("window.ReaderMd.setAccent('\(hex)');")
+        }
+
+        /// `NSColor.controlAccentColor` is a dynamic catalog color; resolve it under
+        /// the active appearance and flatten to sRGB for a stable `#rrggbb` string.
+        private static func accentHex(isDark: Bool) -> String {
+            var resolved = NSColor.controlAccentColor
+            NSAppearance(named: isDark ? .darkAqua : .aqua)?.performAsCurrentDrawingAppearance {
+                resolved = NSColor.controlAccentColor
+            }
+            // If the catalog color won't flatten to sRGB, fall back to the theme's
+            // own accent rather than reading components off a non-RGB color (throws).
+            guard let c = resolved.usingColorSpace(.sRGB) else { return isDark ? "#4493f8" : "#0969da" }
+            let r = Int((c.redComponent * 255).rounded())
+            let g = Int((c.greenComponent * 255).rounded())
+            let b = Int((c.blueComponent * 255).rounded())
+            return String(format: "#%02x%02x%02x", r, g, b)
         }
 
         func applyReadingTheme(_ name: String) {
@@ -414,6 +458,9 @@ struct MarkdownWebView: NSViewRepresentable {
                 isReady = true
                 if let dark = lastDark {
                     webView?.evaluateJavaScript("window.ReaderMd.setTheme(\(dark));")
+                }
+                if let accent = lastAccent {
+                    webView?.evaluateJavaScript("window.ReaderMd.setAccent('\(accent)');")
                 }
                 if let scale = lastScale { webView?.evaluateJavaScript("window.ReaderMd.setFontScale(\(scale));") }
                 if let wide = lastWide { webView?.evaluateJavaScript("window.ReaderMd.setWide(\(wide));") }

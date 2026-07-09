@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Links follow your macOS accent color.** In the default theme, links, heading
+  anchors, and markers now use the accent color you picked in System Settings,
+  updating live when you change it or switch light/dark. The Editorial and
+  Terminal reading themes keep their own tuned accents.
 - **Find in Page** — highlights every match, shows a live "N of M" count, and
   steps through matches with ⌘G / ⇧⌘G or the find-bar chevrons. Reachable from
   the new topbar search button.
