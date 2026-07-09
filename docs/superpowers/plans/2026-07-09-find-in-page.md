@@ -129,7 +129,7 @@ Run: `swift run`
 In the app: `Add Folder…` → select `/tmp/reader-find-fixtures`. Open `basic.md`. Press ⌘⇧F (current Find in Page binding), type `foo`.
 Expected (current native find): only ONE occurrence is highlighted (the current match), there is no count, and no "all matches" highlighting. This is the failure state Task 1 replaces. Quit the app.
 
-- [ ] **Step 3: Add the `mark.rmd-find` CSS**
+- [x] **Step 3: Add the `mark.rmd-find` CSS**
 
 In `Sources/ReaderMd/Resources/web/template.html`, immediately before the `/* image lightbox */` comment (currently line 90), add:
 
@@ -141,7 +141,7 @@ In `Sources/ReaderMd/Resources/web/template.html`, immediately before the `/* im
     html.dark mark.rmd-find.current { background: rgba(255, 149, 0, 0.60); }
 ```
 
-- [ ] **Step 4: Add the four `window.ReaderMd` find entries**
+- [x] **Step 4: Add the four `window.ReaderMd` find entries**
 
 In `Sources/ReaderMd/Resources/web/bridge.js`, in the `window.ReaderMd = { ... }` object, immediately after the `applyMarks(marksJSON) { applyMarks(marksJSON); },` entry (currently lines 57-59), add:
 
@@ -168,7 +168,7 @@ In `Sources/ReaderMd/Resources/web/bridge.js`, in the `window.ReaderMd = { ... }
   },
 ```
 
-- [ ] **Step 5: Add the find engine to `bridge.js`**
+- [x] **Step 5: Add the find engine to `bridge.js`**
 
 In `Sources/ReaderMd/Resources/web/bridge.js`, immediately before the final `// Signal readiness so Swift can flush any pending document.` comment (currently line 502), add the whole block below.
 
@@ -294,7 +294,7 @@ function findStep(forward) {
 
 ```
 
-- [ ] **Step 6: Add the `findCount` / `findIndex` published vars**
+- [x] **Step 6: Add the `findCount` / `findIndex` published vars**
 
 In `Sources/ReaderMd/Models/AppState.swift`, in the "One-shot triggers consumed by the web view" block (currently lines 93-96), add the two vars right after `findQuery` in the Overlays block instead — put them adjacent to `findQuery` (currently line 88). Change:
 
@@ -312,7 +312,7 @@ to:
     @Published var findIndex: Int = 0
 ```
 
-- [ ] **Step 7: Register the `findResult` script message**
+- [x] **Step 7: Register the `findResult` script message**
 
 In `Sources/ReaderMd/Views/MarkdownWebView.swift`, change the `messageNames` array (currently lines 47-48):
 
@@ -328,7 +328,7 @@ to:
                              "rendered", "textSelected", "markClicked", "marksApplied", "findResult"]
 ```
 
-- [ ] **Step 8: Fold find re-application into `applyMarks(json:)`**
+- [x] **Step 8: Fold find re-application into `applyMarks(json:)`**
 
 This is where the `clearFind → applyMarks → applyFind` ordering is enforced "always": every driver that re-wraps marks re-wraps find *after*, so find marks always nest inside highlight marks. In `Sources/ReaderMd/Views/MarkdownWebView.swift`, replace `applyMarks(json:)` (currently lines 194-196):
 
@@ -353,7 +353,7 @@ with:
         }
 ```
 
-- [ ] **Step 9: Rewrite `applyFind` / `findStep` to call JS; delete `WKFindConfiguration`**
+- [x] **Step 9: Rewrite `applyFind` / `findStep` to call JS; delete `WKFindConfiguration`**
 
 In `Sources/ReaderMd/Views/MarkdownWebView.swift`, replace the `// MARK: Find` block (currently lines 294-317):
 
@@ -405,7 +405,7 @@ with:
         }
 ```
 
-- [ ] **Step 10: Sequence `clearFind` → `createPDF` → re-apply in `exportPDF`**
+- [x] **Step 10: Sequence `clearFind` → `createPDF` → re-apply in `exportPDF`**
 
 `evaluateJavaScript` and `createPDF` are different APIs with no ordering guarantee, so clearing find and snapshotting in the same turn races (the PDF can capture un-cleared highlights). Nest `createPDF` inside `clearFind`'s completion so the DOM is provably clean, then re-apply find in `createPDF`'s completion. In `Sources/ReaderMd/Views/MarkdownWebView.swift`, replace `exportPDF()` (currently lines 321-328):
 
@@ -450,7 +450,7 @@ with:
         }
 ```
 
-- [ ] **Step 11: Handle the `findResult` message**
+- [x] **Step 11: Handle the `findResult` message**
 
 In `Sources/ReaderMd/Views/MarkdownWebView.swift`, in the `userContentController(_:didReceive:)` switch, add a case immediately before `default:` (currently line 430):
 
@@ -466,7 +466,7 @@ In `Sources/ReaderMd/Views/MarkdownWebView.swift`, in the `userContentController
 
 ```
 
-- [ ] **Step 12: Build**
+- [x] **Step 12: Build**
 
 Run: `swift build`
 Expected: `Build complete!` with no errors. (If the compiler complains that `WKFindConfiguration` is unused/undeclared anywhere else, there are no other references — the two deleted usages were the only ones.)
@@ -486,7 +486,7 @@ Run: `swift run`. `Add Folder…` → `/tmp/reader-find-fixtures`. Then walk the
 
 9. **basic.md** (item 11): with `foo` still active and the **3rd** match orange, press ⌘E, save a PDF, open it. Expected: the PDF shows NO find highlights. Back in the app the on-screen highlights are still present, the 3rd match is still orange, and the viewport has not jumped to match 1.
 
-- [ ] **Step 14: Commit**
+- [x] **Step 14: Commit**
 
 ```bash
 git add Sources/ReaderMd/Resources/web/bridge.js \

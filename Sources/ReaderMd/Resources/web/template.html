@@ -87,6 +87,12 @@
     mark.rmd-highlight.resolved { opacity: 0.5; filter: saturate(0.45); }
     mark.rmd-highlight.resolved.has-note::after { background: #57ab5a; opacity: 0.8; }
 
+    /* find-in-page matches */
+    mark.rmd-find          { background: rgba(250, 216, 60, 0.40); border-radius: 2px; color: inherit; }
+    mark.rmd-find.current  { background: rgba(255, 149, 0, 0.75); }
+    html.dark mark.rmd-find         { background: rgba(250, 216, 60, 0.28); }
+    html.dark mark.rmd-find.current { background: rgba(255, 149, 0, 0.60); }
+
     /* image lightbox */
     #lightbox {
       position: fixed; inset: 0; background: rgba(0,0,0,0.82); display: none;

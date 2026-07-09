@@ -86,6 +86,8 @@ final class AppState: ObservableObject {
     @Published var showQuickOpen: Bool = false
     @Published var showFind: Bool = false
     @Published var findQuery: String = ""
+    @Published var findCount: Int = 0
+    @Published var findIndex: Int = 0
     @Published var showAddRemote: Bool = false
     @Published var editingRemote: RemoteSpec? = nil
     @Published var syncAlertError: String? = nil

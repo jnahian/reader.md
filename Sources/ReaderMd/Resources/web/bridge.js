@@ -57,6 +57,27 @@ window.ReaderMd = {
   applyMarks(marksJSON) {
     applyMarks(marksJSON);
   },
+
+  // A user-initiated search: focus the first match and scroll to it.
+  find(query) {
+    applyFindQuery(query, 0, true);
+  },
+
+  // A re-application after the DOM was rebuilt (re-render, marks re-wrap, PDF
+  // export). Keeps the user's current match and does NOT scroll — otherwise
+  // saving the file while reading would yank the viewport to match 1 and reset
+  // the counter from "7 of 12" to "1 of 12".
+  refind() {
+    if (findQuery) applyFindQuery(findQuery, findFocus, false);
+  },
+
+  findStep(forward) {
+    findStep(forward);
+  },
+
+  clearFind() {
+    clearFind();
+  },
 };
 
 // ---- Rendering ----
@@ -498,6 +519,123 @@ contentEl.addEventListener('click', (e) => {
     rect: { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
   });
 }, true);
+
+// ---- Find in page ----
+//
+// Find has its OWN filtered text base — NOT contentEl.textContent and NOT the
+// marks walker. It excludes heading anchors, code-copy buttons, inline SVG
+// (Mermaid), and KaTeX, so invisible/injected text is never counted or wrapped.
+// Kept entirely separate from the marks anchoring (resolveAnchor / rangeFromOffsets),
+// which needs the polluted-but-consistent text and must not be touched.
+
+const FIND_EXCLUDE = '.anchor, .copy-btn, svg, .katex';
+let findMatches = [];   // one entry per occurrence: an array of its <mark> elements
+let findFocus = 0;      // index of the .current occurrence
+let findQuery = '';     // the live query, so refind() can rebuild after a re-render
+
+// [{ node, start, end }] over the visible prose, plus the concatenated string.
+function findTextSegments() {
+  const walker = document.createTreeWalker(contentEl, NodeFilter.SHOW_TEXT, {
+    acceptNode: (n) =>
+      n.parentElement && !n.parentElement.closest(FIND_EXCLUDE)
+        ? NodeFilter.FILTER_ACCEPT
+        : NodeFilter.FILTER_REJECT,
+  });
+  const segments = [];
+  let text = '';
+  let node;
+  while ((node = walker.nextNode())) {
+    const len = node.textContent.length;
+    segments.push({ node, start: text.length, end: text.length + len });
+    text += node.textContent;
+  }
+  return { segments, text };
+}
+
+// Wrap one occurrence spanning [mStart, mEnd) in <mark class="rmd-find">, one per
+// intersecting text node. Returns the created <mark> elements. Each surroundContents
+// is confined to a single text node, so it can never partially select an element
+// and can never throw.
+function wrapFindMatch(segments, mStart, mEnd) {
+  const marks = [];
+  for (const seg of segments) {
+    if (seg.end <= mStart || seg.start >= mEnd) continue; // no overlap
+    const from = Math.max(mStart, seg.start) - seg.start;
+    const to = Math.min(mEnd, seg.end) - seg.start;
+    const range = document.createRange();
+    range.setStart(seg.node, from);
+    range.setEnd(seg.node, to);
+    const mark = document.createElement('mark');
+    mark.className = 'rmd-find';
+    range.surroundContents(mark);
+    marks.push(mark);
+  }
+  return marks;
+}
+
+// Mirror of clearHighlights() for find marks. Forgets the *marks*, not the
+// *position*: findFocus and findQuery survive so refind() can restore the user's
+// current match after the DOM is rebuilt.
+function clearFind() {
+  contentEl.querySelectorAll('mark.rmd-find').forEach((mark) => {
+    const parent = mark.parentNode;
+    if (!parent) return;
+    while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
+    parent.removeChild(mark);
+    parent.normalize();
+  });
+  findMatches = [];
+}
+
+function setCurrentFind(i, scroll) {
+  const prev = findMatches[findFocus];
+  if (prev) prev.forEach((m) => m.classList.remove('current'));
+  findFocus = i;
+  const cur = findMatches[i];
+  if (!cur || !cur.length) return;
+  cur.forEach((m) => m.classList.add('current'));
+  if (scroll) cur[0].scrollIntoView({ block: 'center' });
+}
+
+// `wantFocus` is the occurrence to make current; `scroll` says whether to bring it
+// into view. A user-initiated find passes (0, true); a re-application after the DOM
+// was rebuilt passes (findFocus, false) so the viewport and the counter hold still.
+function applyFindQuery(query, wantFocus, scroll) {
+  clearFind();
+  findQuery = query || '';
+  const q = findQuery.toLowerCase();
+  if (!q) { findFocus = 0; post('findResult', { count: 0, index: 0 }); return; }
+
+  const { segments, text } = findTextSegments();
+  const lower = text.toLowerCase();
+  const occurrences = [];
+  let idx = lower.indexOf(q);
+  while (idx !== -1) {
+    occurrences.push([idx, idx + q.length]);
+    idx = lower.indexOf(q, idx + q.length); // non-overlapping
+  }
+  if (!occurrences.length) { findFocus = 0; post('findResult', { count: 0, index: 0 }); return; }
+
+  // Wrap last-to-first so wrapping a later occurrence can't invalidate the
+  // offsets of an earlier one that shares a text node.
+  const byOccurrence = new Array(occurrences.length);
+  for (let i = occurrences.length - 1; i >= 0; i--) {
+    byOccurrence[i] = wrapFindMatch(segments, occurrences[i][0], occurrences[i][1]);
+  }
+  findMatches = byOccurrence;
+  // Clamp: an edited file may now hold fewer matches than before the re-render.
+  const focus = Math.min(Math.max(wantFocus, 0), findMatches.length - 1);
+  setCurrentFind(focus, scroll);
+  post('findResult', { count: findMatches.length, index: focus });
+}
+
+function findStep(forward) {
+  const n = findMatches.length;
+  if (!n) { post('findResult', { count: 0, index: 0 }); return; }
+  const next = ((findFocus + (forward ? 1 : -1)) % n + n) % n;
+  setCurrentFind(next, true);
+  post('findResult', { count: n, index: next });
+}
 
 // Signal readiness so Swift can flush any pending document.
 post('ready', true);
