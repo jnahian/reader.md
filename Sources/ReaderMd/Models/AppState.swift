@@ -111,7 +111,7 @@ final class AppState: ObservableObject {
     /// before SwiftUI's `.onDrop` sees it, so it reports targeting separately from
     /// the chrome's `isTargeted`; ContentView shows the overlay when either is set.
     @Published var webDropTargeted: Bool = false
-    @Published var showFind: Bool = false
+    @Published var focusFind: Bool = false   // toggled to focus the topbar search field
     @Published var findQuery: String = ""
     @Published var findCount: Int = 0
     @Published var findIndex: Int = 0

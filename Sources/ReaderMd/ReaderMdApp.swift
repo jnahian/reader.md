@@ -49,17 +49,15 @@ struct ReaderMdApp: App {
             }
 
             CommandMenu("Find") {
-                Button("Find in Page") {
-                    state.showFind = true
-                }
-                .keyboardShortcut("f", modifiers: .command)
-                .disabled(state.selectedFile == nil)
+                Button("Find in Page") { state.focusFind.toggle() }
+                    .keyboardShortcut("f", modifiers: .command)
+                    .disabled(state.selectedFile == nil)
                 Button("Find Next") { state.triggerFindNext() }
                     .keyboardShortcut("g", modifiers: .command)
-                    .disabled(!state.showFind)
+                    .disabled(state.findQuery.isEmpty)
                 Button("Find Previous") { state.triggerFindPrev() }
                     .keyboardShortcut("g", modifiers: [.command, .shift])
-                    .disabled(!state.showFind)
+                    .disabled(state.findQuery.isEmpty)
                 Divider()
                 Button("Filter Files") { state.focusSearch.toggle() }
                     .keyboardShortcut("f", modifiers: [.command, .shift])

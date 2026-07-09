@@ -1,7 +1,13 @@
 import SwiftUI
 
+/// Preview's toolbar icon metrics: larger and lighter than the sidebar's buttons.
+private let topBarButton = ToolbarIconButtonStyle(
+    width: 36, height: 32, glass: false, iconSize: 15, iconWeight: .regular
+)
+
 struct TopBar: View {
     @EnvironmentObject var state: AppState
+    @FocusState private var findFocused: Bool
 
     var body: some View {
         barContainer
@@ -9,7 +15,8 @@ struct TopBar: View {
             .frame(height: ChromeMetrics.topBarHeight)
             .background(
                 ZStack {
-                    GlassPanel()
+                    // No surface of its own: like Preview, the bar is the window's
+                    // titlebar material and only the control capsules read as glass.
                     BackgroundDrag() // transparent hit layer for window dragging
                     TrafficLightConfigurator() // centers the native window buttons in the bar
                 }
@@ -26,22 +33,24 @@ struct TopBar: View {
         }
     }
 
+    // Preview splits its toolbar into several short capsules grouped by function,
+    // rather than one long one. Dividers separate segments *within* a capsule; the
+    // gaps between capsules do the rest.
     private var bar: some View {
         HStack(spacing: 8) {
             // leave just enough room for the native traffic lights (pinned by
             // TrafficLightConfigurator); the sidebar toggle sits right after them.
             Color.clear.frame(width: 72, height: 1)
 
-            // Left-side controls — one glass capsule, segments split by a divider.
+            Button { state.toggleSidebar() } label: {
+                Image(systemName: "sidebar.left")
+            }
+            .help("Toggle sidebar (⌘\\)")
+            .buttonStyle(topBarButton)
+            .glassCapsule()
+
+            // Back / forward, kept together like Finder.
             HStack(spacing: 0) {
-                Button { state.toggleSidebar() } label: {
-                    Image(systemName: "sidebar.left")
-                }
-                .help("Toggle sidebar (⌘\\)")
-
-                Divider().frame(height: 20)
-
-                // Back / forward, kept together like Finder.
                 Button { state.goBack() } label: { Image(systemName: "chevron.left") }
                     .disabled(!state.canGoBack)
                     .help("Back (⌘[)")
@@ -49,7 +58,7 @@ struct TopBar: View {
                     .disabled(!state.canGoForward)
                     .help("Forward (⌘])")
             }
-            .buttonStyle(ToolbarIconButtonStyle(glass: false))
+            .buttonStyle(topBarButton)
             .glassCapsule()
 
             breadcrumb
@@ -57,36 +66,14 @@ struct TopBar: View {
 
             Spacer(minLength: 8)
 
-            // Right-side controls — one glass capsule, segments split by dividers.
-            HStack(spacing: 0) {
-                // Typography controls
-                Menu {
-                    Picker("Theme", selection: Binding(
-                        get: { state.readingTheme },
-                        set: { state.setReadingTheme($0) }
-                    )) {
-                        ForEach(ReadingTheme.allCases, id: \.self) { theme in
-                            Text(theme.displayName).tag(theme)
-                        }
-                    }
-                    .pickerStyle(.inline)
+            // Rehomed from the status bar. Both hide themselves when they have
+            // nothing to report, so no capsule is drawn in the common case.
+            ResolvedThreadsToggle()
+            OrphanedMarksBadge()
 
-                    Divider()
-                    Button("Increase Text  ⌘+") { state.adjustFontScale(0.1) }
-                    Button("Decrease Text  ⌘−") { state.adjustFontScale(-0.1) }
-                    Button("Actual Size  ⌘0") { state.resetFontScale() }
-                    Divider()
-                    Toggle("Wide Reading Column", isOn: Binding(
-                        get: { state.wideReading },
-                        set: { _ in state.toggleWideReading() }
-                    ))
-                } label: {
-                    Image(systemName: "textformat.size")
-                }
-                .menuStyle(.borderlessButton)
-                .menuIndicator(.hidden)
-                .frame(width: 36, height: 30)
-                .help("Text size & width")
+            // View: typography + outline.
+            HStack(spacing: 0) {
+                typographyMenu
 
                 if !state.toc.isEmpty {
                     Divider().frame(height: 20)
@@ -95,15 +82,12 @@ struct TopBar: View {
                     }
                     .help("Toggle outline (⌘⇧O)")
                 }
+            }
+            .buttonStyle(topBarButton)
+            .glassCapsule()
 
-                Divider().frame(height: 20)
-                Button { state.showFind = true } label: {
-                    Image(systemName: "magnifyingglass")
-                }
-                .disabled(state.selectedFile == nil)
-                .help("Find in page (⌘F)")
-
-                Divider().frame(height: 20)
+            // Document actions.
+            HStack(spacing: 0) {
                 Button { state.triggerReload() } label: {
                     Image(systemName: "arrow.clockwise")
                 }
@@ -116,54 +100,148 @@ struct TopBar: View {
                 }
                 .disabled(state.selectedFile == nil)
                 .help("Export as PDF (⌘E)")
-
-                Divider().frame(height: 20)
-                Button { state.toggleTheme() } label: {
-                    Image(systemName: state.theme.symbol)
-                }
-                .help(state.theme == .dark ? "Switch to light mode" : "Switch to dark mode")
             }
-            .buttonStyle(ToolbarIconButtonStyle(glass: false))
+            .buttonStyle(topBarButton)
             .glassCapsule()
+
+            Button { state.toggleTheme() } label: {
+                Image(systemName: state.theme.symbol)
+            }
+            .help(state.theme == .dark ? "Switch to light mode" : "Switch to dark mode")
+            .buttonStyle(topBarButton)
+            .glassCapsule()
+
+            findField
         }
     }
 
-    @ViewBuilder private var breadcrumb: some View {
-        if let file = state.selectedFile, let crumbs = crumbComponents {
-            HStack(spacing: 3) {
-                ForEach(Array(crumbs.enumerated()), id: \.offset) { idx, part in
-                    if idx > 0 {
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundStyle(.tertiary)
-                    }
-                    Text(part)
-                        .font(.system(size: 12.5, weight: idx == crumbs.count - 1 ? .semibold : .regular))
-                        .foregroundStyle(idx == crumbs.count - 1 ? Color.primary : Color.secondary)
-                        .lineLimit(1)
+    private var typographyMenu: some View {
+        Menu {
+            Picker("Theme", selection: Binding(
+                get: { state.readingTheme },
+                set: { state.setReadingTheme($0) }
+            )) {
+                ForEach(ReadingTheme.allCases, id: \.self) { theme in
+                    Text(theme.displayName).tag(theme)
                 }
             }
-            .onTapGesture { NSWorkspace.shared.activateFileViewerSelecting([file.url]) }
-            .help("Reveal in Finder")
-        } else {
-            Text("Reader.md")
-                .font(.system(size: 12.5, weight: .semibold))
+            .pickerStyle(.inline)
+
+            Divider()
+            Button("Increase Text  ⌘+") { state.adjustFontScale(0.1) }
+            Button("Decrease Text  ⌘−") { state.adjustFontScale(-0.1) }
+            Button("Actual Size  ⌘0") { state.resetFontScale() }
+            Divider()
+            Toggle("Wide Reading Column", isOn: Binding(
+                get: { state.wideReading },
+                set: { _ in state.toggleWideReading() }
+            ))
+        } label: {
+            Image(systemName: "textformat.size")
+                .font(.system(size: 15))
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .frame(width: 36, height: 32)
+        .help("Text size & width")
+    }
+
+    /// Preview keeps search inline in the toolbar rather than behind a button.
+    /// Enter finds the next match, Escape clears; ⌘G / ⇧⌘G step the matches.
+    private var findField: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+
+            TextField("Search", text: $state.findQuery)
+                .textFieldStyle(.plain)
+                .font(.system(size: 12.5))
+                .frame(width: 110)
+                .focused($findFocused)
+                .onSubmit { state.triggerFindNext() }
+                .onExitCommand { state.findQuery = "" }
+
+            if !state.findQuery.isEmpty {
+                Text(state.findCount > 0 ? "\(state.findIndex + 1)/\(state.findCount)" : "0")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+
+                Button { state.findQuery = "" } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Clear search")
+            }
+        }
+        .padding(.horizontal, 10)
+        .frame(height: 32)
+        .glassCapsule()
+        .disabled(state.selectedFile == nil)
+        .opacity(state.selectedFile == nil ? 0.5 : 1)
+        // ⌘F is a menu command; AppKit restores first responder after the menu
+        // dismisses, so the focus request has to land a tick later.
+        .onChange(of: state.focusFind) { _ in
+            DispatchQueue.main.async { findFocused = true }
+        }
+    }
+
+    /// Preview's two-line title: the document name over a line of metadata.
+    /// The full path moves to the tooltip, where the breadcrumb used to be.
+    @ViewBuilder private var breadcrumb: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(state.selectedFile?.name ?? "Reader.md")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(state.selectedFile == nil ? Color.secondary : Color.primary)
+            Text(subtitle)
+                .font(.system(size: 10.5))
                 .foregroundStyle(.secondary)
         }
+        .lineLimit(1)
+        .fixedSize(horizontal: true, vertical: false)
+        .modifier(RevealInFinder(file: state.selectedFile, path: crumbPath))
     }
 
-    private var crumbComponents: [String]? {
-        guard let file = state.selectedFile else { return nil }
-        if let root = state.roots.first(where: { file.url.path.hasPrefix($0.url.path + "/") }) {
-            var parts = [root.name]
-            let rel = file.url.path
-                .dropFirst(root.url.path.count + 1)
-                .split(separator: "/")
-                .map(String.init)
-            parts.append(contentsOf: rel)
-            return parts
+    /// The old status bar's summary, now the title's second line.
+    private var subtitle: String {
+        if state.selectedFile != nil, state.wordCount > 0 {
+            return "\(state.wordCount) words · \(state.readingMinutes) min read"
         }
-        return [file.name]
+        if state.selectedFile != nil { return " " }   // keep the title's baseline steady
+        let count = state.allFiles().count
+        if count == 0 { return "No markdown files" }
+        return "\(count) markdown \(count == 1 ? "file" : "files")"
+    }
+
+    private var crumbPath: String? {
+        guard let file = state.selectedFile else { return nil }
+        guard let root = state.roots.first(where: { file.url.path.hasPrefix($0.url.path + "/") })
+        else { return file.name }
+        return ([root.name] + file.url.path
+            .dropFirst(root.url.path.count + 1)
+            .split(separator: "/")
+            .map(String.init)
+        ).joined(separator: " › ")
+    }
+}
+
+/// Only a title backed by a real file is clickable / has a path to show.
+private struct RevealInFinder: ViewModifier {
+    let file: FileNode?
+    let path: String?
+
+    func body(content: Content) -> some View {
+        if let file, let path {
+            content
+                .contentShape(Rectangle())
+                .onTapGesture { NSWorkspace.shared.activateFileViewerSelecting([file.url]) }
+                .help("\(path) — click to reveal in Finder")
+        } else {
+            content
+        }
     }
 }
 

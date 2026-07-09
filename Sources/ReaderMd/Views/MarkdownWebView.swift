@@ -128,7 +128,7 @@ struct MarkdownWebView: NSViewRepresentable {
         }
 
         // In-page find.
-        coord.applyFind(query: state.showFind ? state.findQuery : "")
+        coord.applyFind(query: state.findQuery)
         if state.findNextToken != coord.lastFindNext {
             coord.lastFindNext = state.findNextToken
             coord.findStep(forward: true)

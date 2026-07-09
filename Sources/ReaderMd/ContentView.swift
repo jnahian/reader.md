@@ -13,8 +13,6 @@ struct ContentView: View {
                 ReadingProgressBar()
                 Divider()
                 contentRow
-                Divider()
-                StatusBar()
             }
 
             if state.showQuickOpen {
@@ -53,12 +51,6 @@ struct ContentView: View {
                 }
                 MarkdownWebView()
                     .opacity(state.selectedFile == nil ? 0 : 1)
-
-                if state.showFind {
-                    FindBar()
-                        .padding(.top, 10)
-                        .padding(.trailing, 14)
-                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
@@ -143,38 +135,6 @@ struct DropTargetOverlay: View {
         .ignoresSafeArea()
         // Never intercept the drag this overlay exists to advertise.
         .allowsHitTesting(false)
-    }
-}
-
-/// Finder-style bottom status bar with a centered summary.
-struct StatusBar: View {
-    @EnvironmentObject var state: AppState
-
-    var body: some View {
-        ZStack {
-            Text(statusText)
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity)
-
-            HStack(spacing: 10) {
-                Spacer()
-                ResolvedThreadsToggle()
-                OrphanedMarksBadge()
-            }
-            .padding(.trailing, 10)
-        }
-        .frame(height: 24)
-        .background(GlassPanel())
-    }
-
-    private var statusText: String {
-        if state.selectedFile != nil, state.wordCount > 0 {
-            return "\(state.wordCount) words · \(state.readingMinutes) min read"
-        }
-        let count = state.allFiles().count
-        if count == 0 { return "No markdown files" }
-        return "\(count) markdown \(count == 1 ? "file" : "files")"
     }
 }
 

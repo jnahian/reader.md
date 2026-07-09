@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Status-bar control toggling whether resolved comment threads (#3) still
+/// Topbar control toggling whether resolved comment threads (#3) still
 /// render their (de-emphasized) anchor in the content, or are hidden
 /// entirely. Only shown once at least one thread has been resolved.
 struct ResolvedThreadsToggle: View {

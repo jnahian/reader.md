@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Status-bar badge surfacing highlights whose anchored text is no longer
+/// Topbar badge surfacing highlights whose anchored text is no longer
 /// found in the document (edited/deleted out from under them) — orphans are
 /// never silently dropped, just flagged here until removed.
 struct OrphanedMarksBadge: View {
