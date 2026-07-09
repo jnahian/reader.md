@@ -66,7 +66,7 @@ Sequenced first, with its own commit, so the mechanical rename never tangles wit
 - Consumes: nothing.
 - Produces: `enum AppearanceMode: String, CaseIterable { case light, dark }` with `var colorScheme: ColorScheme?`, `var symbol: String`, `var toggled: AppearanceMode`. `AppState.theme: AppearanceMode`. `Settings.loadTheme() -> AppearanceMode`, `Settings.saveTheme(_ theme: AppearanceMode)`.
 
-- [ ] **Step 1: Rename the enum declaration and its self-referencing return type in AppState.swift**
+- [x] **Step 1: Rename the enum declaration and its self-referencing return type in AppState.swift**
 
 In `Sources/ReaderMd/Models/AppState.swift`, change line 6:
 
@@ -88,7 +88,7 @@ and line 63:
 
 Leave `case light, dark`, `colorScheme`, `symbol`, the `theme` property NAME, and `toggleTheme()` unchanged.
 
-- [ ] **Step 2: Rename the type in Settings.swift signatures**
+- [x] **Step 2: Rename the type in Settings.swift signatures**
 
 In `Sources/ReaderMd/Models/Settings.swift`, line 39:
 
@@ -110,22 +110,22 @@ line 48:
 
 Leave `themeKey = "reader.md.theme"` and `theme.rawValue` unchanged.
 
-- [ ] **Step 3: Verify no stray `AppTheme` remains**
+- [x] **Step 3: Verify no stray `AppTheme` remains** — done: `grep -rn AppTheme Sources/ Tests/` returned no matches.
 
 Run: `grep -rn "AppTheme" Sources/ Tests/`
 Expected: no output (exit 1).
 
-- [ ] **Step 4: Build**
+- [x] **Step 4: Build** — done: `Build complete!`
 
 Run: `swift build`
 Expected: `Build complete!` with no errors.
 
-- [ ] **Step 5: Run the existing test suite (regression guard)**
+- [x] **Step 5: Run the existing test suite (regression guard)** — done: 14 tests, 0 failures.
 
 Run: `swift test`
 Expected: all existing tests pass (`FuzzyScoreTests`, `RemoteSpecTests`, `RemoteSyncTests`) — the rename must not break the build the tests link against.
 
-- [ ] **Step 6: Verify persistence unchanged — upgrade path (Verification item 7)**
+- [ ] **Step 6: Verify persistence unchanged — upgrade path (Verification item 7)** — REQUIRES-HUMAN (GUI launch). Rawvalues `"light"`/`"dark"` and the `reader.md.theme` key are untouched, so decoding is unchanged by construction; the visual launch check needs a human.
 
 Simulate an existing user whose saved appearance is dark:
 
@@ -138,7 +138,7 @@ Expected: the app launches in **dark** mode (dark content pane), proving the per
 
 > Note: the bundle identifier for `defaults` is whatever `UserDefaults.standard` uses under `swift run`. If `com.reader.md` shows no effect, find the domain with `defaults domains | tr ',' '\n' | grep -i reader` and retry against that domain. The point of the check is: a pre-existing `reader.md.theme="dark"` yields dark on launch, unchanged from before.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add Sources/ReaderMd/Models/AppState.swift Sources/ReaderMd/Models/Settings.swift
@@ -162,7 +162,7 @@ git commit -m "refactor: rename AppTheme to AppearanceMode"
   - `var displayName: String` — `"Standard"`, `"Editorial"`, `"Terminal"`.
   - `Settings.loadReadingTheme() -> ReadingTheme`, `Settings.saveReadingTheme(_ theme: ReadingTheme)`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `Tests/ReaderMdTests/ReadingThemeTests.swift`:
 
@@ -196,12 +196,12 @@ final class ReadingThemeTests: XCTestCase {
 }
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails** — done: compile error, `ReadingTheme` not defined (RED).
 
 Run: `swift test --filter ReadingThemeTests`
 Expected: FAIL / compile error — `ReadingTheme` is not defined yet.
 
-- [ ] **Step 3: Add the `ReadingTheme` enum**
+- [x] **Step 3: Add the `ReadingTheme` enum**
 
 In `Sources/ReaderMd/Models/AppState.swift`, immediately after the closing brace of `AppearanceMode` (after line 25), insert:
 
@@ -228,12 +228,12 @@ enum ReadingTheme: String, CaseIterable {
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes** — done: 4 tests pass (GREEN).
 
 Run: `swift test --filter ReadingThemeTests`
 Expected: PASS (4 tests).
 
-- [ ] **Step 5: Add persistence to Settings.swift**
+- [x] **Step 5: Add persistence to Settings.swift**
 
 In `Sources/ReaderMd/Models/Settings.swift`, add the key alongside the others (after line 15, `showResolvedThreadsKey`):
 
@@ -253,12 +253,12 @@ and add the load/save pair after the existing Theme block (after line 50, the cl
     }
 ```
 
-- [ ] **Step 6: Build and re-run the full suite**
+- [x] **Step 6: Build and re-run the full suite** — done: `Build complete!`, 18 tests, 0 failures.
 
 Run: `swift build && swift test`
 Expected: `Build complete!`, all tests pass.
 
-- [ ] **Step 7: Manual bad-data check (Verification item 6)**
+- [ ] **Step 7: Manual bad-data check (Verification item 6)** — REQUIRES-HUMAN (GUI launch). The fallback logic is covered by the automated `testUnknownNameFallsBackToStandard`; the on-screen no-crash launch needs a human.
 
 ```bash
 defaults write com.reader.md reader.md.readingTheme -string "nonexistent"
@@ -267,7 +267,7 @@ swift run
 
 Expected: app launches with the **Standard** content-pane appearance, no crash. (Same domain caveat as Task 1 Step 6 applies.) Quit the app, then clean up: `defaults delete com.reader.md reader.md.readingTheme`.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add Sources/ReaderMd/Models/AppState.swift Sources/ReaderMd/Models/Settings.swift Tests/ReaderMdTests/ReadingThemeTests.swift
@@ -285,7 +285,7 @@ git commit -m "feat: add ReadingTheme enum with unknown-name fallback"
 - Consumes: nothing (pure CSS; the `data-theme` attribute is set by Task 4's JS).
 - Produces: CSS variables `--font-body`, `--font-mono` on every theme block; six theme×mode selectors: `:root`, `html.dark`, `html[data-theme="editorial"]`, `html[data-theme="editorial"].dark`, `html[data-theme="terminal"]`, `html[data-theme="terminal"].dark`.
 
-- [ ] **Step 1: Record the current (Standard) values for the diff-check**
+- [x] **Step 1: Record the current (Standard) values for the diff-check**
 
 Run: `git show HEAD:Sources/ReaderMd/Resources/web/template.html | sed -n '9,23p'`
 Expected output (this is the baseline Standard palette that must stay byte-identical):
@@ -302,7 +302,7 @@ Expected output (this is the baseline Standard palette that must stay byte-ident
     }
 ```
 
-- [ ] **Step 2: Replace the `:root` / `html.dark` blocks with all six theme blocks**
+- [x] **Step 2: Replace the `:root` / `html.dark` blocks with all six theme blocks** — done; `#f2eadd` typed correctly.
 
 In `Sources/ReaderMd/Resources/web/template.html`, replace lines 9-17 (the `:root { … }` and `html.dark { … }` blocks) with:
 
@@ -346,7 +346,7 @@ In `Sources/ReaderMd/Resources/web/template.html`, replace lines 9-17 (the `:roo
 
 > Correction note for the implementer: fix the typo `#f2ead d` to a valid hex `#f2eadd` when typing — the plan spaces it only to flag it; the intended value is `#f2eadd`. Standard's `:root`/`html.dark` color values are copied verbatim from Step 1; only the two `--font-*` lines are added to `:root`. `--content-width`/`--content-size` stay in `:root` and are NOT duplicated into theme blocks (the JS overrides them inline on `documentElement.style`).
 
-- [ ] **Step 3: Consume the font variables in `body` and `code`**
+- [x] **Step 3: Consume the font variables in `body` and `code`**
 
 In the same file, change the `body` rule (was lines 20-23) so its `font-family` reads the variable:
 
@@ -369,17 +369,17 @@ and change the inline `code` rule (was lines 37-40) `font-family` line:
 
 Leave `pre code`, `.copy-btn` (`font-family: -apple-system, sans-serif`), and all other rules unchanged. Headings have no `font-family` of their own, so they inherit `--font-body` from `body` automatically — Editorial gets serif headings for free.
 
-- [ ] **Step 4: Diff-check that Standard is unchanged**
+- [x] **Step 4: Diff-check that Standard is unchanged** — done: diff is additions-only; the six Standard color lines byte-identical to HEAD; `:root` font stacks equal the previously-hardcoded `body`/`code` stacks.
 
 Run: `git diff Sources/ReaderMd/Resources/web/template.html`
 Expected: the diff shows ONLY additions — the four new `html[data-theme=…]` blocks and the two `--font-*` lines in `:root` — plus the `body`/`code` `font-family` lines changing to `var(--font-body)` / `var(--font-mono)`. The six Standard color values (`--bg`, `--fg`, `--border`, `--accent`, `--code-bg`, `--blockquote` in `:root` and `html.dark`) must be untouched. Confirm the two literal font stacks in `:root` exactly equal the previously-hardcoded stacks (`-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif` and `ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace`).
 
-- [ ] **Step 5: Build and smoke-launch (Standard still identical — Verification item 7 visual)**
+- [x] **Step 5: Build and smoke-launch (Standard still identical — Verification item 7 visual)** — build done (`Build complete!`); on-screen smoke-launch is REQUIRES-HUMAN.
 
 Run: `swift build && swift run`
 Expected: content pane renders exactly as before (no `data-theme` attribute is set yet, so `:root`/`html.dark` serve Standard). Open any markdown file; toggle light/dark with the ☀/☽ button — both look identical to the pre-change app. Quit.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add Sources/ReaderMd/Resources/web/template.html
@@ -398,7 +398,7 @@ git commit -m "feat: add per-theme CSS variable blocks and font variables"
 - Consumes: `initMermaid()`, `render(text, dir, keepScroll)`, `currentDir`, `window.__lastMarkdown` (all existing in `bridge.js`); DOM ids `hljs-light` / `hljs-dark` (existing in `template.html`); `data-theme` blocks (Task 3).
 - Produces: `window.ReaderMd.setReadingTheme(name)` — sets/removes `documentElement.dataset.theme`, swaps both hljs `href`s, re-inits Mermaid, and scroll-preservingly re-renders.
 
-- [ ] **Step 1: Download the four highlight.js stylesheets (v11.11.1, matching the bundled `highlight.min.js`)**
+- [x] **Step 1: Download the four highlight.js stylesheets (v11.11.1, matching the bundled `highlight.min.js`)** — done via curl from jsdelivr.
 
 The existing `github.min.css` / `github-dark.min.css` were committed by hand into `styles/`; these are their siblings from the same distribution. Run from the repo root:
 
@@ -411,12 +411,12 @@ done
 cd -
 ```
 
-- [ ] **Step 2: Verify the downloads**
+- [x] **Step 2: Verify the downloads** — done: 6 css files present; the 4 new ones 856–1285 bytes, each starting `pre code.hljs{`.
 
 Run: `ls -l Sources/ReaderMd/Resources/web/styles/ && head -c 120 Sources/ReaderMd/Resources/web/styles/atom-one-light.min.css`
 Expected: six `.css` files present (`github*`, `atom-one-*`, `stackoverflow-*`); each new file 800–1300 bytes and starting with `pre code.hljs{display:block;overflow-x:auto;padding:1em}`. These ship under the highlight.js npm package's `styles/` and are **BSD-3-Clause** licensed (same license as the already-bundled `highlight.min.js`), so no new license obligation beyond what the repo already carries.
 
-- [ ] **Step 3: Add the `HLJS` lookup table to `bridge.js`**
+- [x] **Step 3: Add the `HLJS` lookup table to `bridge.js`**
 
 In `Sources/ReaderMd/Resources/web/bridge.js`, after line 7 (`let currentDir = '';`), insert:
 
@@ -432,7 +432,7 @@ const HLJS = {
 };
 ```
 
-- [ ] **Step 4: Add `setReadingTheme` to the `window.ReaderMd` object**
+- [x] **Step 4: Add `setReadingTheme` to the `window.ReaderMd` object** — uses `delete root.dataset.theme` for standard.
 
 In the same file, inside the `window.ReaderMd = { … }` object, add this method after the `setTheme` method (after line 34, the closing `},` of `setTheme`):
 
@@ -454,12 +454,12 @@ In the same file, inside the `window.ReaderMd = { … }` object, add this method
 
 > This mirrors `setTheme(dark)` exactly: same `initMermaid()` + scroll-preserving re-render path. On first push (before any document loads) `window.__lastMarkdown` is `null`, so it only sets the attribute/hrefs and skips the re-render. Mermaid has only `'dark'`/`'default'` built-ins, so diagrams follow the mode, not the reading theme — accepted limitation.
 
-- [ ] **Step 5: Build**
+- [x] **Step 5: Build** — done: `Build complete!`
 
 Run: `swift build`
 Expected: `Build complete!` (SwiftPM copies the resource bundle including the four new CSS files).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add Sources/ReaderMd/Resources/web/styles Sources/ReaderMd/Resources/web/bridge.js
@@ -478,7 +478,7 @@ git commit -m "feat: add syntax stylesheets and setReadingTheme bridge call"
 - Consumes: `Settings.loadReadingTheme()`, `Settings.saveReadingTheme(_:)`, `ReadingTheme` (Task 2); `window.ReaderMd.setReadingTheme(name)` (Task 4).
 - Produces: `AppState.readingTheme: ReadingTheme` (`@Published`), `AppState.setReadingTheme(_ theme: ReadingTheme)`; coordinator `applyReadingTheme(_ name: String)`.
 
-- [ ] **Step 1: Add the published property and load it in `init`**
+- [x] **Step 1: Add the published property and load it in `init`**
 
 In `Sources/ReaderMd/Models/AppState.swift`, add the property next to `theme` (after line 63, `@Published var theme: AppearanceMode = .light`):
 
@@ -492,7 +492,7 @@ and in `init()` (after line 120, `theme = Settings.loadTheme()`), add:
         readingTheme = Settings.loadReadingTheme()
 ```
 
-- [ ] **Step 2: Add the setter next to `toggleTheme`**
+- [x] **Step 2: Add the setter next to `toggleTheme`**
 
 In `AppState.swift`, in the "Theme / TOC persistence" MARK section, after `toggleTheme()` (after line 304), add:
 
@@ -503,7 +503,7 @@ In `AppState.swift`, in the "Theme / TOC persistence" MARK section, after `toggl
     }
 ```
 
-- [ ] **Step 3: Add coordinator state + `applyReadingTheme`**
+- [x] **Step 3: Add coordinator state + `applyReadingTheme`**
 
 In `Sources/ReaderMd/Views/MarkdownWebView.swift`, add a coordinator field next to `private var lastDark: Bool?` (after line 133):
 
@@ -523,7 +523,7 @@ and add the method right after `applyTheme(isDark:)` (after line 149):
 
 > `name` is a `ReadingTheme.rawValue` — one of `standard`/`editorial`/`terminal`, all bare ASCII identifiers, so single-quote interpolation is safe (no escaping needed), matching the existing `setTheme(\(isDark))` style.
 
-- [ ] **Step 4: Call it from `updateNSView`**
+- [x] **Step 4: Call it from `updateNSView`**
 
 In `MarkdownWebView.swift`, in `updateNSView`, right after the existing `coord.applyTheme(isDark:)` line (line 75), add:
 
@@ -531,7 +531,7 @@ In `MarkdownWebView.swift`, in `updateNSView`, right after the existing `coord.a
         coord.applyReadingTheme(state.readingTheme.rawValue)
 ```
 
-- [ ] **Step 5: Push the reading theme on first `ready`**
+- [x] **Step 5: Push the reading theme on first `ready`**
 
 In `MarkdownWebView.swift`, in the `case "ready":` handler, add the reading-theme push before the `if loadedPath != nil { pushCurrentFile(keepScroll: false) }` line (after line 360, the `setWide` push). Set the attribute/hrefs before the document loads so the very first render is already themed:
 
@@ -543,16 +543,16 @@ In `MarkdownWebView.swift`, in the `case "ready":` handler, add the reading-them
 
 > Ordering: on `ready`, `setTheme` (existing) then `setReadingTheme` (new) run before `pushCurrentFile`. Both call `initMermaid`, and both skip the re-render when `__lastMarkdown` is null (no document yet), so there is no double render. `lastReadingTheme` is populated by the `applyReadingTheme` call in `updateNSView`, which runs before `ready` fires.
 
-- [ ] **Step 6: Build**
+- [x] **Step 6: Build** — done: `Build complete!`
 
 Run: `swift build`
 Expected: `Build complete!`.
 
-- [ ] **Step 7: Smoke-test theme switching via the console (no UI yet)**
+- [ ] **Step 7: Smoke-test theme switching via the console (no UI yet)** — REQUIRES-HUMAN (GUI). Wiring compiles clean.
 
 Run: `swift run`, open a markdown file with a code block. The TopBar menu item lands in Task 6, so exercise the bridge directly is not possible from UI here — instead confirm the wiring compiles and the default (Standard) still renders identically. Toggle light/dark; confirm still identical to before. Quit.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add Sources/ReaderMd/Models/AppState.swift Sources/ReaderMd/Views/MarkdownWebView.swift
@@ -570,7 +570,7 @@ git commit -m "feat: persist and apply reading theme through the web bridge"
 - Consumes: `AppState.readingTheme` (`@Published`), `AppState.setReadingTheme(_:)`, `ReadingTheme.allCases`, `ReadingTheme.displayName` (Tasks 2, 5).
 - Produces: no new API; UI only.
 
-- [ ] **Step 1: Add the inline Picker section at the top of the menu**
+- [x] **Step 1: Add the inline Picker section at the top of the menu**
 
 In `Sources/ReaderMd/Views/TopBar.swift`, replace the `Menu { … }` **content** (lines 64-71, from `Button("Increase Text  ⌘+")` through the `Toggle(...)` closing `))`) so a Theme picker sits above the existing items:
 
@@ -604,17 +604,17 @@ Leave the `.menuStyle`, `.menuIndicator`, `.frame`, and `.help` modifiers after 
 
 > An inline `Picker` inside a `Menu` renders a "Theme" section header with a checkmark on the selected row — matching the spec mockup. If on macOS 13 the inline picker fails to show a header or checkmarks, fall back to a `Section("Theme")` of `Button`s, each labeled `Label(theme.displayName, systemImage: state.readingTheme == theme ? "checkmark" : "")`. Verify the actual rendering in Step 3 before settling.
 
-- [ ] **Step 2: Build**
+- [x] **Step 2: Build** — done: `Build complete!`
 
 Run: `swift build`
 Expected: `Build complete!`.
 
-- [ ] **Step 3: Verify the menu renders with checkmarks and switches theme**
+- [ ] **Step 3: Verify the menu renders with checkmarks and switches theme** — REQUIRES-HUMAN (GUI). Used the plan's primary `.pickerStyle(.inline)` approach; the macOS 13 `Section`-of-Buttons fallback was not needed (not verifiable without a screen).
 
 Run: `swift run`, open a markdown file containing a code block. Click the `textformat.size` (Aa) button.
 Expected: menu shows a **Theme** header, three rows (Standard / Editorial / Terminal) with a checkmark on the active one, a divider, then Increase/Decrease/Actual Size, a divider, then Wide Reading Column. Pick **Editorial** → body switches to serif, background warms, code block restyles (atom-one). Pick **Terminal** → monospace body, stackoverflow code colors. Pick **Standard** → returns to the original look. Confirm the checkmark follows your selection. Quit.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add Sources/ReaderMd/Views/TopBar.swift
@@ -634,7 +634,7 @@ The hex values from Task 3 for Editorial/Terminal are starting points. This task
 - Consumes: everything from Tasks 3–6.
 - Produces: final tuned palettes; a recorded release-note line (added to the changelog later by the `release` skill, not here).
 
-- [ ] **Step 1: Create the verification fixture**
+- [x] **Step 1: Create the verification fixture** — written to `/tmp/theme-fixture.md` for the human to open during the visual walk.
 
 Write this to a scratch path (it is a throwaway, not committed):
 
@@ -685,7 +685,7 @@ $$\int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}$$
 EOF
 ```
 
-- [ ] **Step 2: Walk all six theme × mode combinations (Verification items 1, 2, 4, 9)**
+- [ ] **Step 2: Walk all six theme × mode combinations (Verification items 1, 2, 4, 9)** — REQUIRES-HUMAN (on-screen).
 
 Run: `swift run`, then File → open `/tmp/theme-fixture.md` (or drag it onto the window).
 For each of the three themes, and within each toggle light↔dark (☀/☽):
@@ -696,21 +696,21 @@ For each of the three themes, and within each toggle light↔dark (☀/☽):
 
 Note any palette that reads poorly (low contrast, muddy accent, code-bg too close to bg).
 
-- [ ] **Step 3: Verify scroll preservation and text scaling (Verification items 3, 8)**
+- [ ] **Step 3: Verify scroll preservation and text scaling (Verification items 3, 8)** — REQUIRES-HUMAN (on-screen).
 
 - **Item 3:** scroll to the Table section, switch theme via the Aa menu — scroll position is preserved (the `keepScroll` re-render path).
 - **Item 8:** in each theme, press ⌘+ / ⌘− / ⌘0 — text scales in the content pane regardless of theme.
 
-- [ ] **Step 4: Verify persistence across restart (Verification item 5)**
+- [ ] **Step 4: Verify persistence across restart (Verification item 5)** — REQUIRES-HUMAN (on-screen).
 
 Pick **Terminal**, quit (⌘Q), relaunch `swift run`.
 Expected: the app reopens in Terminal (the `reader.md.readingTheme` key survived). Item 6 (unknown-name fallback) and item 7 (existing `reader.md.theme="dark"` → Standard-dark) were already proven in Task 2 Step 7 and Task 1 Step 6.
 
-- [ ] **Step 5: Tune palettes if Step 2 flagged issues**
+- [ ] **Step 5: Tune palettes if Step 2 flagged issues** — REQUIRES-HUMAN (eyes-based). Editorial/Terminal hexes are the plan's starting values; no tuning performed (cannot judge contrast without a screen).
 
 If any Editorial/Terminal value read poorly, edit the corresponding `html[data-theme=…]` block in `Sources/ReaderMd/Resources/web/template.html`. Keep changes to the four themed blocks only — `:root`/`html.dark` (Standard) stay verbatim. Re-run Step 2's walk to confirm. If no tuning is needed, note that and skip the edit.
 
-- [ ] **Step 6: Verify themed PDF export (spec Consequences) and record the release note**
+- [ ] **Step 6: Verify themed PDF export (spec Consequences) and record the release note** — PDF export verification is REQUIRES-HUMAN (on-screen). Release note recorded below verbatim for the `release` skill.
 
 Run: `swift run`, open the fixture in **Editorial dark**, press ⌘E, save, and open the PDF.
 Expected: the PDF is themed (Editorial dark palette + serif body), consistent with how light/dark export already behaves.
@@ -719,7 +719,7 @@ Record this line verbatim for the eventual changelog (the `release` skill adds i
 
 > Reading themes: Standard, Editorial, and Terminal, each with its own light/dark palette, body font, and syntax colors — pick one from the text-size (Aa) menu. PDF export (⌘E) renders through the active theme.
 
-- [ ] **Step 7: Commit (only if Step 5 changed the template)**
+- [x] **Step 7: Commit (only if Step 5 changed the template)** — N/A: no tuning was performed (REQUIRES-HUMAN), so the template is unchanged and there is nothing to commit here.
 
 ```bash
 git add Sources/ReaderMd/Resources/web/template.html

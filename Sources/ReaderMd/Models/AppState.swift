@@ -3,7 +3,7 @@ import AppKit
 import Combine
 import UniformTypeIdentifiers
 
-enum AppTheme: String, CaseIterable {
+enum AppearanceMode: String, CaseIterable {
     case light, dark
 
     var colorScheme: ColorScheme? {
@@ -21,7 +21,28 @@ enum AppTheme: String, CaseIterable {
         }
     }
 
-    var toggled: AppTheme { self == .dark ? .light : .dark }
+    var toggled: AppearanceMode { self == .dark ? .light : .dark }
+}
+
+/// A curated content-pane theme: a palette + font stack + highlight.js
+/// stylesheet pair. Orthogonal to `AppearanceMode` (light/dark) — a theme
+/// defines *both* of its modes. The set is fixed; not user-editable.
+enum ReadingTheme: String, CaseIterable {
+    case standard, editorial, terminal
+
+    var displayName: String {
+        switch self {
+        case .standard:  return "Standard"
+        case .editorial: return "Editorial"
+        case .terminal:  return "Terminal"
+        }
+    }
+
+    /// Resolve a persisted rawValue, failing closed to `.standard` when the
+    /// name is absent or unrecognized (so removing a theme can't brick startup).
+    static func named(_ raw: String?) -> ReadingTheme {
+        raw.flatMap(ReadingTheme.init(rawValue:)) ?? .standard
+    }
 }
 
 /// A heading in the currently open document, used for the outline.
@@ -60,7 +81,8 @@ final class AppState: ObservableObject {
     @Published var roots: [RootFolder] = []
     @Published var selectedFile: FileNode?
     @Published var searchQuery: String = ""
-    @Published var theme: AppTheme = .light
+    @Published var theme: AppearanceMode = .light
+    @Published var readingTheme: ReadingTheme = .standard
     @Published var showTOC: Bool = false
     @Published var focusSearch: Bool = false   // toggled to request focus
 
@@ -120,6 +142,7 @@ final class AppState: ObservableObject {
 
     init() {
         theme = Settings.loadTheme()
+        readingTheme = Settings.loadReadingTheme()
         showTOC = Settings.loadShowTOC()
         fontScale = Settings.loadFontScale()
         wideReading = Settings.loadWideReading()
@@ -303,6 +326,11 @@ final class AppState: ObservableObject {
     func toggleTheme() {
         theme = theme.toggled
         Settings.saveTheme(theme)
+    }
+
+    func setReadingTheme(_ theme: ReadingTheme) {
+        readingTheme = theme
+        Settings.saveReadingTheme(theme)
     }
 
     func setShowTOC(_ value: Bool) {

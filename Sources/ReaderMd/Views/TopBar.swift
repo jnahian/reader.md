@@ -61,6 +61,17 @@ struct TopBar: View {
             HStack(spacing: 0) {
                 // Typography controls
                 Menu {
+                    Picker("Theme", selection: Binding(
+                        get: { state.readingTheme },
+                        set: { state.setReadingTheme($0) }
+                    )) {
+                        ForEach(ReadingTheme.allCases, id: \.self) { theme in
+                            Text(theme.displayName).tag(theme)
+                        }
+                    }
+                    .pickerStyle(.inline)
+
+                    Divider()
                     Button("Increase Text  ⌘+") { state.adjustFontScale(0.1) }
                     Button("Decrease Text  ⌘−") { state.adjustFontScale(-0.1) }
                     Button("Actual Size  ⌘0") { state.resetFontScale() }

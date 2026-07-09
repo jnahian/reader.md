@@ -5,6 +5,15 @@ const contentEl = document.getElementById('content');
 let mermaidCounter = 0;
 let currentDir = '';
 
+// highlight.js stylesheet pairs [light, dark] per reading theme. Both hrefs are
+// set on theme change (see setReadingTheme) so the currently-disabled sheet is
+// already correct when the mode toggles — no flash of unstyled code.
+const HLJS = {
+  standard:  ['styles/github.min.css',             'styles/github-dark.min.css'],
+  editorial: ['styles/atom-one-light.min.css',     'styles/atom-one-dark.min.css'],
+  terminal:  ['styles/stackoverflow-light.min.css', 'styles/stackoverflow-dark.min.css'],
+};
+
 function isDark() { return document.documentElement.classList.contains('dark'); }
 
 function post(name, body) {
@@ -32,6 +41,19 @@ window.ReaderMd = {
     if (window.__lastMarkdown != null) {
       render(window.__lastMarkdown, currentDir, true);
     }
+  },
+
+  setReadingTheme(name) {
+    const root = document.documentElement;
+    // Standard must *remove* the attribute, not set it empty — html[data-theme=""]
+    // would still match an attribute selector and shadow the :root defaults.
+    if (name === 'standard') delete root.dataset.theme;
+    else root.dataset.theme = name;
+    const [light, dark] = HLJS[name] || HLJS.standard;
+    document.getElementById('hljs-light').href = light;
+    document.getElementById('hljs-dark').href = dark;
+    initMermaid();
+    if (window.__lastMarkdown != null) render(window.__lastMarkdown, currentDir, true);
   },
 
   loadMarkdown(text, dir) {
