@@ -1,0 +1,62 @@
+---
+import "../styles/global.css";
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const {
+  title,
+  description = "Reader.md is a fast, native macOS markdown reader with live reload, Mermaid, LaTeX, and remote SSH folders.",
+} = Astro.props;
+
+const repo = "https://github.com/jnahian/reader.md";
+const nav = [
+  { href: "/#features", label: "Features" },
+  { href: "/#install", label: "Install" },
+  { href: "/shortcuts", label: "Shortcuts" },
+  { href: "/faq", label: "FAQ" },
+  { href: "/changelog", label: "Changelog" },
+];
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" href="/icon.png" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content="/icon.png" />
+  </head>
+  <body class="bg-bg font-sans text-fg antialiased">
+    <header class="border-b border-border">
+      <nav class="mx-auto flex max-w-5xl items-center gap-6 px-6 py-4 text-sm">
+        <a href="/" class="flex items-center gap-2 font-semibold">
+          <img src="/icon.png" alt="" width="24" height="24" />
+          Reader.md
+        </a>
+        <div class="ml-auto flex flex-wrap items-center gap-5 text-muted">
+          {nav.map((item) => (
+            <a href={item.href} class="hover:text-fg">{item.label}</a>
+          ))}
+          <a href={repo} class="hover:text-fg">GitHub</a>
+        </div>
+      </nav>
+    </header>
+    <main>
+      <slot />
+    </main>
+    <footer class="border-t border-border py-12 text-center text-sm text-muted">
+      <p>
+        MIT © Julkar Naen Nahian ·
+        <a href={repo} class="underline hover:text-fg">GitHub</a> ·
+        <a href={`${repo}/releases`} class="underline hover:text-fg">Releases</a>
+      </p>
+    </footer>
+  </body>
+</html>
