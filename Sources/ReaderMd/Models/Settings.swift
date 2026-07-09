@@ -13,6 +13,7 @@ enum Settings {
     private static let sidebarWidthKey = "reader.md.sidebarWidth"
     private static let recentsKey = "reader.md.recents"
     private static let showResolvedThreadsKey = "reader.md.showResolvedThreads"
+    private static let readingThemeKey = "reader.md.readingTheme"
 
     private static var defaults: UserDefaults { .standard }
 
@@ -47,6 +48,14 @@ enum Settings {
     }
     static func saveTheme(_ theme: AppearanceMode) {
         defaults.set(theme.rawValue, forKey: themeKey)
+    }
+
+    // Reading theme (content-pane palette + fonts + syntax stylesheet)
+    static func loadReadingTheme() -> ReadingTheme {
+        ReadingTheme.named(defaults.string(forKey: readingThemeKey))
+    }
+    static func saveReadingTheme(_ theme: ReadingTheme) {
+        defaults.set(theme.rawValue, forKey: readingThemeKey)
     }
 
     // Outline

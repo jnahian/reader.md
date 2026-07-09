@@ -162,7 +162,7 @@ git commit -m "refactor: rename AppTheme to AppearanceMode"
   - `var displayName: String` — `"Standard"`, `"Editorial"`, `"Terminal"`.
   - `Settings.loadReadingTheme() -> ReadingTheme`, `Settings.saveReadingTheme(_ theme: ReadingTheme)`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `Tests/ReaderMdTests/ReadingThemeTests.swift`:
 
@@ -196,12 +196,12 @@ final class ReadingThemeTests: XCTestCase {
 }
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails** — done: compile error, `ReadingTheme` not defined (RED).
 
 Run: `swift test --filter ReadingThemeTests`
 Expected: FAIL / compile error — `ReadingTheme` is not defined yet.
 
-- [ ] **Step 3: Add the `ReadingTheme` enum**
+- [x] **Step 3: Add the `ReadingTheme` enum**
 
 In `Sources/ReaderMd/Models/AppState.swift`, immediately after the closing brace of `AppearanceMode` (after line 25), insert:
 
@@ -228,12 +228,12 @@ enum ReadingTheme: String, CaseIterable {
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes** — done: 4 tests pass (GREEN).
 
 Run: `swift test --filter ReadingThemeTests`
 Expected: PASS (4 tests).
 
-- [ ] **Step 5: Add persistence to Settings.swift**
+- [x] **Step 5: Add persistence to Settings.swift**
 
 In `Sources/ReaderMd/Models/Settings.swift`, add the key alongside the others (after line 15, `showResolvedThreadsKey`):
 
@@ -253,12 +253,12 @@ and add the load/save pair after the existing Theme block (after line 50, the cl
     }
 ```
 
-- [ ] **Step 6: Build and re-run the full suite**
+- [x] **Step 6: Build and re-run the full suite** — done: `Build complete!`, 18 tests, 0 failures.
 
 Run: `swift build && swift test`
 Expected: `Build complete!`, all tests pass.
 
-- [ ] **Step 7: Manual bad-data check (Verification item 6)**
+- [ ] **Step 7: Manual bad-data check (Verification item 6)** — REQUIRES-HUMAN (GUI launch). The fallback logic is covered by the automated `testUnknownNameFallsBackToStandard`; the on-screen no-crash launch needs a human.
 
 ```bash
 defaults write com.reader.md reader.md.readingTheme -string "nonexistent"
@@ -267,7 +267,7 @@ swift run
 
 Expected: app launches with the **Standard** content-pane appearance, no crash. (Same domain caveat as Task 1 Step 6 applies.) Quit the app, then clean up: `defaults delete com.reader.md reader.md.readingTheme`.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add Sources/ReaderMd/Models/AppState.swift Sources/ReaderMd/Models/Settings.swift Tests/ReaderMdTests/ReadingThemeTests.swift

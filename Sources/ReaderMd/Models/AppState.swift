@@ -24,6 +24,27 @@ enum AppearanceMode: String, CaseIterable {
     var toggled: AppearanceMode { self == .dark ? .light : .dark }
 }
 
+/// A curated content-pane theme: a palette + font stack + highlight.js
+/// stylesheet pair. Orthogonal to `AppearanceMode` (light/dark) — a theme
+/// defines *both* of its modes. The set is fixed; not user-editable.
+enum ReadingTheme: String, CaseIterable {
+    case standard, editorial, terminal
+
+    var displayName: String {
+        switch self {
+        case .standard:  return "Standard"
+        case .editorial: return "Editorial"
+        case .terminal:  return "Terminal"
+        }
+    }
+
+    /// Resolve a persisted rawValue, failing closed to `.standard` when the
+    /// name is absent or unrecognized (so removing a theme can't brick startup).
+    static func named(_ raw: String?) -> ReadingTheme {
+        raw.flatMap(ReadingTheme.init(rawValue:)) ?? .standard
+    }
+}
+
 /// A heading in the currently open document, used for the outline.
 struct TOCEntry: Identifiable, Equatable {
     let id: String   // heading element id
