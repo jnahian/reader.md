@@ -18,6 +18,7 @@ function initMermaid() {
 }
 
 marked.setOptions({ gfm: true, breaks: false });
+marked.use(markedFootnote());
 
 // ---- Public API called from Swift via evaluateJavaScript ----
 
