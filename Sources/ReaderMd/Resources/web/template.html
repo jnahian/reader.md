@@ -104,7 +104,9 @@
     }
     /* footnotes (item 3C) */
     section[data-footnotes] { font-size: 0.875em; }
-    section[data-footnotes] hr { margin-top: 40px; }
+    /* The extension emits the rule as a *preceding sibling* of the section, not a
+       child of it — so this cannot be `section[data-footnotes] hr`. */
+    hr[data-footnotes] { margin-top: 40px; }
     section[data-footnotes] ol { padding-left: 1.4em; }
     section[data-footnotes] li { margin: 0.4em 0; }
     sup a[data-footnote-ref] { text-decoration: none; padding: 0 2px; }

@@ -282,7 +282,12 @@ function postTOC() {
 }
 
 function reportActiveHeading() {
-  const headings = contentEl.querySelectorAll('h1,h2,h3,h4');
+  // Same exclusion as assignHeadingIds/postTOC/addHeadingAnchors: the footnote
+  // extension's sr-only <h2> is a real h2. Without this, scrolling into the
+  // footnotes posts activeHeading:"footnote-label", which matches no TOC row, so
+  // the outline's active-row highlight silently vanishes.
+  const headings = [...contentEl.querySelectorAll('h1,h2,h3,h4')]
+    .filter((h) => !h.closest('section[data-footnotes]'));
   if (!headings.length) return;
   let activeId = headings[0].id;
   for (const h of headings) {
