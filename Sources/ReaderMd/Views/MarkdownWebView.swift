@@ -17,12 +17,34 @@ extension Bundle {
 /// drag before SwiftUI's .onDrop can see it, so drops over the body do nothing).
 final class DropWebView: WKWebView {
     var onDrop: ((URL) -> Void)?
+    /// Because this view consumes the drag, SwiftUI's `.onDrop(isTargeted:)` on
+    /// ContentView never fires over the content pane. Report targeting up so the
+    /// drop overlay appears here too — otherwise it only shows over the chrome,
+    /// which is not where anyone drags.
+    var onDragTargeted: ((Bool) -> Void)?
 
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
-        droppedURLs(sender).isEmpty ? super.draggingEntered(sender) : .copy
+        guard !droppedURLs(sender).isEmpty else { return super.draggingEntered(sender) }
+        onDragTargeted?(true)
+        return .copy
+    }
+
+    override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+        droppedURLs(sender).isEmpty ? super.draggingUpdated(sender) : .copy
+    }
+
+    override func draggingExited(_ sender: NSDraggingInfo?) {
+        onDragTargeted?(false)
+        super.draggingExited(sender)
+    }
+
+    override func draggingEnded(_ sender: NSDraggingInfo) {
+        onDragTargeted?(false)
+        super.draggingEnded(sender)
     }
 
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        onDragTargeted?(false)
         let urls = droppedURLs(sender)
         guard !urls.isEmpty else { return super.performDragOperation(sender) }
         urls.forEach { onDrop?($0) }
@@ -55,6 +77,9 @@ struct MarkdownWebView: NSViewRepresentable {
         webView.registerForDraggedTypes([.fileURL])
         webView.onDrop = { [weak coord = context.coordinator] url in
             Task { @MainActor in coord?.state.openDropped(url) }
+        }
+        webView.onDragTargeted = { [weak coord = context.coordinator] targeted in
+            Task { @MainActor in coord?.state.webDropTargeted = targeted }
         }
         webView.navigationDelegate = context.coordinator
         webView.setValue(false, forKey: "drawsBackground") // transparent → matches theme

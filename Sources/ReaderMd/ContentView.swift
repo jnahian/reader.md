@@ -23,7 +23,7 @@ struct ContentView: View {
                     .zIndex(2)
             }
 
-            if dropTargeted {
+            if showDropOverlay {
                 DropTargetOverlay()
                     .transition(.opacity)
                     .zIndex(3)
@@ -35,7 +35,7 @@ struct ContentView: View {
         .animation(.easeInOut(duration: 0.15), value: state.showSidebar)
         .animation(.easeInOut(duration: 0.15), value: state.showTOC)
         .animation(.easeInOut(duration: 0.12), value: state.showQuickOpen)
-        .animation(.easeInOut(duration: 0.12), value: dropTargeted)
+        .animation(.easeInOut(duration: 0.12), value: showDropOverlay)
         .onDrop(of: [UTType.fileURL], isTargeted: $dropTargeted, perform: handleDrop)
     }
 
@@ -96,6 +96,13 @@ struct ContentView: View {
                     )
             )
     }
+
+    /// Two independent drop paths report targeting: SwiftUI's `.onDrop` for the chrome,
+    /// and DropWebView for the content pane (it consumes the drag first). They are kept
+    /// as separate flags and OR-ed — dragging from the sidebar onto the content pane
+    /// fires one's exit and the other's enter in an order neither controls, so a single
+    /// shared flag would flicker off mid-drag.
+    private var showDropOverlay: Bool { dropTargeted || state.webDropTargeted }
 
     private func handleDrop(_ providers: [NSItemProvider]) -> Bool {
         for provider in providers {

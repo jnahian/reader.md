@@ -106,6 +106,11 @@ final class AppState: ObservableObject {
 
     // Overlays
     @Published var showQuickOpen: Bool = false
+
+    /// True while a file drag is over the web view. The web view consumes the drag
+    /// before SwiftUI's `.onDrop` sees it, so it reports targeting separately from
+    /// the chrome's `isTargeted`; ContentView shows the overlay when either is set.
+    @Published var webDropTargeted: Bool = false
     @Published var showFind: Bool = false
     @Published var findQuery: String = ""
     @Published var findCount: Int = 0
