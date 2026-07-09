@@ -39,9 +39,13 @@ const nav = [
     <meta name="description" content={description} />
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="/icon.png" />
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:image" content="/icon.png" />
+    <meta property="og:image" content={new URL("/icon.png", Astro.site)} />
+    <meta property="og:url" content={new URL(Astro.url.pathname, Astro.site)} />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary" />
   </head>
   <body class="bg-bg font-sans text-fg antialiased">
     <header class="border-b border-border">

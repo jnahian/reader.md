@@ -1,5 +1,7 @@
 # Reader.md (Swift / SwiftUI)
 
+**Website:** [reader-md.jnahian.me](https://reader-md.jnahian.me)
+
 A native macOS rebuild of the markdown viewer using SwiftUI and AppKit. The whole shell — topbar, sidebar, file search, outline, folder management, file watching, and SF Symbol icons — is native SwiftUI. The markdown content pane is a `WKWebView` that renders through bundled JS engines, because Mermaid diagrams and LaTeX math have no native equivalent.
 
 ## Architecture
