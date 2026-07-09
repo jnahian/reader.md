@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **Find in Page** — highlights every match, shows a live "N of M" count, and
+  steps through matches with ⌘G / ⇧⌘G or the find-bar chevrons. Reachable from
+  the new topbar search button.
+- **Find in Page moved to ⌘F**; **Filter Files (sidebar) moved to ⇧⌘F**.
+
 ## 1.5.0 — 2026-07-08
 
 - **Remote (SSH) folders** — add a remote folder and Reader.md syncs it

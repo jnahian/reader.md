@@ -52,7 +52,7 @@ struct ReaderMdApp: App {
                 Button("Find in Page") {
                     state.showFind = true
                 }
-                .keyboardShortcut("f", modifiers: [.command, .shift])
+                .keyboardShortcut("f", modifiers: .command)
                 Button("Find Next") { state.triggerFindNext() }
                     .keyboardShortcut("g", modifiers: .command)
                     .disabled(!state.showFind)
@@ -61,7 +61,7 @@ struct ReaderMdApp: App {
                     .disabled(!state.showFind)
                 Divider()
                 Button("Filter Files") { state.focusSearch.toggle() }
-                    .keyboardShortcut("f", modifiers: .command)
+                    .keyboardShortcut("f", modifiers: [.command, .shift])
             }
 
             CommandGroup(after: .toolbar) {

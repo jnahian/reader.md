@@ -683,7 +683,7 @@ Swaps ⌘F (now Find in Page) and ⌘⇧F (now Filter Files). This changes exist
 - Consumes: `AppState.showFind: Bool`, `AppState.focusSearch: Bool`.
 - Produces: nothing new.
 
-- [ ] **Step 1: Swap the shortcuts in the Find command menu**
+- [x] **Step 1: Swap the shortcuts in the Find command menu**
 
 In `Sources/ReaderMd/ReaderMdApp.swift`, in the `CommandMenu("Find")` block, change the `Find in Page` button's modifier and the `Filter Files` button's modifier. Replace (currently lines 52-64):
 
@@ -721,7 +721,7 @@ with:
                     .keyboardShortcut("f", modifiers: [.command, .shift])
 ```
 
-- [ ] **Step 2: Swap the shortcut rows in SHORTCUTS.md**
+- [x] **Step 2: Swap the shortcut rows in SHORTCUTS.md**
 
 In `Sources/ReaderMd/Resources/docs/SHORTCUTS.md`, change line 25:
 
@@ -747,7 +747,7 @@ to:
 | ⇧⌘F | Filter Files (sidebar) |
 ```
 
-- [ ] **Step 3: Add the changelog entry**
+- [x] **Step 3: Add the changelog entry**
 
 In `Sources/ReaderMd/Resources/docs/CHANGELOG.md`, add a new entry directly under the top `# Changelog` heading (currently line 1), before the `## 1.5.0 …` heading. Leave the version number/date to be set at release time — use an `Unreleased` heading:
 
@@ -760,7 +760,7 @@ In `Sources/ReaderMd/Resources/docs/CHANGELOG.md`, add a new entry directly unde
 - **Find in Page moved to ⌘F**; **Filter Files (sidebar) moved to ⇧⌘F**.
 ```
 
-- [ ] **Step 4: Build**
+- [x] **Step 4: Build**
 
 Run: `swift build`
 Expected: `Build complete!`
@@ -772,7 +772,7 @@ Run: `swift run`, add `/tmp/reader-find-fixtures`, open `basic.md`.
 - Press Esc to close, then **⌘⇧F**: focus moves to the sidebar filter field (Filter Files).
 - Menu bar → Find: "Find in Page" shows ⌘F, "Filter Files" shows ⇧⌘F.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add Sources/ReaderMd/ReaderMdApp.swift \
