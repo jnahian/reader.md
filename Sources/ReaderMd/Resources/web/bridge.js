@@ -16,6 +16,18 @@ const HLJS = {
 
 function isDark() { return document.documentElement.classList.contains('dark'); }
 
+// macOS system accent (pushed from Swift as a resolved #rrggbb via setAccent).
+// Applied only to the standard theme — editorial/terminal own their accents, so
+// an inline --accent (which would win over their html[data-theme] rules) is
+// removed while one of those is active. Re-evaluated on theme *and* accent change.
+let systemAccent = null;
+function applyAccent() {
+  const root = document.documentElement;
+  const isStandard = !root.dataset.theme;
+  if (systemAccent && isStandard) root.style.setProperty('--accent', systemAccent);
+  else root.style.removeProperty('--accent');
+}
+
 function post(name, body) {
   if (window.webkit && window.webkit.messageHandlers[name]) {
     window.webkit.messageHandlers[name].postMessage(body);
@@ -52,8 +64,14 @@ window.ReaderMd = {
     const [light, dark] = HLJS[name] || HLJS.standard;
     document.getElementById('hljs-light').href = light;
     document.getElementById('hljs-dark').href = dark;
+    applyAccent(); // standard ⇄ custom transition changes whether the accent applies
     initMermaid();
     if (window.__lastMarkdown != null) render(window.__lastMarkdown, currentDir, true);
+  },
+
+  setAccent(hex) {
+    systemAccent = hex || null;
+    applyAccent();
   },
 
   loadMarkdown(text, dir) {
