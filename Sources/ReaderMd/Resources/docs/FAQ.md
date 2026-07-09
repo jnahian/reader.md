@@ -32,8 +32,13 @@ Yes. Mermaid fenced code blocks render as diagrams, and LaTeX (`$…$` /
 `$$…$$`) renders via KaTeX. Syntax highlighting is built in.
 
 **Can I change the theme or text size?**
-Light/dark theme follows the toggle in the topbar. Text size is ⌘+ / ⌘- /
-⌘0, and **View → Wide Column** widens the reading measure.
+Light/dark follows the toggle in the topbar, which also picks a reading theme —
+Standard, Editorial, or Terminal. Text size is ⌘+ / ⌘- / ⌘0, and
+**View → Wide Column** widens the reading measure.
+
+In the Standard theme, links and heading anchors use the accent color you picked
+in System Settings, and follow it when you change it. Editorial and Terminal keep
+their own accents.
 
 ## Annotations
 
@@ -49,8 +54,8 @@ to the file, but are lost if the file is renamed or moved.
 **File → Export as PDF…** (⌘E) renders the current document to PDF.
 
 **How do I search within a document?**
-Find in Page (⇧⌘F), then ⌘G / ⇧⌘G for next/previous. To filter the file list
-in the sidebar, use ⌘F.
+Find in Page (⌘F) highlights every match and shows a live "N of M" count; step
+through matches with ⌘G / ⇧⌘G. To filter the file list in the sidebar, use ⇧⌘F.
 
 ## Remote folders
 

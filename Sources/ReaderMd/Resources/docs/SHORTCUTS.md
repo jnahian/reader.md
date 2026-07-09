@@ -25,7 +25,16 @@
 | ⌘F | Find in Page |
 | ⌘G | Find Next |
 | ⇧⌘G | Find Previous |
+| ⎋ | Clear the find field |
 | ⇧⌘F | Filter Files (sidebar) |
+
+## Quick Open (⌘P)
+
+| Shortcut | Action |
+| --- | --- |
+| ↑ ↓ | Move through results |
+| ⏎ | Open the selected file |
+| ⎋ | Dismiss |
 
 ## View
 
