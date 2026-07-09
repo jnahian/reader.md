@@ -9,9 +9,16 @@ struct ToolbarIconButtonStyle: ButtonStyle {
     /// When false, the button never draws its own glass surface — use inside a
     /// grouped glass capsule so glass isn't stacked (only the subtle hover fill).
     var glass: Bool = true
+    /// Defaults suit the sidebar's text buttons; the topbar passes Preview's
+    /// larger, lighter icon metrics.
+    var iconSize: CGFloat = 13
+    var iconWeight: Font.Weight = .medium
 
     func makeBody(configuration: Configuration) -> some View {
-        IconButton(configuration: configuration, width: width, height: height, glass: glass)
+        IconButton(
+            configuration: configuration, width: width, height: height,
+            glass: glass, iconSize: iconSize, iconWeight: iconWeight
+        )
     }
 
     private struct IconButton: View {
@@ -19,6 +26,8 @@ struct ToolbarIconButtonStyle: ButtonStyle {
         let width: CGFloat?
         let height: CGFloat?
         let glass: Bool
+        let iconSize: CGFloat
+        let iconWeight: Font.Weight
         @Environment(\.isEnabled) private var isEnabled
         @State private var hovering = false
 
@@ -33,7 +42,7 @@ struct ToolbarIconButtonStyle: ButtonStyle {
         // its own). Pre-26, or when grouped in a capsule: the subtle hover/press fill.
         @ViewBuilder private var styledLabel: some View {
             let label = configuration.label
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: iconSize, weight: iconWeight))
                 .foregroundStyle(.primary)
                 .frame(width: width, height: height)
             if glass, #available(macOS 26.0, *) {
