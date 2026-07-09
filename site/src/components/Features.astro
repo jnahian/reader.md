@@ -58,8 +58,16 @@ const features = [
 ];
 ---
 
-<section id="features" class="bg-bg-alt py-16">
-  <div class="mx-auto max-w-5xl px-6">
+<section id="features" class="relative overflow-hidden bg-bg-alt py-16">
+  <svg class="pointer-events-none absolute inset-0 h-full w-full opacity-40" aria-hidden="true">
+    <defs>
+      <pattern id="features-dots" width="28" height="28" patternUnits="userSpaceOnUse">
+        <circle cx="2" cy="2" r="1" style="fill: var(--border)" />
+      </pattern>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#features-dots)" />
+  </svg>
+  <div class="relative z-10 mx-auto max-w-5xl px-6">
     <h2 class="mb-12 text-center text-3xl font-bold tracking-tight">
       Built for reading, not editing
     </h2>

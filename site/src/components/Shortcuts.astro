@@ -15,8 +15,16 @@ const keys = [
 ];
 ---
 
-<section class="bg-bg-alt py-16">
-  <div class="mx-auto max-w-3xl px-6">
+<section class="relative overflow-hidden bg-bg-alt py-16">
+  <svg class="pointer-events-none absolute inset-0 h-full w-full opacity-40" aria-hidden="true">
+    <defs>
+      <pattern id="shortcuts-dots" width="28" height="28" patternUnits="userSpaceOnUse">
+        <circle cx="2" cy="2" r="1" style="fill: var(--border)" />
+      </pattern>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#shortcuts-dots)" />
+  </svg>
+  <div class="relative z-10 mx-auto max-w-3xl px-6">
     <h2 class="mb-12 text-center text-3xl font-bold tracking-tight">Keyboard-first</h2>
     <div class="grid gap-x-10 sm:grid-cols-2">
       {keys.map((k) => (
