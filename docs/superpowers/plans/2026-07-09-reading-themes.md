@@ -398,7 +398,7 @@ git commit -m "feat: add per-theme CSS variable blocks and font variables"
 - Consumes: `initMermaid()`, `render(text, dir, keepScroll)`, `currentDir`, `window.__lastMarkdown` (all existing in `bridge.js`); DOM ids `hljs-light` / `hljs-dark` (existing in `template.html`); `data-theme` blocks (Task 3).
 - Produces: `window.ReaderMd.setReadingTheme(name)` — sets/removes `documentElement.dataset.theme`, swaps both hljs `href`s, re-inits Mermaid, and scroll-preservingly re-renders.
 
-- [ ] **Step 1: Download the four highlight.js stylesheets (v11.11.1, matching the bundled `highlight.min.js`)**
+- [x] **Step 1: Download the four highlight.js stylesheets (v11.11.1, matching the bundled `highlight.min.js`)** — done via curl from jsdelivr.
 
 The existing `github.min.css` / `github-dark.min.css` were committed by hand into `styles/`; these are their siblings from the same distribution. Run from the repo root:
 
@@ -411,12 +411,12 @@ done
 cd -
 ```
 
-- [ ] **Step 2: Verify the downloads**
+- [x] **Step 2: Verify the downloads** — done: 6 css files present; the 4 new ones 856–1285 bytes, each starting `pre code.hljs{`.
 
 Run: `ls -l Sources/ReaderMd/Resources/web/styles/ && head -c 120 Sources/ReaderMd/Resources/web/styles/atom-one-light.min.css`
 Expected: six `.css` files present (`github*`, `atom-one-*`, `stackoverflow-*`); each new file 800–1300 bytes and starting with `pre code.hljs{display:block;overflow-x:auto;padding:1em}`. These ship under the highlight.js npm package's `styles/` and are **BSD-3-Clause** licensed (same license as the already-bundled `highlight.min.js`), so no new license obligation beyond what the repo already carries.
 
-- [ ] **Step 3: Add the `HLJS` lookup table to `bridge.js`**
+- [x] **Step 3: Add the `HLJS` lookup table to `bridge.js`**
 
 In `Sources/ReaderMd/Resources/web/bridge.js`, after line 7 (`let currentDir = '';`), insert:
 
@@ -432,7 +432,7 @@ const HLJS = {
 };
 ```
 
-- [ ] **Step 4: Add `setReadingTheme` to the `window.ReaderMd` object**
+- [x] **Step 4: Add `setReadingTheme` to the `window.ReaderMd` object** — uses `delete root.dataset.theme` for standard.
 
 In the same file, inside the `window.ReaderMd = { … }` object, add this method after the `setTheme` method (after line 34, the closing `},` of `setTheme`):
 
@@ -454,12 +454,12 @@ In the same file, inside the `window.ReaderMd = { … }` object, add this method
 
 > This mirrors `setTheme(dark)` exactly: same `initMermaid()` + scroll-preserving re-render path. On first push (before any document loads) `window.__lastMarkdown` is `null`, so it only sets the attribute/hrefs and skips the re-render. Mermaid has only `'dark'`/`'default'` built-ins, so diagrams follow the mode, not the reading theme — accepted limitation.
 
-- [ ] **Step 5: Build**
+- [x] **Step 5: Build** — done: `Build complete!`
 
 Run: `swift build`
 Expected: `Build complete!` (SwiftPM copies the resource bundle including the four new CSS files).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add Sources/ReaderMd/Resources/web/styles Sources/ReaderMd/Resources/web/bridge.js
