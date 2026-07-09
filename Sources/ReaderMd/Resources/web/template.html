@@ -94,6 +94,24 @@
     }
     #lightbox.open { display: flex; }
     #lightbox img { max-width: 92vw; max-height: 92vh; cursor: zoom-out; border-radius: 8px; }
+
+    /* The footnote extension always emits <h2 class="sr-only">Footnotes</h2> as an
+       a11y label and offers no option to suppress it. Hide it visually, keep it
+       for VoiceOver. */
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+    }
+    /* footnotes (item 3C) */
+    section[data-footnotes] { font-size: 0.875em; }
+    /* The extension emits the rule as a *preceding sibling* of the section, not a
+       child of it — so this cannot be `section[data-footnotes] hr`. */
+    hr[data-footnotes] { margin-top: 40px; }
+    section[data-footnotes] ol { padding-left: 1.4em; }
+    section[data-footnotes] li { margin: 0.4em 0; }
+    sup a[data-footnote-ref] { text-decoration: none; padding: 0 2px; }
+    a[data-footnote-backref] { text-decoration: none; color: var(--blockquote); margin-left: 4px; }
+    a[data-footnote-backref]:hover { color: var(--accent); }
   </style>
 </head>
 <body>
@@ -101,6 +119,7 @@
   <div id="lightbox"><img alt="" /></div>
 
   <script src="marked.min.js"></script>
+  <script src="marked-footnote.umd.js"></script>
   <script src="highlight.min.js"></script>
   <script src="katex/katex.min.js"></script>
   <script src="katex/auto-render.min.js"></script>

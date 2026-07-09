@@ -42,7 +42,7 @@ Delivers original request items 2 (links to footnotes), 3A (separate section wit
 - Consumes: global `marked` (from `marked.min.js`, already loaded).
 - Produces: global `window.markedFootnote` (a factory; called as `markedFootnote()` to build the extension). Footnote HTML shape relied on by Task 2's CSS: `<section data-footnotes>` containing `<hr data-footnotes>` + `<ol><li id="footnote-N">…<a data-footnote-backref>↩</a></li></ol>`, and inline `<sup><a data-footnote-ref>N</a></sup>`.
 
-- [ ] **Step 1: Create the two fixture files**
+- [x] **Step 1: Create the two fixture files**
 
 Run:
 
@@ -85,7 +85,7 @@ echo "fixtures written:"; ls -l /private/tmp/rmd-fixtures/
 
 Expected: both files listed.
 
-- [ ] **Step 2: Establish the baseline failure (footnotes render literally)**
+- [ ] **Step 2: Establish the baseline failure (footnotes render literally)** _(SKIPPED — on-screen GUI observation; requires a human. Background agent cannot see the app window.)_
 
 Run: `swift run`
 
@@ -95,7 +95,7 @@ Expected (the failure we are about to fix): the markers `[^1]` and `[^2]` appear
 
 Quit the app (⌘Q) before editing files.
 
-- [ ] **Step 3: Vendor `marked-footnote@1.4.0` with a license header**
+- [x] **Step 3: Vendor `marked-footnote@1.4.0` with a license header**
 
 Run:
 
@@ -122,7 +122,7 @@ DEST="/Users/nahian/Projects/reader.md/Sources/ReaderMd/Resources/web/marked-foo
 } > "$DEST"
 ```
 
-- [ ] **Step 4: Verify the vendored file defines the expected global**
+- [x] **Step 4: Verify the vendored file defines the expected global**
 
 Run:
 
@@ -132,7 +132,7 @@ grep -c 'markedFootnote' /Users/nahian/Projects/reader.md/Sources/ReaderMd/Resou
 
 Expected: a count `>= 1` (the UMD build defines/exports `markedFootnote`). If it prints `0`, the wrong file was vendored — stop and re-fetch. (This catches a bad vendor before it looks like "footnotes just don't render.")
 
-- [ ] **Step 5: Load the extension in `template.html`**
+- [x] **Step 5: Load the extension in `template.html`**
 
 In `Sources/ReaderMd/Resources/web/template.html`, the script block currently reads:
 
@@ -149,7 +149,7 @@ Change it to add the extension immediately after `marked.min.js` and before `bri
   <script src="highlight.min.js"></script>
 ```
 
-- [ ] **Step 6: Register the extension in `bridge.js`**
+- [x] **Step 6: Register the extension in `bridge.js`**
 
 In `Sources/ReaderMd/Resources/web/bridge.js`, this line exists:
 
@@ -164,7 +164,7 @@ marked.setOptions({ gfm: true, breaks: false });
 marked.use(markedFootnote());
 ```
 
-- [ ] **Step 7: Rebuild and verify footnotes render**
+- [x] **Step 7: Rebuild and verify footnotes render** _(`swift build` performed and passed. On-screen items 1–6 below SKIPPED — GUI observation, requires a human. Follow-up commit `fix:` enables `footnoteDivider: true` so the `<hr>` (item 2/item 5) is now emitted, and adds a `.sr-only` rule + bridge guards so the extension's `<h2>Footnotes</h2>` is hidden and kept out of the outline.)_
 
 Run: `swift build`
 Expected: builds with no errors.
@@ -184,7 +184,7 @@ In the app: the `/private/tmp/rmd-fixtures` folder should still be a root; click
 
 Quit the app (⌘Q).
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 cd /Users/nahian/Projects/reader.md
@@ -205,7 +205,7 @@ Delivers original request item 3C (sizing). The footnote section currently rende
 - Consumes: the footnote HTML from Task 1 (`section[data-footnotes]`, its `hr`, `ol`, `li`; `sup a[data-footnote-ref]`; `a[data-footnote-backref]`), and the theme CSS variables `--blockquote`, `--accent`, `--border` (defined in `:root` / `html.dark` in the same file).
 - Produces: nothing consumed by later tasks (final task).
 
-- [ ] **Step 1: Establish the baseline (footnote section is full body size)**
+- [ ] **Step 1: Establish the baseline (footnote section is full body size)** _(SKIPPED — on-screen GUI observation; requires a human.)_
 
 Recreate the fixtures if they are gone (same content as Task 1, Step 1):
 
@@ -242,7 +242,7 @@ EOF
 Run: `swift run`, open `footnotes.md`, scroll to the footnote section.
 Expected (baseline): the note text is the SAME size as the body text, the rule sits at the default `hr` spacing, and the `↩` backref is the accent link color. Quit the app (⌘Q).
 
-- [ ] **Step 2: Add the footnote CSS**
+- [x] **Step 2: Add the footnote CSS**
 
 In `Sources/ReaderMd/Resources/web/template.html`, the `<style>` block ends with the image-lightbox rules:
 
@@ -269,7 +269,11 @@ Insert the footnote block immediately before `</style>`:
   </style>
 ```
 
-- [ ] **Step 3: Rebuild and verify the styling**
+- [x] **Step 3: Rebuild and verify the styling** _(`swift build` performed and passed. On-screen items 1–4 below SKIPPED — GUI observation, requires a human. The `hr` spacing item (2) is now live: follow-up `fix:` commit set `footnoteDivider: true`, so the `<hr>` is emitted and the `section[data-footnotes] hr` rule applies.)_
+
+Additional REQUIRES-HUMAN checks (from the `fix:` follow-up commit):
+- the word "Footnotes" is not visible anywhere on the page
+- the sidebar outline shows no "Footnotes" entry, and that heading has no hover `#` anchor
 
 Run: `swift build`
 Expected: builds with no errors.
@@ -283,7 +287,7 @@ Run: `swift run`, open `footnotes.md`. Confirm these observable checks (spec Ver
 
 Quit the app (⌘Q).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 cd /Users/nahian/Projects/reader.md
