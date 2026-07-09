@@ -153,7 +153,8 @@ final class AppState: ObservableObject {
         wideReading = Settings.loadWideReading()
         showSidebar = Settings.loadShowSidebar()
         sidebarWidth = Settings.loadSidebarWidth()
-        recentFiles = Settings.loadRecents()
+        // Drop help-doc paths saved by builds that recorded them.
+        recentFiles = Settings.loadRecents().filter { !Self.isBundledDoc(URL(fileURLWithPath: $0)) }
         showResolvedThreads = Settings.loadShowResolvedThreads()
         loadSavedRoots()
         loadSavedRemotes()
@@ -383,7 +384,15 @@ final class AppState: ObservableObject {
             forwardStack.removeAll()
         }
         setCurrent(node)
-        pushRecent(node.url.path)
+        // Help docs are app resources, not the user's documents — keep them out of recents.
+        if !Self.isBundledDoc(node.url) { pushRecent(node.url.path) }
+    }
+
+    /// True for anything inside the app's own resource bundle — the help docs
+    /// (FAQ / SHORTCUTS / CHANGELOG) and any internal doc added later.
+    nonisolated static func isBundledDoc(_ url: URL) -> Bool {
+        guard let root = Bundle.resources.resourceURL?.standardizedFileURL.path else { return false }
+        return url.standardizedFileURL.path.hasPrefix(root)
     }
 
     func openPath(_ path: String) {
