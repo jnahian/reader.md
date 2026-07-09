@@ -53,6 +53,7 @@ struct ReaderMdApp: App {
                     state.showFind = true
                 }
                 .keyboardShortcut("f", modifiers: .command)
+                .disabled(state.selectedFile == nil)
                 Button("Find Next") { state.triggerFindNext() }
                     .keyboardShortcut("g", modifiers: .command)
                     .disabled(!state.showFind)
