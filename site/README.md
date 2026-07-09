@@ -20,5 +20,6 @@ Import the repo and set:
 - **Root directory:** `site`
 - **Framework preset:** Astro (auto-detected)
 - Build command `npm run build`, output `dist` (preset defaults)
+- On Vercel, keep "Include files outside the root directory" enabled (default) — the prebuild script reads ../Sources/ReaderMd/Resources/docs/.
 
 Every push to `main` redeploys.
