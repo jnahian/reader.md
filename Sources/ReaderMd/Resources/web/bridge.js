@@ -123,6 +123,11 @@ async function render(text, dir, keepScroll) {
   const prevScroll = keepScroll ? window.scrollY : 0;
   window.__lastMarkdown = text;
   currentDir = dir || '';
+  // A fresh document (loadMarkdown) restarts find at the first match; a re-render
+  // of the same one (reloadMarkdown, setTheme) keeps the reader where they were.
+  // Without this, opening a new file with find active would leave refind() focused
+  // on the old match index, somewhere off-screen.
+  if (!keepScroll) findFocus = 0;
 
   const { table, body } = splitFrontmatter(text);
   contentEl.innerHTML = table + marked.parse(body);
