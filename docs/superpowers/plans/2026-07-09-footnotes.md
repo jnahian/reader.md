@@ -205,7 +205,7 @@ Delivers original request item 3C (sizing). The footnote section currently rende
 - Consumes: the footnote HTML from Task 1 (`section[data-footnotes]`, its `hr`, `ol`, `li`; `sup a[data-footnote-ref]`; `a[data-footnote-backref]`), and the theme CSS variables `--blockquote`, `--accent`, `--border` (defined in `:root` / `html.dark` in the same file).
 - Produces: nothing consumed by later tasks (final task).
 
-- [ ] **Step 1: Establish the baseline (footnote section is full body size)**
+- [ ] **Step 1: Establish the baseline (footnote section is full body size)** _(SKIPPED — on-screen GUI observation; requires a human.)_
 
 Recreate the fixtures if they are gone (same content as Task 1, Step 1):
 
@@ -242,7 +242,7 @@ EOF
 Run: `swift run`, open `footnotes.md`, scroll to the footnote section.
 Expected (baseline): the note text is the SAME size as the body text, the rule sits at the default `hr` spacing, and the `↩` backref is the accent link color. Quit the app (⌘Q).
 
-- [ ] **Step 2: Add the footnote CSS**
+- [x] **Step 2: Add the footnote CSS**
 
 In `Sources/ReaderMd/Resources/web/template.html`, the `<style>` block ends with the image-lightbox rules:
 
@@ -269,7 +269,7 @@ Insert the footnote block immediately before `</style>`:
   </style>
 ```
 
-- [ ] **Step 3: Rebuild and verify the styling**
+- [x] **Step 3: Rebuild and verify the styling** _(`swift build` performed and passed. On-screen items 1–4 below SKIPPED — GUI observation, requires a human. Note: the `hr` spacing item (2) has nothing to style — default `markedFootnote()` emits no `<hr>`.)_
 
 Run: `swift build`
 Expected: builds with no errors.
@@ -283,7 +283,7 @@ Run: `swift run`, open `footnotes.md`. Confirm these observable checks (spec Ver
 
 Quit the app (⌘Q).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 cd /Users/nahian/Projects/reader.md
