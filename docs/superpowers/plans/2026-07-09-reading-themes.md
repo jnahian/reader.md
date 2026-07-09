@@ -285,7 +285,7 @@ git commit -m "feat: add ReadingTheme enum with unknown-name fallback"
 - Consumes: nothing (pure CSS; the `data-theme` attribute is set by Task 4's JS).
 - Produces: CSS variables `--font-body`, `--font-mono` on every theme block; six theme×mode selectors: `:root`, `html.dark`, `html[data-theme="editorial"]`, `html[data-theme="editorial"].dark`, `html[data-theme="terminal"]`, `html[data-theme="terminal"].dark`.
 
-- [ ] **Step 1: Record the current (Standard) values for the diff-check**
+- [x] **Step 1: Record the current (Standard) values for the diff-check**
 
 Run: `git show HEAD:Sources/ReaderMd/Resources/web/template.html | sed -n '9,23p'`
 Expected output (this is the baseline Standard palette that must stay byte-identical):
@@ -302,7 +302,7 @@ Expected output (this is the baseline Standard palette that must stay byte-ident
     }
 ```
 
-- [ ] **Step 2: Replace the `:root` / `html.dark` blocks with all six theme blocks**
+- [x] **Step 2: Replace the `:root` / `html.dark` blocks with all six theme blocks** — done; `#f2eadd` typed correctly.
 
 In `Sources/ReaderMd/Resources/web/template.html`, replace lines 9-17 (the `:root { … }` and `html.dark { … }` blocks) with:
 
@@ -346,7 +346,7 @@ In `Sources/ReaderMd/Resources/web/template.html`, replace lines 9-17 (the `:roo
 
 > Correction note for the implementer: fix the typo `#f2ead d` to a valid hex `#f2eadd` when typing — the plan spaces it only to flag it; the intended value is `#f2eadd`. Standard's `:root`/`html.dark` color values are copied verbatim from Step 1; only the two `--font-*` lines are added to `:root`. `--content-width`/`--content-size` stay in `:root` and are NOT duplicated into theme blocks (the JS overrides them inline on `documentElement.style`).
 
-- [ ] **Step 3: Consume the font variables in `body` and `code`**
+- [x] **Step 3: Consume the font variables in `body` and `code`**
 
 In the same file, change the `body` rule (was lines 20-23) so its `font-family` reads the variable:
 
@@ -369,17 +369,17 @@ and change the inline `code` rule (was lines 37-40) `font-family` line:
 
 Leave `pre code`, `.copy-btn` (`font-family: -apple-system, sans-serif`), and all other rules unchanged. Headings have no `font-family` of their own, so they inherit `--font-body` from `body` automatically — Editorial gets serif headings for free.
 
-- [ ] **Step 4: Diff-check that Standard is unchanged**
+- [x] **Step 4: Diff-check that Standard is unchanged** — done: diff is additions-only; the six Standard color lines byte-identical to HEAD; `:root` font stacks equal the previously-hardcoded `body`/`code` stacks.
 
 Run: `git diff Sources/ReaderMd/Resources/web/template.html`
 Expected: the diff shows ONLY additions — the four new `html[data-theme=…]` blocks and the two `--font-*` lines in `:root` — plus the `body`/`code` `font-family` lines changing to `var(--font-body)` / `var(--font-mono)`. The six Standard color values (`--bg`, `--fg`, `--border`, `--accent`, `--code-bg`, `--blockquote` in `:root` and `html.dark`) must be untouched. Confirm the two literal font stacks in `:root` exactly equal the previously-hardcoded stacks (`-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif` and `ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace`).
 
-- [ ] **Step 5: Build and smoke-launch (Standard still identical — Verification item 7 visual)**
+- [x] **Step 5: Build and smoke-launch (Standard still identical — Verification item 7 visual)** — build done (`Build complete!`); on-screen smoke-launch is REQUIRES-HUMAN.
 
 Run: `swift build && swift run`
 Expected: content pane renders exactly as before (no `data-theme` attribute is set yet, so `:root`/`html.dark` serve Standard). Open any markdown file; toggle light/dark with the ☀/☽ button — both look identical to the pre-change app. Quit.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add Sources/ReaderMd/Resources/web/template.html
