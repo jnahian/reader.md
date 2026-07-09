@@ -1,0 +1,66 @@
+---
+const features = [
+  {
+    icon: "📁",
+    title: "Open anything",
+    body: "Single files, whole folders, or a mix. Add any number of roots, drag folders onto the window, or make it your default markdown app.",
+  },
+  {
+    icon: "☁️",
+    title: "Remote SSH folders",
+    body: "Browse markdown on a VPS: Reader.md rsyncs it read-only into a local cache using your existing ~/.ssh config. No credentials stored.",
+  },
+  {
+    icon: "⚡️",
+    title: "Live reload",
+    body: "Edit in your favorite editor — the open file re-renders on save with scroll position preserved, and the file tree stays in sync.",
+  },
+  {
+    icon: "🧜‍♀️",
+    title: "Mermaid, LaTeX & code",
+    body: "Diagrams, math, and syntax highlighting render out of the box, fully offline. YAML frontmatter shows as a clean table.",
+  },
+  {
+    icon: "🔍",
+    title: "Find everything",
+    body: "⌘P fuzzy quick-open across all roots, ⇧⌘F live file filter, and a native ⌘F in-page find with match highlighting.",
+  },
+  {
+    icon: "🗺",
+    title: "Outline & progress",
+    body: "A collapsible outline pane with scrollspy, a reading progress bar, plus word count and reading time in the status bar.",
+  },
+  {
+    icon: "🌗",
+    title: "Liquid Glass chrome",
+    body: "Native SwiftUI shell with Apple's Liquid Glass on macOS 26 Tahoe (translucent fallback on 13–15). Light, dark, or system — plus Standard, Editorial, and Terminal reading themes.",
+  },
+  {
+    icon: "📄",
+    title: "Export to PDF",
+    body: "⌘E turns the rendered document into a PDF. Code blocks get copy buttons; images zoom in a click-to-open lightbox.",
+  },
+  {
+    icon: "🔒",
+    title: "Private by design",
+    body: "All rendering assets are bundled. The only network access is the update check — and the SSH hosts you add yourself.",
+  },
+];
+---
+
+<section id="features" class="bg-bg-alt py-16">
+  <div class="mx-auto max-w-5xl px-6">
+    <h2 class="mb-12 text-center text-3xl font-bold tracking-tight">
+      Built for reading, not editing
+    </h2>
+    <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {features.map((f) => (
+        <div class="rounded-2xl border border-border bg-card p-6">
+          <div class="text-2xl">{f.icon}</div>
+          <h3 class="mb-1.5 mt-2.5 text-lg font-semibold">{f.title}</h3>
+          <p class="text-sm text-muted">{f.body}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
