@@ -47,6 +47,38 @@ final class DropWebViewTests: XCTestCase {
         XCTAssertEqual(targeted, false, "Targeting must clear on drop or the overlay stays up.")
     }
 
+    /// The first drop landed, every later one was ignored: `draggingEnded(_:)` is an
+    /// optional NSDraggingDestination method that neither NSView nor WKWebView implements,
+    /// so calling `super.draggingEnded` raised "unrecognized selector". AppKit swallowed the
+    /// exception and left the drag session broken.
+    func testTwoConsecutiveDragCyclesBothDeliver() {
+        let view = DropWebView(frame: .zero, configuration: WKWebViewConfiguration())
+        var delivered: [String] = []
+        view.onDrop = { delivered.append($0.lastPathComponent) }
+
+        for name in ["first.md", "second.md"] {
+            let info = makeDraggingInfo(pasteboardItems: [NSURL(fileURLWithPath: "/tmp/\(name)")])
+            XCTAssertEqual(view.draggingEntered(info), .copy)
+            XCTAssertEqual(view.draggingUpdated(info), .copy)
+            XCTAssertTrue(view.performDragOperation(info))
+            view.draggingEnded(info)   // raised "unrecognized selector" before the fix
+        }
+
+        XCTAssertEqual(delivered, ["first.md", "second.md"],
+                       "A completed drag must leave the view able to accept the next one.")
+    }
+
+    func testDraggingExitedClearsTargeting() {
+        let view = DropWebView(frame: .zero, configuration: WKWebViewConfiguration())
+        var targeted: Bool?
+        view.onDragTargeted = { targeted = $0 }
+        let info = makeDraggingInfo(pasteboardItems: [NSURL(fileURLWithPath: "/tmp/note.md")])
+
+        _ = view.draggingEntered(info)
+        view.draggingExited(info)
+        XCTAssertEqual(targeted, false, "The overlay stays up forever if exit doesn't clear it.")
+    }
+
     func testDraggingUpdatedKeepsTheCopyOperation() {
         let view = DropWebView(frame: .zero, configuration: WKWebViewConfiguration())
         let info = makeDraggingInfo(pasteboardItems: [NSURL(fileURLWithPath: "/tmp/note.md")])

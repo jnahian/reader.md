@@ -44,9 +44,13 @@ final class DropWebView: WKWebView {
         super.draggingExited(sender)
     }
 
+    /// No `super` call: `draggingEnded(_:)` is an *optional* NSDraggingDestination method
+    /// and neither NSView nor WKWebView implements it, so `super.draggingEnded` raises
+    /// "unrecognized selector". AppKit swallows the exception but leaves the drag session
+    /// broken — the first drop lands, every drop after it is silently ignored.
+    /// (`draggingExited(_:)` above is different: NSView does implement that one.)
     override func draggingEnded(_ sender: NSDraggingInfo) {
         onDragTargeted?(false)
-        super.draggingEnded(sender)
     }
 
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
