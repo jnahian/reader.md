@@ -570,7 +570,7 @@ git commit -m "feat: persist and apply reading theme through the web bridge"
 - Consumes: `AppState.readingTheme` (`@Published`), `AppState.setReadingTheme(_:)`, `ReadingTheme.allCases`, `ReadingTheme.displayName` (Tasks 2, 5).
 - Produces: no new API; UI only.
 
-- [ ] **Step 1: Add the inline Picker section at the top of the menu**
+- [x] **Step 1: Add the inline Picker section at the top of the menu**
 
 In `Sources/ReaderMd/Views/TopBar.swift`, replace the `Menu { … }` **content** (lines 64-71, from `Button("Increase Text  ⌘+")` through the `Toggle(...)` closing `))`) so a Theme picker sits above the existing items:
 
@@ -604,17 +604,17 @@ Leave the `.menuStyle`, `.menuIndicator`, `.frame`, and `.help` modifiers after 
 
 > An inline `Picker` inside a `Menu` renders a "Theme" section header with a checkmark on the selected row — matching the spec mockup. If on macOS 13 the inline picker fails to show a header or checkmarks, fall back to a `Section("Theme")` of `Button`s, each labeled `Label(theme.displayName, systemImage: state.readingTheme == theme ? "checkmark" : "")`. Verify the actual rendering in Step 3 before settling.
 
-- [ ] **Step 2: Build**
+- [x] **Step 2: Build** — done: `Build complete!`
 
 Run: `swift build`
 Expected: `Build complete!`.
 
-- [ ] **Step 3: Verify the menu renders with checkmarks and switches theme**
+- [ ] **Step 3: Verify the menu renders with checkmarks and switches theme** — REQUIRES-HUMAN (GUI). Used the plan's primary `.pickerStyle(.inline)` approach; the macOS 13 `Section`-of-Buttons fallback was not needed (not verifiable without a screen).
 
 Run: `swift run`, open a markdown file containing a code block. Click the `textformat.size` (Aa) button.
 Expected: menu shows a **Theme** header, three rows (Standard / Editorial / Terminal) with a checkmark on the active one, a divider, then Increase/Decrease/Actual Size, a divider, then Wide Reading Column. Pick **Editorial** → body switches to serif, background warms, code block restyles (atom-one). Pick **Terminal** → monospace body, stackoverflow code colors. Pick **Standard** → returns to the original look. Confirm the checkmark follows your selection. Quit.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add Sources/ReaderMd/Views/TopBar.swift
