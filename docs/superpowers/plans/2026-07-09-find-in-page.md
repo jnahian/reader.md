@@ -517,7 +517,7 @@ around PDF export so highlights don't bake in."
 
 Run: `swift run`, add `/tmp/reader-find-fixtures`, open `basic.md`, ⌘⇧F, type `foo`. Expected (current): highlights appear but there is NO "1 of 5" text between the field and the chevrons. Type `zzz`: no "No results" text and the chevrons stay enabled (they currently disable on empty query only). Quit.
 
-- [ ] **Step 2: Add the count label and fix chevron enablement**
+- [x] **Step 2: Add the count label and fix chevron enablement**
 
 In `Sources/ReaderMd/Views/FindBar.swift`, replace the whole `body` (currently lines 8-48) with:
 
@@ -572,7 +572,7 @@ In `Sources/ReaderMd/Views/FindBar.swift`, replace the whole `body` (currently l
     }
 ```
 
-- [ ] **Step 3: Fix the stale doc comment**
+- [x] **Step 3: Fix the stale doc comment**
 
 In `Sources/ReaderMd/Views/FindBar.swift`, change the comment (currently line 3):
 
@@ -586,7 +586,7 @@ to:
 /// Floating in-page find bar; drives the JS find engine (bridge.js) via AppState.
 ```
 
-- [ ] **Step 4: Build**
+- [x] **Step 4: Build**
 
 Run: `swift build`
 Expected: `Build complete!`
@@ -600,7 +600,7 @@ Run: `swift run`, add `/tmp/reader-find-fixtures`, open `basic.md`, ⌘⇧F.
 - Type `zzz`: label reads **"No results"** and both chevrons are disabled (item 4).
 - Clear the field: the label disappears.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add Sources/ReaderMd/Views/FindBar.swift
