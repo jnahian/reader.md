@@ -1,0 +1,31 @@
+---
+const dmg = "https://github.com/jnahian/reader.md/releases/latest/download/Reader.md.dmg";
+---
+
+<section id="install" class="py-16">
+  <div class="mx-auto max-w-5xl px-6">
+    <h2 class="mb-12 text-center text-3xl font-bold tracking-tight">Install in seconds</h2>
+    <div class="grid gap-8 md:grid-cols-2">
+      <div class="min-w-0">
+        <h3 class="mb-2 text-xl font-semibold">Homebrew</h3>
+        <p class="mb-3 text-sm text-muted">
+          Tap once, install, and let the built-in Sparkle updater handle upgrades.
+        </p>
+        <pre
+          class="overflow-x-auto rounded-xl bg-code-bg p-4 font-mono text-sm leading-relaxed text-code-fg"><code>brew tap jnahian/reader.md https://github.com/jnahian/reader.md
+brew install --cask reader-md</code></pre>
+      </div>
+      <div class="min-w-0">
+        <h3 class="mb-2 text-xl font-semibold">Direct download</h3>
+        <p class="mb-3 text-sm text-muted">
+          Grab the DMG and drag Reader.md to Applications. First launch:
+          right-click → Open (the app is signed but not notarized).
+        </p>
+        <a
+          href={dmg}
+          class="inline-block rounded-full bg-accent px-6 py-3 font-medium text-accent-fg hover:opacity-90"
+        >Download Reader.md.dmg</a>
+      </div>
+    </div>
+  </div>
+</section>

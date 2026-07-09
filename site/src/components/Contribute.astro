@@ -1,0 +1,54 @@
+---
+import Star from "@lucide/astro/icons/star";
+import MessageSquare from "@lucide/astro/icons/message-square";
+import GitPullRequest from "@lucide/astro/icons/git-pull-request";
+
+const repo = "https://github.com/jnahian/reader.md";
+const links = [
+  {
+    icon: Star,
+    title: "Star the repo",
+    body: "Reader.md is free and MIT-licensed. A star helps others find it.",
+    href: repo,
+    cta: "Star on GitHub",
+  },
+  {
+    icon: MessageSquare,
+    title: "Share feedback",
+    body: "Found a bug or wish it did something more? Open an issue — every report gets read.",
+    href: `${repo}/issues/new`,
+    cta: "Report an issue",
+  },
+  {
+    icon: GitPullRequest,
+    title: "Contribute",
+    body: "PRs welcome — the contributing guide covers setup, conventions, and the PR flow.",
+    href: `${repo}/blob/main/CONTRIBUTING.md`,
+    cta: "Read the guide",
+  },
+];
+---
+
+<section class="relative overflow-hidden py-16">
+  <div class="pointer-events-none absolute inset-0" aria-hidden="true">
+    <span class="absolute left-[3%] top-[8%] font-mono text-3xl text-muted/10">#</span>
+    <span class="absolute right-[4%] top-[12%] hidden font-mono text-xl text-muted/8 sm:block">*</span>
+    <span class="absolute left-[6%] bottom-[10%] hidden font-mono text-2xl text-muted/8 sm:block">~~</span>
+    <span class="absolute right-[3%] bottom-[8%] font-mono text-2xl text-muted/10">```</span>
+  </div>
+  <div class="relative z-10 mx-auto max-w-5xl px-6">
+    <h2 class="mb-12 text-center text-3xl font-bold tracking-tight">Open source, open ears</h2>
+    <div class="grid gap-5 md:grid-cols-3">
+      {links.map(({ icon: Icon, title, body, href, cta }) => (
+        <div class="rounded-2xl border border-border bg-card p-6 text-center">
+          <div class="flex justify-center">
+            <Icon class="size-6 text-accent" />
+          </div>
+          <h3 class="mb-1.5 mt-2.5 text-lg font-semibold">{title}</h3>
+          <p class="mb-4 text-sm text-muted">{body}</p>
+          <a href={href} class="text-sm font-medium text-accent hover:underline">{cta} →</a>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
