@@ -164,7 +164,7 @@ marked.setOptions({ gfm: true, breaks: false });
 marked.use(markedFootnote());
 ```
 
-- [x] **Step 7: Rebuild and verify footnotes render** _(`swift build` performed and passed. On-screen items 1–6 below SKIPPED — GUI observation, requires a human. Note: static analysis of the vendored file shows default `markedFootnote()` emits NO `<hr>` (item 2/item 5 "preceded by a rule" will not hold) and emits a visible `<h2 class="sr-only">Footnotes</h2>` heading since no `.sr-only` CSS exists.)_
+- [x] **Step 7: Rebuild and verify footnotes render** _(`swift build` performed and passed. On-screen items 1–6 below SKIPPED — GUI observation, requires a human. Follow-up commit `fix:` enables `footnoteDivider: true` so the `<hr>` (item 2/item 5) is now emitted, and adds a `.sr-only` rule + bridge guards so the extension's `<h2>Footnotes</h2>` is hidden and kept out of the outline.)_
 
 Run: `swift build`
 Expected: builds with no errors.
@@ -269,7 +269,11 @@ Insert the footnote block immediately before `</style>`:
   </style>
 ```
 
-- [x] **Step 3: Rebuild and verify the styling** _(`swift build` performed and passed. On-screen items 1–4 below SKIPPED — GUI observation, requires a human. Note: the `hr` spacing item (2) has nothing to style — default `markedFootnote()` emits no `<hr>`.)_
+- [x] **Step 3: Rebuild and verify the styling** _(`swift build` performed and passed. On-screen items 1–4 below SKIPPED — GUI observation, requires a human. The `hr` spacing item (2) is now live: follow-up `fix:` commit set `footnoteDivider: true`, so the `<hr>` is emitted and the `section[data-footnotes] hr` rule applies.)_
+
+Additional REQUIRES-HUMAN checks (from the `fix:` follow-up commit):
+- the word "Footnotes" is not visible anywhere on the page
+- the sidebar outline shows no "Footnotes" entry, and that heading has no hover `#` anchor
 
 Run: `swift build`
 Expected: builds with no errors.

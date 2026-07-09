@@ -95,6 +95,13 @@
     #lightbox.open { display: flex; }
     #lightbox img { max-width: 92vw; max-height: 92vh; cursor: zoom-out; border-radius: 8px; }
 
+    /* The footnote extension always emits <h2 class="sr-only">Footnotes</h2> as an
+       a11y label and offers no option to suppress it. Hide it visually, keep it
+       for VoiceOver. */
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+    }
     /* footnotes (item 3C) */
     section[data-footnotes] { font-size: 0.875em; }
     section[data-footnotes] hr { margin-top: 40px; }
