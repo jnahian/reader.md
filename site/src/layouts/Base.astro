@@ -97,6 +97,23 @@ const nav = [
         btn.setAttribute("title", label(next));
       });
     </script>
+    <script is:inline>
+      if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        document.documentElement.classList.add("reveal-ready");
+        const observer = new IntersectionObserver(
+          (entries) => {
+            for (const entry of entries) {
+              if (entry.isIntersecting) {
+                entry.target.classList.add("revealed");
+                observer.unobserve(entry.target);
+              }
+            }
+          },
+          { threshold: 0.15, rootMargin: "0px 0px -10% 0px" }
+        );
+        document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
+      }
+    </script>
   </body>
 </html>
 
