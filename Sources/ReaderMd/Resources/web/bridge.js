@@ -542,7 +542,10 @@ contentEl.addEventListener('click', (e) => {
 // Kept entirely separate from the marks anchoring (resolveAnchor / rangeFromOffsets),
 // which needs the polluted-but-consistent text and must not be touched.
 
-const FIND_EXCLUDE = '.anchor, .copy-btn, svg, .katex';
+// `.sr-only` covers the footnote extension's visually-hidden "Footnotes" <h2>:
+// hidden to the reader, but a real text node, so an unfiltered search for
+// "footnotes" would match it and inflate the count.
+const FIND_EXCLUDE = '.anchor, .copy-btn, svg, .katex, .sr-only';
 let findMatches = [];   // one entry per occurrence: an array of its <mark> elements
 let findFocus = 0;      // index of the .current occurrence
 let findQuery = '';     // the live query, so refind() can rebuild after a re-render
