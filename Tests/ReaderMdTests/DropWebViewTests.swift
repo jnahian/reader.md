@@ -7,8 +7,12 @@ import WebKit
 /// answers are pure functions of the pasteboard — so they are testable with a stub.
 ///
 /// These cover our own overrides: that a file-URL drag is claimed, reported to the overlay,
-/// delivered, and that targeting clears afterwards. They do NOT cover whether AppKit routes
-/// a real drag to this view in the first place — that needs a real drag session.
+/// delivered, and that targeting clears afterwards. Each fails if its override is removed.
+///
+/// `testDraggingUpdatedKeepsTheCopyOperation` is the load-bearing one: WKWebView's own
+/// draggingUpdated returns `.none` (it asks the loaded page), and AppKit permits a drop
+/// based on the last answer — so without the override, every drop over a rendered document
+/// was cancelled before `performDragOperation` ran.
 final class DropWebViewTests: XCTestCase {
 
     private func makeDraggingInfo(pasteboardItems: [Any]) -> StubDraggingInfo {
@@ -47,8 +51,11 @@ final class DropWebViewTests: XCTestCase {
         let view = DropWebView(frame: .zero, configuration: WKWebViewConfiguration())
         let info = makeDraggingInfo(pasteboardItems: [NSURL(fileURLWithPath: "/tmp/note.md")])
 
+        // Not cosmetic: AppKit permits a drop based on the LAST draggingUpdated answer,
+        // and WKWebView's own implementation returns .none. Deleting the override makes
+        // this assertion fail — and makes every drop over a rendered document fail too.
         XCTAssertEqual(view.draggingUpdated(info), .copy,
-                       "Without this the copy cursor reverts to WebKit's answer mid-drag.")
+                       "WebKit answers .none here; the drop is cancelled before performDragOperation.")
     }
 }
 

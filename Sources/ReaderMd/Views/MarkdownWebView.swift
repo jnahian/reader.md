@@ -29,6 +29,12 @@ final class DropWebView: WKWebView {
         return .copy
     }
 
+    /// This override is the one that makes drops work at all over a rendered document.
+    /// AppKit decides whether to permit a drop from the *last* draggingUpdated answer,
+    /// and WKWebView's implementation returns `.none` — it asks the loaded page, which
+    /// doesn't want the file. Without this, draggingEntered's `.copy` was overruled on
+    /// the very next mouse move and performDragOperation never ran. Drops appeared to
+    /// work only on the empty state, where the web view isn't the drag destination.
     override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
         droppedURLs(sender).isEmpty ? super.draggingUpdated(sender) : .copy
     }
