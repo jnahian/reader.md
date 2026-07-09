@@ -18,8 +18,8 @@ Astro, styled with Tailwind CSS. **No gradients anywhere** — flat colors only.
 | App visual | Pure-CSS mock of the app window (no screenshots) |
 | Styling | Tailwind CSS v4 via `@tailwindcss/vite` |
 | Structure | Multi-page: `/`, `/changelog`, `/faq`, `/shortcuts` |
-| Theme | System `prefers-color-scheme` light/dark, no toggle; Apple-style flat design, system font stack |
-| Client JS | None (fully static) |
+| Theme | Light/dark/system with a header toggle (localStorage-persisted, cycles like the app; system follows `prefers-color-scheme`); Apple-style flat design, system font stack |
+| Client JS | Two minimal inline scripts for the theme toggle only (no external JS, no frameworks) — relaxed from "none" by user request 2026-07-10 |
 
 ## Structure
 
