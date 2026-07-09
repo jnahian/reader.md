@@ -18,6 +18,7 @@ function initMermaid() {
 }
 
 marked.setOptions({ gfm: true, breaks: false });
+marked.use(markedFootnote({ footnoteDivider: true }));
 
 // ---- Public API called from Swift via evaluateJavaScript ----
 
@@ -190,6 +191,7 @@ function addImageZoom() {
 
 function addHeadingAnchors() {
   contentEl.querySelectorAll('h1,h2,h3,h4').forEach((h) => {
+    if (h.closest('section[data-footnotes]')) return;
     if (h.querySelector('.anchor')) return;
     const a = document.createElement('a');
     a.className = 'anchor';
@@ -210,6 +212,7 @@ function reportProgress() {
 function assignHeadingIds() {
   const seen = new Map();
   contentEl.querySelectorAll('h1,h2,h3,h4,h5,h6').forEach((h) => {
+    if (h.closest('section[data-footnotes]')) return;
     let slug = (h.textContent.trim().toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-')) || 'section';
     const n = seen.get(slug) || 0;
     seen.set(slug, n + 1);
@@ -298,13 +301,19 @@ function normalize(p) {
 function postTOC() {
   const entries = [];
   contentEl.querySelectorAll('h1,h2,h3,h4').forEach((h) => {
+    if (h.closest('section[data-footnotes]')) return;
     entries.push({ id: h.id, text: h.textContent, level: Number(h.tagName[1]) });
   });
   post('toc', entries);
 }
 
 function reportActiveHeading() {
-  const headings = contentEl.querySelectorAll('h1,h2,h3,h4');
+  // Same exclusion as assignHeadingIds/postTOC/addHeadingAnchors: the footnote
+  // extension's sr-only <h2> is a real h2. Without this, scrolling into the
+  // footnotes posts activeHeading:"footnote-label", which matches no TOC row, so
+  // the outline's active-row highlight silently vanishes.
+  const headings = [...contentEl.querySelectorAll('h1,h2,h3,h4')]
+    .filter((h) => !h.closest('section[data-footnotes]'));
   if (!headings.length) return;
   let activeId = headings[0].id;
   for (const h of headings) {
