@@ -19,7 +19,8 @@ Astro, styled with Tailwind CSS. **No gradients anywhere** — flat colors only.
 | Styling | Tailwind CSS v4 via `@tailwindcss/vite` |
 | Structure | Multi-page: `/`, `/changelog`, `/faq`, `/shortcuts` |
 | Theme | Light/dark/system with a header toggle (localStorage-persisted, cycles like the app; system follows `prefers-color-scheme`); Apple-style flat design, system font stack |
-| Client JS | Two minimal inline scripts for the theme toggle only (no external JS, no frameworks) — relaxed from "none" by user request 2026-07-10 |
+| Client JS | Minimal inline scripts only (theme toggle + IntersectionObserver scroll-reveal; no external JS, no frameworks) — relaxed from "none" by user request 2026-07-10 |
+| Motion | Smooth anchor scrolling, per-route fade-slide-up entrance, scroll-to-reveal on landing sections; ALL disabled under `prefers-reduced-motion`, content never hidden without JS |
 
 ## Structure
 
