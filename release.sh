@@ -44,3 +44,20 @@ gh release create "${TAG}" "${DMG}" build/appcast.xml \
   || gh release upload "${TAG}" "${DMG}" build/appcast.xml --repo "${REPO}" --clobber
 
 echo "Released ${TAG}: appcast.xml + ${APP_NAME}.dmg uploaded to ${REPO}."
+
+# Point the Homebrew cask at this release. The DMG url is version-templated, so
+# only the version and sha256 change per release; rewrite those two lines and
+# commit so `brew install --cask` never serves a stale build. The sha256 is of
+# the exact DMG we just uploaded, so `brew` verifies the same bytes.
+CASK="Casks/reader-md.rb"
+DMG_SHA="$(shasum -a 256 "${DMG}" | cut -d' ' -f1)"
+sed -i '' \
+  -e "s/^  version \".*\"/  version \"${VERSION}\"/" \
+  -e "s/^  sha256 \".*\"/  sha256 \"${DMG_SHA}\"/" \
+  "${CASK}"
+if ! git diff --quiet -- "${CASK}"; then
+  git add "${CASK}"
+  git commit -m "chore: update Homebrew cask to ${TAG}"
+  git push
+  echo "Updated ${CASK} -> ${VERSION} (${DMG_SHA})."
+fi
