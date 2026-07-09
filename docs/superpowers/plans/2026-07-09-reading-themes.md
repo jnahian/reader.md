@@ -478,7 +478,7 @@ git commit -m "feat: add syntax stylesheets and setReadingTheme bridge call"
 - Consumes: `Settings.loadReadingTheme()`, `Settings.saveReadingTheme(_:)`, `ReadingTheme` (Task 2); `window.ReaderMd.setReadingTheme(name)` (Task 4).
 - Produces: `AppState.readingTheme: ReadingTheme` (`@Published`), `AppState.setReadingTheme(_ theme: ReadingTheme)`; coordinator `applyReadingTheme(_ name: String)`.
 
-- [ ] **Step 1: Add the published property and load it in `init`**
+- [x] **Step 1: Add the published property and load it in `init`**
 
 In `Sources/ReaderMd/Models/AppState.swift`, add the property next to `theme` (after line 63, `@Published var theme: AppearanceMode = .light`):
 
@@ -492,7 +492,7 @@ and in `init()` (after line 120, `theme = Settings.loadTheme()`), add:
         readingTheme = Settings.loadReadingTheme()
 ```
 
-- [ ] **Step 2: Add the setter next to `toggleTheme`**
+- [x] **Step 2: Add the setter next to `toggleTheme`**
 
 In `AppState.swift`, in the "Theme / TOC persistence" MARK section, after `toggleTheme()` (after line 304), add:
 
@@ -503,7 +503,7 @@ In `AppState.swift`, in the "Theme / TOC persistence" MARK section, after `toggl
     }
 ```
 
-- [ ] **Step 3: Add coordinator state + `applyReadingTheme`**
+- [x] **Step 3: Add coordinator state + `applyReadingTheme`**
 
 In `Sources/ReaderMd/Views/MarkdownWebView.swift`, add a coordinator field next to `private var lastDark: Bool?` (after line 133):
 
@@ -523,7 +523,7 @@ and add the method right after `applyTheme(isDark:)` (after line 149):
 
 > `name` is a `ReadingTheme.rawValue` — one of `standard`/`editorial`/`terminal`, all bare ASCII identifiers, so single-quote interpolation is safe (no escaping needed), matching the existing `setTheme(\(isDark))` style.
 
-- [ ] **Step 4: Call it from `updateNSView`**
+- [x] **Step 4: Call it from `updateNSView`**
 
 In `MarkdownWebView.swift`, in `updateNSView`, right after the existing `coord.applyTheme(isDark:)` line (line 75), add:
 
@@ -531,7 +531,7 @@ In `MarkdownWebView.swift`, in `updateNSView`, right after the existing `coord.a
         coord.applyReadingTheme(state.readingTheme.rawValue)
 ```
 
-- [ ] **Step 5: Push the reading theme on first `ready`**
+- [x] **Step 5: Push the reading theme on first `ready`**
 
 In `MarkdownWebView.swift`, in the `case "ready":` handler, add the reading-theme push before the `if loadedPath != nil { pushCurrentFile(keepScroll: false) }` line (after line 360, the `setWide` push). Set the attribute/hrefs before the document loads so the very first render is already themed:
 
@@ -543,16 +543,16 @@ In `MarkdownWebView.swift`, in the `case "ready":` handler, add the reading-them
 
 > Ordering: on `ready`, `setTheme` (existing) then `setReadingTheme` (new) run before `pushCurrentFile`. Both call `initMermaid`, and both skip the re-render when `__lastMarkdown` is null (no document yet), so there is no double render. `lastReadingTheme` is populated by the `applyReadingTheme` call in `updateNSView`, which runs before `ready` fires.
 
-- [ ] **Step 6: Build**
+- [x] **Step 6: Build** — done: `Build complete!`
 
 Run: `swift build`
 Expected: `Build complete!`.
 
-- [ ] **Step 7: Smoke-test theme switching via the console (no UI yet)**
+- [ ] **Step 7: Smoke-test theme switching via the console (no UI yet)** — REQUIRES-HUMAN (GUI). Wiring compiles clean.
 
 Run: `swift run`, open a markdown file with a code block. The TopBar menu item lands in Task 6, so exercise the bridge directly is not possible from UI here — instead confirm the wiring compiles and the default (Standard) still renders identically. Toggle light/dark; confirm still identical to before. Quit.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add Sources/ReaderMd/Models/AppState.swift Sources/ReaderMd/Views/MarkdownWebView.swift

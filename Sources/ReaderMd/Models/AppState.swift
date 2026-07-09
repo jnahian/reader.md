@@ -82,6 +82,7 @@ final class AppState: ObservableObject {
     @Published var selectedFile: FileNode?
     @Published var searchQuery: String = ""
     @Published var theme: AppearanceMode = .light
+    @Published var readingTheme: ReadingTheme = .standard
     @Published var showTOC: Bool = false
     @Published var focusSearch: Bool = false   // toggled to request focus
 
@@ -139,6 +140,7 @@ final class AppState: ObservableObject {
 
     init() {
         theme = Settings.loadTheme()
+        readingTheme = Settings.loadReadingTheme()
         showTOC = Settings.loadShowTOC()
         fontScale = Settings.loadFontScale()
         wideReading = Settings.loadWideReading()
@@ -322,6 +324,11 @@ final class AppState: ObservableObject {
     func toggleTheme() {
         theme = theme.toggled
         Settings.saveTheme(theme)
+    }
+
+    func setReadingTheme(_ theme: ReadingTheme) {
+        readingTheme = theme
+        Settings.saveReadingTheme(theme)
     }
 
     func setShowTOC(_ value: Bool) {

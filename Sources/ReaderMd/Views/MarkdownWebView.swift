@@ -73,6 +73,7 @@ struct MarkdownWebView: NSViewRepresentable {
         let coord = context.coordinator
         coord.state = state
         coord.applyTheme(isDark: context.environment.colorScheme == .dark)
+        coord.applyReadingTheme(state.readingTheme.rawValue)
         coord.applyTypography(scale: state.fontScale, wide: state.wideReading)
 
         if let file = state.selectedFile, file.url.path != coord.loadedPath {
@@ -131,6 +132,7 @@ struct MarkdownWebView: NSViewRepresentable {
         var lastPushedMarks: [Mark] = []
         var lastShowResolved: Bool = true
         private var lastDark: Bool?
+        private var lastReadingTheme: String?
         private var lastScale: Double?
         private var lastWide: Bool?
         private var lastFindQuery: String = ""
@@ -146,6 +148,12 @@ struct MarkdownWebView: NSViewRepresentable {
             guard isReady, lastDark != isDark else { lastDark = isDark; return }
             lastDark = isDark
             webView?.evaluateJavaScript("window.ReaderMd.setTheme(\(isDark));")
+        }
+
+        func applyReadingTheme(_ name: String) {
+            guard isReady, lastReadingTheme != name else { lastReadingTheme = name; return }
+            lastReadingTheme = name
+            webView?.evaluateJavaScript("window.ReaderMd.setReadingTheme('\(name)');")
         }
 
         func applyTypography(scale: Double, wide: Bool) {
@@ -358,6 +366,9 @@ struct MarkdownWebView: NSViewRepresentable {
                 }
                 if let scale = lastScale { webView?.evaluateJavaScript("window.ReaderMd.setFontScale(\(scale));") }
                 if let wide = lastWide { webView?.evaluateJavaScript("window.ReaderMd.setWide(\(wide));") }
+                if let name = lastReadingTheme {
+                    webView?.evaluateJavaScript("window.ReaderMd.setReadingTheme('\(name)');")
+                }
                 if loadedPath != nil { pushCurrentFile(keepScroll: false) }
 
             case "toc":
