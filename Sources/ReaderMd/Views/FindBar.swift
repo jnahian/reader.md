@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Floating in-page find bar; drives the WKWebView's native find via AppState.
+/// Floating in-page find bar; drives the JS find engine (bridge.js) via AppState.
 struct FindBar: View {
     @EnvironmentObject var state: AppState
     @FocusState private var focused: Bool
@@ -18,19 +18,26 @@ struct FindBar: View {
                 .focused($focused)
                 .onSubmit { state.triggerFindNext() }
 
+            if !state.findQuery.isEmpty {
+                Text(state.findCount > 0 ? "\(state.findIndex + 1) of \(state.findCount)" : "No results")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .frame(minWidth: 52, alignment: .trailing)
+            }
+
             Divider().frame(height: 14)
 
             Button { state.triggerFindPrev() } label: {
                 Image(systemName: "chevron.up")
             }
             .buttonStyle(.borderless)
-            .disabled(state.findQuery.isEmpty)
+            .disabled(state.findCount == 0)
 
             Button { state.triggerFindNext() } label: {
                 Image(systemName: "chevron.down")
             }
             .buttonStyle(.borderless)
-            .disabled(state.findQuery.isEmpty)
+            .disabled(state.findCount == 0)
 
             Button { close() } label: {
                 Image(systemName: "xmark")

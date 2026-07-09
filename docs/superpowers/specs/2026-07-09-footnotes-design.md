@@ -49,14 +49,18 @@ would silently never render. With it on:
 ```html
 Body text<sup><a id="footnote-ref-1" href="#footnote-1" data-footnote-ref>1</a></sup>
 
+<hr data-footnotes>
 <section class="footnotes" data-footnotes>
   <h2 id="footnote-label" class="sr-only">Footnotes</h2>
-  <hr data-footnotes>
   <ol>
     <li id="footnote-1">The note. <a href="#footnote-ref-1" data-footnote-backref>↩</a></li>
   </ol>
 </section>
 ```
+
+Note the `<hr>` is a **preceding sibling** of the `<section>`, not a child — the
+renderer appends it to the output string before opening the section. A
+`section[data-footnotes] hr` selector matches nothing; it must be `hr[data-footnotes]`.
 
 The `<h2 class="sr-only">Footnotes</h2>` is not optional — the extension always
 emits it as an accessibility label (`headingClass: o = "sr-only"`), and there is no
@@ -68,6 +72,9 @@ post-processes headings after `marked` runs:
 - `postTOC()` scans `h1,h2,h3,h4` → "Footnotes" would appear in the sidebar outline.
 - `assignHeadingIds()` scans the same set → it overwrites `id="footnote-label"`.
 - `addHeadingAnchors()` would give it a hover `#` anchor.
+- `reportActiveHeading()` (the scrollspy) scans it too → scrolling into the notes
+  posts `activeHeading: "footnote-label"`, which matches no outline row, so the
+  outline's active-row highlight silently vanishes. **Four** consumers, not three.
 
 That output satisfies three of the four sub-requests with no rendering code of our own:
 

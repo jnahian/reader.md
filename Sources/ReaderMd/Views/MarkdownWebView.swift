@@ -45,7 +45,7 @@ struct MarkdownWebView: NSViewRepresentable {
         let config = WKWebViewConfiguration()
         let controller = WKUserContentController()
         let messageNames = ["ready", "toc", "activeHeading", "openExternal", "openFile", "wordCount", "progress",
-                             "rendered", "textSelected", "markClicked", "marksApplied"]
+                             "rendered", "textSelected", "markClicked", "marksApplied", "findResult"]
         for name in messageNames {
             controller.add(context.coordinator, name: name)
         }
@@ -201,6 +201,13 @@ struct MarkdownWebView: NSViewRepresentable {
 
         func applyMarks(json: String) {
             webView?.evaluateJavaScript("window.ReaderMd.applyMarks(\(Self.encode(json)));")
+            // Re-apply find AFTER marks so find wraps nest inside highlight wraps
+            // (deterministic nesting). Both eval calls hit the same JS API in order.
+            // refind(), not find() — it keeps the current match and does not scroll,
+            // so an FSEvents re-render can't yank the viewport away from the reader.
+            if !lastFindQuery.isEmpty {
+                webView?.evaluateJavaScript("window.ReaderMd.refind();")
+            }
         }
 
         /// Selection popover: pick a color and/or start a thread on a new highlight.
@@ -300,38 +307,47 @@ struct MarkdownWebView: NSViewRepresentable {
         }
 
         // MARK: Find
+        //
+        // Find is JS-driven (bridge.js) — the native WKWebView.find gave no match
+        // count and highlighted only the current match. applyFind is idempotent per
+        // query via lastFindQuery; the rendered/marks path re-applies out-of-band.
 
         func applyFind(query: String) {
             guard isReady, query != lastFindQuery else { return }
             lastFindQuery = query
-            guard let webView else { return }
-            if query.isEmpty {
-                webView.evaluateJavaScript("window.getSelection().removeAllRanges();")
-                return
-            }
-            let cfg = WKFindConfiguration()
-            cfg.caseSensitive = false
-            cfg.wraps = true
-            webView.find(query, configuration: cfg) { _ in }
+            webView?.evaluateJavaScript("window.ReaderMd.find(\(Self.encode(query)));")
         }
 
         func findStep(forward: Bool) {
-            guard isReady, !lastFindQuery.isEmpty, let webView else { return }
-            let cfg = WKFindConfiguration()
-            cfg.caseSensitive = false
-            cfg.wraps = true
-            cfg.backwards = !forward
-            webView.find(lastFindQuery, configuration: cfg) { _ in }
+            guard isReady, !lastFindQuery.isEmpty else { return }
+            webView?.evaluateJavaScript("window.ReaderMd.findStep(\(forward));")
         }
 
         // MARK: Export
 
         func exportPDF() {
             guard let webView else { return }
-            let cfg = WKPDFConfiguration()
-            webView.createPDF(configuration: cfg) { result in
+            // Find highlights would bake into the PDF. Clear them, wait for that JS
+            // to finish (completion handler), snapshot, then re-apply.
+            if lastFindQuery.isEmpty {
+                generatePDF(restore: false)
+            } else {
+                webView.evaluateJavaScript("window.ReaderMd.clearFind();") { [weak self] _, _ in
+                    self?.generatePDF(restore: true)
+                }
+            }
+        }
+
+        private func generatePDF(restore: Bool) {
+            guard let webView else { return }
+            webView.createPDF(configuration: WKPDFConfiguration()) { [weak self] result in
+                if restore, let self {
+                    // refind() restores the exact match the user was on; find() would
+                    // scroll them back to match 1 as a side effect of exporting.
+                    self.webView?.evaluateJavaScript("window.ReaderMd.refind();")
+                }
                 guard case let .success(data) = result else { return }
-                Task { @MainActor in self.savePDF(data) }
+                Task { @MainActor in self?.savePDF(data) }
             }
         }
 
@@ -437,6 +453,15 @@ struct MarkdownWebView: NSViewRepresentable {
             case "marksApplied":
                 guard let ids = message.body as? [String] else { return }
                 Task { @MainActor in self.state.setOrphanedMarkIDs(ids) }
+
+            case "findResult":
+                guard let payload = message.body as? [String: Any],
+                      let count = payload["count"] as? Int,
+                      let index = payload["index"] as? Int else { return }
+                Task { @MainActor in
+                    self.state.findCount = count
+                    self.state.findIndex = index
+                }
 
             default:
                 break
