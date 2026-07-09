@@ -93,6 +93,12 @@ every document, for no gain.
   case-insensitive occurrence over the filtered text, wrap each occurrence's
   node-segments in `<mark class="rmd-find">`, mark occurrence 0 `.current`,
   scroll it into view, post `{count, index}`.
+- `window.ReaderMd.refind()` — re-apply the live query after the DOM was rebuilt
+  (re-render, marks re-wrap, PDF export), **keeping the current match index and
+  without scrolling**. This is not a convenience: `render()` preserves `scrollY`,
+  so a re-application that scrolled to match 1 would fight it, and an FSEvents
+  save while reading would yank the viewport away and reset "7 of 12" to "1 of 12".
+  The index is clamped, since an edited file may hold fewer matches than before.
 - `window.ReaderMd.findStep(forward)` — move `.current` by ±1 modulo `count`,
   `scrollIntoView({block: 'center'})`, post the new `{count, index}`.
 - `window.ReaderMd.clearFind()` — unwrap `mark.rmd-find` and `normalize()`,
@@ -146,8 +152,10 @@ token-bump pattern stays exactly as it is.
   `userContentController(_:didReceive:)`, writing `findCount` / `findIndex`.
 - `applyFind` / `findStep` call `evaluateJavaScript` instead of `webView.find`.
   Delete `WKFindConfiguration` usage.
-- In the `"rendered"` handler, after `applyMarks`, call `applyFind` when
-  `state.findQuery` is non-empty.
+- Fold the find re-application into `applyMarks(json:)` — that way *every* driver
+  that re-wraps marks (the `"rendered"` handler and the mark-change site in
+  `updateNSView`) re-wraps find afterwards, and the ordering rule holds at both.
+  It calls `refind()`, never `find()`.
 - **Before `createPDF`, call `clearFind()`; re-apply after the completion
   handler fires.** Otherwise the exported PDF contains the search highlights.
 

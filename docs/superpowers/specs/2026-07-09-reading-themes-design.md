@@ -40,7 +40,8 @@ a tint is not worth it. The content pane carries the personality.
 `AppTheme` currently means light/dark. Once real themes exist that name is
 actively misleading. Rename it:
 
-- `AppTheme` → `AppearanceMode` (15 call sites; mechanical)
+- `AppTheme` → `AppearanceMode` (6 literal occurrences of the type name, confined
+  to `Models/AppState.swift` and `Models/Settings.swift`; mechanical)
 - new `ReadingTheme: String, CaseIterable { case standard, editorial, terminal }`
 
 The rename does not touch persisted `rawValue`s (`"light"` / `"dark"`), so
