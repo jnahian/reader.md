@@ -3,8 +3,9 @@ import SwiftUI
 /// A Finder / Tahoe–style toolbar icon button: borderless with a subtle rounded
 /// hover and press background, dimming when disabled.
 struct ToolbarIconButtonStyle: ButtonStyle {
-    var width: CGFloat = 28
-    var height: CGFloat = 24
+    /// nil = size to the label (e.g. the sidebar footer's text buttons).
+    var width: CGFloat? = 34
+    var height: CGFloat? = 30
     /// When false, the button never draws its own glass surface — use inside a
     /// grouped glass capsule so glass isn't stacked (only the subtle hover fill).
     var glass: Bool = true
@@ -15,8 +16,8 @@ struct ToolbarIconButtonStyle: ButtonStyle {
 
     private struct IconButton: View {
         let configuration: ButtonStyleConfiguration
-        let width: CGFloat
-        let height: CGFloat
+        let width: CGFloat?
+        let height: CGFloat?
         let glass: Bool
         @Environment(\.isEnabled) private var isEnabled
         @State private var hovering = false

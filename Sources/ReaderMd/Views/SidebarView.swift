@@ -93,14 +93,13 @@ struct SidebarView: View {
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(.primary)
                         }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
+                        .padding(.horizontal, 13)
+                        .padding(.vertical, 8)
                         .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
                     .help("Add a local folder")
 
-                    Divider().frame(height: 14)
+                    Divider().frame(height: 20)
 
                     Button { state.showAddRemote = true } label: {
                         HStack(spacing: 6) {
@@ -111,13 +110,13 @@ struct SidebarView: View {
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(.primary)
                         }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
+                        .padding(.horizontal, 13)
+                        .padding(.vertical, 8)
                         .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
                     .help("Add a remote (SSH) folder")
                 }
+                .buttonStyle(ToolbarIconButtonStyle(width: nil, height: nil, glass: false))
                 .fixedSize()
                 .glassCapsule(hovering: addHover)
                 .onHover { addHover = $0 }

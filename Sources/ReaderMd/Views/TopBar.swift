@@ -39,7 +39,7 @@ struct TopBar: View {
                 }
                 .help("Toggle sidebar (⌘\\)")
 
-                Divider().frame(height: 16)
+                Divider().frame(height: 20)
 
                 // Back / forward, kept together like Finder.
                 Button { state.goBack() } label: { Image(systemName: "chevron.left") }
@@ -74,32 +74,32 @@ struct TopBar: View {
                 }
                 .menuStyle(.borderlessButton)
                 .menuIndicator(.hidden)
-                .frame(width: 30, height: 24)
+                .frame(width: 36, height: 30)
                 .help("Text size & width")
 
                 if !state.toc.isEmpty {
-                    Divider().frame(height: 16)
+                    Divider().frame(height: 20)
                     Button { state.setShowTOC(!state.showTOC) } label: {
                         Image(systemName: "list.bullet")
                     }
                     .help("Toggle outline (⌘⇧O)")
                 }
 
-                Divider().frame(height: 16)
+                Divider().frame(height: 20)
                 Button { state.triggerReload() } label: {
                     Image(systemName: "arrow.clockwise")
                 }
                 .disabled(state.selectedFile == nil)
                 .help("Reload (⌘R)")
 
-                Divider().frame(height: 16)
+                Divider().frame(height: 20)
                 Button { state.triggerExport() } label: {
                     Image(systemName: "square.and.arrow.up")
                 }
                 .disabled(state.selectedFile == nil)
                 .help("Export as PDF (⌘E)")
 
-                Divider().frame(height: 16)
+                Divider().frame(height: 20)
                 Button { state.toggleTheme() } label: {
                     Image(systemName: state.theme.symbol)
                 }

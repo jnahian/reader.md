@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 enum ChromeMetrics {
-    static let topBarHeight: CGFloat = 44
+    static let topBarHeight: CGFloat = 50
 }
 
 /// Vertically centers the native traffic-light buttons (close / minimize / zoom)
