@@ -28,8 +28,10 @@ const nav = [
 <html lang="en">
   <head>
     <script is:inline>
-      const t = localStorage.getItem("theme");
-      if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+      try {
+        const t = localStorage.getItem("theme");
+        if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+      } catch (e) {}
     </script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -82,13 +84,15 @@ const nav = [
       btn.addEventListener("click", () => {
         const current = document.documentElement.dataset.theme || "system";
         const next = current === "system" ? "light" : current === "light" ? "dark" : "system";
-        if (next === "system") {
-          delete document.documentElement.dataset.theme;
-          localStorage.removeItem("theme");
-        } else {
-          document.documentElement.dataset.theme = next;
-          localStorage.setItem("theme", next);
-        }
+        try {
+          if (next === "system") {
+            delete document.documentElement.dataset.theme;
+            localStorage.removeItem("theme");
+          } else {
+            document.documentElement.dataset.theme = next;
+            localStorage.setItem("theme", next);
+          }
+        } catch (e) {}
         btn.setAttribute("aria-label", label(next));
         btn.setAttribute("title", label(next));
       });
