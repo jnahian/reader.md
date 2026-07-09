@@ -22,10 +22,10 @@
 
 | Shortcut | Action |
 | --- | --- |
-| ⇧⌘F | Find in Page |
+| ⌘F | Find in Page |
 | ⌘G | Find Next |
 | ⇧⌘G | Find Previous |
-| ⌘F | Filter Files (sidebar) |
+| ⇧⌘F | Filter Files (sidebar) |
 
 ## View
 

@@ -129,7 +129,7 @@ Run: `swift run`
 In the app: `Add Folder…` → select `/tmp/reader-find-fixtures`. Open `basic.md`. Press ⌘⇧F (current Find in Page binding), type `foo`.
 Expected (current native find): only ONE occurrence is highlighted (the current match), there is no count, and no "all matches" highlighting. This is the failure state Task 1 replaces. Quit the app.
 
-- [ ] **Step 3: Add the `mark.rmd-find` CSS**
+- [x] **Step 3: Add the `mark.rmd-find` CSS**
 
 In `Sources/ReaderMd/Resources/web/template.html`, immediately before the `/* image lightbox */` comment (currently line 90), add:
 
@@ -141,7 +141,7 @@ In `Sources/ReaderMd/Resources/web/template.html`, immediately before the `/* im
     html.dark mark.rmd-find.current { background: rgba(255, 149, 0, 0.60); }
 ```
 
-- [ ] **Step 4: Add the four `window.ReaderMd` find entries**
+- [x] **Step 4: Add the four `window.ReaderMd` find entries**
 
 In `Sources/ReaderMd/Resources/web/bridge.js`, in the `window.ReaderMd = { ... }` object, immediately after the `applyMarks(marksJSON) { applyMarks(marksJSON); },` entry (currently lines 57-59), add:
 
@@ -168,7 +168,7 @@ In `Sources/ReaderMd/Resources/web/bridge.js`, in the `window.ReaderMd = { ... }
   },
 ```
 
-- [ ] **Step 5: Add the find engine to `bridge.js`**
+- [x] **Step 5: Add the find engine to `bridge.js`**
 
 In `Sources/ReaderMd/Resources/web/bridge.js`, immediately before the final `// Signal readiness so Swift can flush any pending document.` comment (currently line 502), add the whole block below.
 
@@ -294,7 +294,7 @@ function findStep(forward) {
 
 ```
 
-- [ ] **Step 6: Add the `findCount` / `findIndex` published vars**
+- [x] **Step 6: Add the `findCount` / `findIndex` published vars**
 
 In `Sources/ReaderMd/Models/AppState.swift`, in the "One-shot triggers consumed by the web view" block (currently lines 93-96), add the two vars right after `findQuery` in the Overlays block instead — put them adjacent to `findQuery` (currently line 88). Change:
 
@@ -312,7 +312,7 @@ to:
     @Published var findIndex: Int = 0
 ```
 
-- [ ] **Step 7: Register the `findResult` script message**
+- [x] **Step 7: Register the `findResult` script message**
 
 In `Sources/ReaderMd/Views/MarkdownWebView.swift`, change the `messageNames` array (currently lines 47-48):
 
@@ -328,7 +328,7 @@ to:
                              "rendered", "textSelected", "markClicked", "marksApplied", "findResult"]
 ```
 
-- [ ] **Step 8: Fold find re-application into `applyMarks(json:)`**
+- [x] **Step 8: Fold find re-application into `applyMarks(json:)`**
 
 This is where the `clearFind → applyMarks → applyFind` ordering is enforced "always": every driver that re-wraps marks re-wraps find *after*, so find marks always nest inside highlight marks. In `Sources/ReaderMd/Views/MarkdownWebView.swift`, replace `applyMarks(json:)` (currently lines 194-196):
 
@@ -353,7 +353,7 @@ with:
         }
 ```
 
-- [ ] **Step 9: Rewrite `applyFind` / `findStep` to call JS; delete `WKFindConfiguration`**
+- [x] **Step 9: Rewrite `applyFind` / `findStep` to call JS; delete `WKFindConfiguration`**
 
 In `Sources/ReaderMd/Views/MarkdownWebView.swift`, replace the `// MARK: Find` block (currently lines 294-317):
 
@@ -405,7 +405,7 @@ with:
         }
 ```
 
-- [ ] **Step 10: Sequence `clearFind` → `createPDF` → re-apply in `exportPDF`**
+- [x] **Step 10: Sequence `clearFind` → `createPDF` → re-apply in `exportPDF`**
 
 `evaluateJavaScript` and `createPDF` are different APIs with no ordering guarantee, so clearing find and snapshotting in the same turn races (the PDF can capture un-cleared highlights). Nest `createPDF` inside `clearFind`'s completion so the DOM is provably clean, then re-apply find in `createPDF`'s completion. In `Sources/ReaderMd/Views/MarkdownWebView.swift`, replace `exportPDF()` (currently lines 321-328):
 
@@ -450,7 +450,7 @@ with:
         }
 ```
 
-- [ ] **Step 11: Handle the `findResult` message**
+- [x] **Step 11: Handle the `findResult` message**
 
 In `Sources/ReaderMd/Views/MarkdownWebView.swift`, in the `userContentController(_:didReceive:)` switch, add a case immediately before `default:` (currently line 430):
 
@@ -466,7 +466,7 @@ In `Sources/ReaderMd/Views/MarkdownWebView.swift`, in the `userContentController
 
 ```
 
-- [ ] **Step 12: Build**
+- [x] **Step 12: Build**
 
 Run: `swift build`
 Expected: `Build complete!` with no errors. (If the compiler complains that `WKFindConfiguration` is unused/undeclared anywhere else, there are no other references — the two deleted usages were the only ones.)
@@ -486,7 +486,7 @@ Run: `swift run`. `Add Folder…` → `/tmp/reader-find-fixtures`. Then walk the
 
 9. **basic.md** (item 11): with `foo` still active and the **3rd** match orange, press ⌘E, save a PDF, open it. Expected: the PDF shows NO find highlights. Back in the app the on-screen highlights are still present, the 3rd match is still orange, and the viewport has not jumped to match 1.
 
-- [ ] **Step 14: Commit**
+- [x] **Step 14: Commit**
 
 ```bash
 git add Sources/ReaderMd/Resources/web/bridge.js \
@@ -517,7 +517,7 @@ around PDF export so highlights don't bake in."
 
 Run: `swift run`, add `/tmp/reader-find-fixtures`, open `basic.md`, ⌘⇧F, type `foo`. Expected (current): highlights appear but there is NO "1 of 5" text between the field and the chevrons. Type `zzz`: no "No results" text and the chevrons stay enabled (they currently disable on empty query only). Quit.
 
-- [ ] **Step 2: Add the count label and fix chevron enablement**
+- [x] **Step 2: Add the count label and fix chevron enablement**
 
 In `Sources/ReaderMd/Views/FindBar.swift`, replace the whole `body` (currently lines 8-48) with:
 
@@ -572,7 +572,7 @@ In `Sources/ReaderMd/Views/FindBar.swift`, replace the whole `body` (currently l
     }
 ```
 
-- [ ] **Step 3: Fix the stale doc comment**
+- [x] **Step 3: Fix the stale doc comment**
 
 In `Sources/ReaderMd/Views/FindBar.swift`, change the comment (currently line 3):
 
@@ -586,7 +586,7 @@ to:
 /// Floating in-page find bar; drives the JS find engine (bridge.js) via AppState.
 ```
 
-- [ ] **Step 4: Build**
+- [x] **Step 4: Build**
 
 Run: `swift build`
 Expected: `Build complete!`
@@ -600,7 +600,7 @@ Run: `swift run`, add `/tmp/reader-find-fixtures`, open `basic.md`, ⌘⇧F.
 - Type `zzz`: label reads **"No results"** and both chevrons are disabled (item 4).
 - Clear the field: the label disappears.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add Sources/ReaderMd/Views/FindBar.swift
@@ -621,7 +621,7 @@ next/prev when there are zero matches instead of on empty query."
 - Consumes: `AppState.showFind: Bool`, `AppState.selectedFile: FileNode?`.
 - Produces: nothing new.
 
-- [ ] **Step 1: Add the `magnifyingglass` button**
+- [x] **Step 1: Add the `magnifyingglass` button**
 
 In `Sources/ReaderMd/Views/TopBar.swift`, in the right-hand glass capsule, insert the find button between the outline (`if !state.toc.isEmpty { … }`) block and the reload divider (currently the reload block starts at line 88). Insert immediately before this existing code:
 
@@ -647,7 +647,7 @@ the new block:
 
 (Result order in the capsule: typography menu · [outline] · **find** · reload · export · theme. The find button follows the existing `ToolbarIconButtonStyle(glass: false)` + `.glassCapsule()` grouping applied to the whole `HStack`.)
 
-- [ ] **Step 2: Build**
+- [x] **Step 2: Build**
 
 Run: `swift build`
 Expected: `Build complete!`
@@ -658,7 +658,7 @@ Run: `swift run`.
 - With no file open: the topbar shows a magnifying-glass button in the right capsule and it is **disabled** (dimmed), matching reload/export.
 - Add `/tmp/reader-find-fixtures`, open `basic.md`: the button enables. Hover shows the tooltip "Find in page (⌘F)". Click it: the find bar appears.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add Sources/ReaderMd/Views/TopBar.swift
@@ -683,7 +683,7 @@ Swaps ⌘F (now Find in Page) and ⌘⇧F (now Filter Files). This changes exist
 - Consumes: `AppState.showFind: Bool`, `AppState.focusSearch: Bool`.
 - Produces: nothing new.
 
-- [ ] **Step 1: Swap the shortcuts in the Find command menu**
+- [x] **Step 1: Swap the shortcuts in the Find command menu**
 
 In `Sources/ReaderMd/ReaderMdApp.swift`, in the `CommandMenu("Find")` block, change the `Find in Page` button's modifier and the `Filter Files` button's modifier. Replace (currently lines 52-64):
 
@@ -721,7 +721,7 @@ with:
                     .keyboardShortcut("f", modifiers: [.command, .shift])
 ```
 
-- [ ] **Step 2: Swap the shortcut rows in SHORTCUTS.md**
+- [x] **Step 2: Swap the shortcut rows in SHORTCUTS.md**
 
 In `Sources/ReaderMd/Resources/docs/SHORTCUTS.md`, change line 25:
 
@@ -747,7 +747,7 @@ to:
 | ⇧⌘F | Filter Files (sidebar) |
 ```
 
-- [ ] **Step 3: Add the changelog entry**
+- [x] **Step 3: Add the changelog entry**
 
 In `Sources/ReaderMd/Resources/docs/CHANGELOG.md`, add a new entry directly under the top `# Changelog` heading (currently line 1), before the `## 1.5.0 …` heading. Leave the version number/date to be set at release time — use an `Unreleased` heading:
 
@@ -760,7 +760,7 @@ In `Sources/ReaderMd/Resources/docs/CHANGELOG.md`, add a new entry directly unde
 - **Find in Page moved to ⌘F**; **Filter Files (sidebar) moved to ⇧⌘F**.
 ```
 
-- [ ] **Step 4: Build**
+- [x] **Step 4: Build**
 
 Run: `swift build`
 Expected: `Build complete!`
@@ -772,7 +772,7 @@ Run: `swift run`, add `/tmp/reader-find-fixtures`, open `basic.md`.
 - Press Esc to close, then **⌘⇧F**: focus moves to the sidebar filter field (Filter Files).
 - Menu bar → Find: "Find in Page" shows ⌘F, "Filter Files" shows ⇧⌘F.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add Sources/ReaderMd/ReaderMdApp.swift \

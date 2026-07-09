@@ -86,6 +86,13 @@ struct TopBar: View {
                 }
 
                 Divider().frame(height: 20)
+                Button { state.showFind = true } label: {
+                    Image(systemName: "magnifyingglass")
+                }
+                .disabled(state.selectedFile == nil)
+                .help("Find in page (⌘F)")
+
+                Divider().frame(height: 20)
                 Button { state.triggerReload() } label: {
                     Image(systemName: "arrow.clockwise")
                 }
