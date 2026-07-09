@@ -99,6 +99,9 @@ every document, for no gain.
   so a re-application that scrolled to match 1 would fight it, and an FSEvents
   save while reading would yank the viewport away and reset "7 of 12" to "1 of 12".
   The index is clamped, since an edited file may hold fewer matches than before.
+  `findFocus` is module-level and would otherwise survive a *document* switch, so
+  `render()` resets it to 0 when `keepScroll` is false — `loadMarkdown` (a new file)
+  restarts find at match 1; `reloadMarkdown` and `setTheme` (same file) hold position.
 - `window.ReaderMd.findStep(forward)` — move `.current` by ±1 modulo `count`,
   `scrollIntoView({block: 'center'})`, post the new `{count, index}`.
 - `window.ReaderMd.clearFind()` — unwrap `mark.rmd-find` and `normalize()`,
@@ -195,3 +198,5 @@ when `state.selectedFile == nil`, matching reload and export.
 10. Edit the file on disk while find is active → re-render re-applies highlights; the count stays correct
 11. ⌘E while find is active → the PDF contains no find highlights
 12. Case-insensitivity: `Foo` matches `foo` and `FOO`
+13. With find active on match 5, click a *different* file in the sidebar → the new
+    document's find restarts at match 1, not match 5
