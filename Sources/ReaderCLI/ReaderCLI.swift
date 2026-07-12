@@ -11,8 +11,7 @@ struct ReaderCLI {
             guard FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) else {
                 fail("no such file or folder: \(path)")
             }
-            let markdown = ["md", "markdown", "mdown", "mdx"]
-            if !isDirectory.boolValue, !markdown.contains((path as NSString).pathExtension.lowercased()) {
+            if !isDirectory.boolValue, !Route.markdownExtensions.contains((path as NSString).pathExtension.lowercased()) {
                 fail("not a markdown file: \(path)")
             }
         }

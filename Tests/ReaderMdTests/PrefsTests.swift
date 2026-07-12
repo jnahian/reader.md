@@ -1,4 +1,5 @@
 import XCTest
+@testable import ReaderMd
 @testable import ReaderCLI
 
 final class PrefsTests: XCTestCase {
@@ -26,6 +27,18 @@ final class PrefsTests: XCTestCase {
         let roots = Prefs.format(folders: ["/tmp/notes"], remotesJSON: json)
         XCTAssertEqual(roots.count, 2)
         XCTAssertEqual(roots.last, Prefs.Root(name: "vps-docs", detail: "me@vps:/srv/docs"))
+    }
+
+    /// The two tests above hand-write the JSON literal, which pins the CLI's reader
+    /// to a shape it assumes `RemoteSpec` has — not to what `RemoteSpec` actually
+    /// encodes. This one instead encodes a real `RemoteSpec` with the same
+    /// `JSONEncoder` `Settings.saveRemotes` uses, so a field rename on the app side
+    /// (which would leave the hand-written literal test passing) fails here.
+    func testFormatDecodesARealRemoteSpecEncodedByTheApp() throws {
+        let spec = RemoteSpec(id: "A1", name: "vps-docs", sshDestination: "me@vps", remotePath: "/srv/docs")
+        let data = try JSONEncoder().encode([spec])
+        let roots = Prefs.format(folders: [], remotesJSON: data)
+        XCTAssertEqual(roots, [Prefs.Root(name: "vps-docs", detail: "me@vps:/srv/docs")])
     }
 
     func testGarbageRemotesJSONIsIgnoredRatherThanCrashing() {

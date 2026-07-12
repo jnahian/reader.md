@@ -247,11 +247,21 @@ final class AppState: ObservableObject {
     /// name. Remote roots can only be addressed by name — their `url` is an opaque
     /// cache directory keyed by UUID.
     func removeRoot(matching token: String) {
-        let path = (token as NSString).expandingTildeInPath
+        let path = Self.normalizedRemoveToken(token)
         guard let root = roots.first(where: { $0.url.path == path })
                 ?? roots.first(where: { $0.name == token })
         else { return }
         removeRoot(root)
+    }
+
+    /// Normalizes a `rm` token the same way `Route.absolute` normalized it when the
+    /// root was added — tilde expansion, then `standardizingPath` (which also drops
+    /// a trailing slash) — so `reader rm ~/docs/` matches a root added as `reader ~/docs/`.
+    /// A relative token can't be resolved here (the app's cwd isn't the user's); it
+    /// passes through unchanged and falls through to the name match.
+    nonisolated static func normalizedRemoveToken(_ token: String) -> String {
+        let expanded = (token as NSString).expandingTildeInPath
+        return (expanded as NSString).standardizingPath
     }
 
     private func rebuildWatchers() {

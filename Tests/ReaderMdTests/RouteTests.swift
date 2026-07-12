@@ -1,4 +1,5 @@
 import XCTest
+@testable import ReaderMd
 @testable import ReaderCLI
 
 /// The CLI's whole risk surface is turning argv into a URL: path resolution and
@@ -104,5 +105,14 @@ final class RouteTests: XCTestCase {
         XCTAssertNil(Route.url(for: .list))
         XCTAssertNil(Route.url(for: .usage))
         XCTAssertNil(Route.url(for: .stdin))   // resolved to .open once the temp file exists
+    }
+
+    // MARK: - markdown extensions
+
+    /// `Route.markdownExtensions` (what the CLI accepts) and `FileScanner.markdownExtensions`
+    /// (what the app renders) are independently declared. If they drift, the CLI could reject
+    /// a file the app would happily open, or vice versa.
+    func testMarkdownExtensionsAgreeWithTheApp() {
+        XCTAssertEqual(Route.markdownExtensions, FileScanner.markdownExtensions)
     }
 }

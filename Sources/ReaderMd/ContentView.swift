@@ -31,6 +31,9 @@ struct ContentView: View {
         .animation(.easeInOut(duration: 0.12), value: state.showQuickOpen)
         .animation(.easeInOut(duration: 0.12), value: showDropOverlay)
         .onDrop(of: [UTType.fileURL], isTargeted: $dropTargeted, perform: handleDrop)
+        .sheet(isPresented: $state.showAddRemote, onDismiss: { state.pendingRemote = nil }) {
+            AddRemoteView(prefill: state.pendingRemote).environmentObject(state)
+        }
     }
 
     private var contentRow: some View {

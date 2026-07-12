@@ -14,6 +14,11 @@ enum Route {
     static let scheme = "readermd"
     static let appDomain = "com.nahian.reader-md"
 
+    /// Kept in sync with `FileScanner.markdownExtensions` in the app module by
+    /// `RouteTests.testMarkdownExtensionsAgreeWithTheApp` — nothing else would catch
+    /// the two drifting apart.
+    static let markdownExtensions: Set<String> = ["md", "markdown", "mdown", "mdx"]
+
     // MARK: - argv -> Command
 
     static func parse(_ args: [String], cwd: String) -> Command {
