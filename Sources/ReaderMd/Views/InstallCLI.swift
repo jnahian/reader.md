@@ -27,12 +27,15 @@ enum InstallCLI {
             try fm.createSymbolicLink(atPath: target, withDestinationPath: source)
             alert("Installed", "reader is on your PATH. Try reader --help in a terminal.")
         } catch {
-            // The normal outcome: /usr/local/bin is root-owned. Don't escalate —
-            // hand over the command instead.
-            let command = "sudo ln -s \"\(source)\" \(target)"
+            // The normal outcome: /usr/local/bin is root-owned (and on a stock Mac it
+            // may not exist at all — hence `mkdir -p`, or the pasted command would fail
+            // with ENOENT rather than the permissions error we're reporting). Don't
+            // escalate — hand over the command instead.
+            let directory = (target as NSString).deletingLastPathComponent
+            let command = "sudo mkdir -p \(directory) && sudo ln -s \"\(source)\" \(target)"
             alertWithCopy(
                 "Needs administrator access",
-                "/usr/local/bin isn't writable by your user. Run this in a terminal:\n\n\(command)",
+                "\(directory) isn't writable by your user. Run this in a terminal:\n\n\(command)",
                 copy: command
             )
         }
