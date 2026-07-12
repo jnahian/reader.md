@@ -23,6 +23,11 @@ mkdir -p "${APP}/Contents/MacOS" "${APP}/Contents/Resources"
 
 cp "${EXE}" "${APP}/Contents/MacOS/${APP_NAME}"
 
+# The `reader` CLI ships inside the bundle. It locates the app by walking up from
+# its own executable path, so it must live at Contents/MacOS/reader — and it must
+# be copied before codesign, since it's nested code that has to be sealed.
+cp "${BIN_DIR}/reader" "${APP}/Contents/MacOS/reader"
+
 # Bundle Sparkle.framework (auto-update) and point the binary at ../Frameworks.
 SPARKLE_FW="$(find .build/artifacts/sparkle/Sparkle/Sparkle.xcframework -type d -name Sparkle.framework -path '*macos*' | head -1)"
 mkdir -p "${APP}/Contents/Frameworks"
@@ -89,6 +94,14 @@ cat > "${APP}/Contents/Info.plist" <<PLIST
         <key>public.filename-extension</key>
         <array><string>md</string><string>markdown</string><string>mdown</string><string>mdx</string></array>
       </dict>
+    </dict>
+  </array>
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleURLName</key><string>${BUNDLE_ID}</string>
+      <key>CFBundleURLSchemes</key>
+      <array><string>readermd</string></array>
     </dict>
   </array>
 </dict>
