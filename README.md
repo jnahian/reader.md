@@ -44,7 +44,8 @@ A native macOS rebuild of the markdown viewer using SwiftUI and AppKit. The whol
 
 | Shortcut | Action | Shortcut | Action |
 |---|---|---|---|
-| ⌘O | Add folder | ⌘P | Quick open |
+| ⌘O | Open file | ⌘P | Quick open |
+| ⇧⌘A | Add folder | ⌥⌘A | Add remote folder |
 | ⌘F | Filter files | ⇧⌘F | Find in page |
 | ⌘G / ⇧⌘G | Find next / previous | ⌘[ / ⌘] | Back / forward |
 | ⌘\ | Toggle sidebar | ⌘⇧O | Toggle outline |

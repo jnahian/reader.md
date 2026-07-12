@@ -54,6 +54,14 @@ struct ReaderMdApp: App {
                 Button("Open File…") { state.pickFile() }
                     .keyboardShortcut("o", modifiers: .command)
                 Button("Add Folder…") { state.pickFolders() }
+                    .keyboardShortcut("a", modifiers: [.command, .shift])
+                Button("Add Remote Folder…") {
+                    // nil prefill = a blank sheet. A prefill only ever arrives from a
+                    // `readermd://add-remote` URL, and the menu isn't one.
+                    state.pendingRemote = nil
+                    state.showAddRemote = true
+                }
+                .keyboardShortcut("a", modifiers: [.command, .option])
                 Button("Quick Open…") { state.showQuickOpen = true }
                     .keyboardShortcut("p", modifiers: .command)
                 Divider()
