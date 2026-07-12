@@ -63,6 +63,8 @@ struct ReaderMdApp: App {
                 Button("Reload") { state.triggerReload() }
                     .keyboardShortcut("r", modifiers: .command)
                     .disabled(state.selectedFile == nil)
+                Divider()
+                Button("Install `reader` Command Line Tool…") { InstallCLI.run() }
             }
 
             CommandMenu("Find") {

@@ -32,6 +32,8 @@ Native macOS markdown viewer: SwiftUI/AppKit shell wrapping a single `WKWebView`
 
 **Chrome / Liquid Glass:** `GlassPanel` applies `glassEffect` on macOS 26, falling back to `VisualEffectView` (an `NSVisualEffectView` wrapper) on 13–15. Glass is applied only to navigation layers (sidebar, outline, find bar, quick-open) — never behind scrolling content. The window chrome is the **native toolbar** (`.toolbar` in `Toolbar.swift`), so AppKit draws its glass and groups items into capsules: use `ToolbarItemGroup` for a cluster rather than styling one yourself.
 
+**`reader` CLI** (`Sources/ReaderCLI/`, a second executable target, ships at `Reader.md.app/Contents/MacOS/reader`) — never touches `UserDefaults` directly. `reader ls` reads the app's saved folders directly (`Prefs.swift`, read-only); every other verb (`open`, `remote`, `rm`) turns argv into a `readermd://` URL (`Route.swift`) and hands it to the running/launched app via `NSWorkspace` (`Dispatch.swift`), which does the actual work, including any preference writes. The app is the single writer of its own preferences — the CLI never writes them, to avoid racing `AppState`'s in-memory `roots` re-persisting over a CLI write.
+
 ## Conventions
 
 - The app is **not sandboxed** — folder access is direct paths, no security-scoped bookmarks. The `WKWebView` gets broad `file://` read access so markdown-referenced local images resolve. All rendering assets are bundled; the only network access is Sparkle's auto-update check (fetching the appcast + update DMG).

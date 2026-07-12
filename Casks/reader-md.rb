@@ -19,6 +19,7 @@ cask "reader-md" do
   depends_on macos: :ventura
 
   app "Reader.md.app"
+  binary "#{appdir}/Reader.md.app/Contents/MacOS/reader"
 
   zap trash: [
     "~/Library/Application Support/com.nahian.reader-md",

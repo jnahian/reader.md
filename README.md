@@ -51,6 +51,26 @@ A native macOS rebuild of the markdown viewer using SwiftUI and AppKit. The whol
 | ⌘+ / ⌘− / ⌘0 | Text bigger / smaller / reset | ⌘E | Export PDF |
 | ⌘R | Reload | | |
 
+## Command line
+
+```
+reader <file.md>                   open a markdown file
+reader <folder>                    add a folder to the sidebar
+reader .                           add the current directory
+reader remote me@vps:/srv/docs     add a remote (SSH) folder — opens a confirmation sheet
+reader ls                          list configured folders
+reader rm <name|path>              remove a folder
+git diff | reader -                open piped markdown
+```
+
+Homebrew puts `reader` on your PATH automatically. If you installed from the DMG, use
+**File → Install `reader` Command Line Tool…**, and launch the app once first so macOS clears
+quarantine from the bundle.
+
+`reader` drives the app rather than replacing it: each command hands a `readermd://` URL to
+Reader.md, which does the work. `reader ls` reads the app's saved folders directly, so a folder
+added a moment ago may take a beat to appear.
+
 ## Requirements
 
 - **Runtime:** macOS 13+. Liquid Glass appears on macOS 26 (Tahoe); earlier versions get the `NSVisualEffectView` fallback automatically.
