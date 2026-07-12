@@ -92,15 +92,25 @@ right handler. With a `build/Reader.md.app` and an `/Applications/Reader.md.app`
 `readermd://` URL can be routed to the stale one.
 
 The CLI binary lives *inside* the bundle, at `Reader.md.app/Contents/MacOS/reader`. It finds its app by
-**walking up from its own executable path** — `Bundle.main.executableURL`, resolved through symlinks
-(Homebrew's `binary` stanza means `argv[0]` is usually a symlink), then up two directories, checking the
-result ends in `.app`.
+**walking up from its own executable path**: `Bundle.main.executableURL`, resolved through symlinks, then
+up two directories, checking the result ends in `.app`.
 
-It deliberately does **not** ask `Bundle.main.bundleURL`. `reader` is not the bundle's
-`CFBundleExecutable` (that is `Reader.md`), so whether `Bundle.main` climbs to the enclosing `.app` from
-a *secondary* executable is an assumption, not a guarantee — the same assumption the `ls` section
-already refuses to make about `UserDefaults.standard`. Deriving from the executable path rests on the
-binary's location, which we control.
+Two wrong ways to get that path, both of which we avoid:
+
+- **`Bundle.main.bundleURL`.** `reader` is not the bundle's `CFBundleExecutable` (that is `Reader.md`),
+  so whether `Bundle.main` climbs to the enclosing `.app` from a *secondary* executable is an
+  assumption, not a guarantee — the same assumption the `ls` section refuses to make about
+  `UserDefaults.standard`. `executableURL` is a different thing: dyld reporting where the running Mach-O
+  actually is. That is safe; the climb is not.
+
+- **`CommandLine.arguments[0]`.** This is the trap, and it fails on the *primary* install path.
+  Homebrew's `binary` stanza puts a symlink on `PATH`, and when the user types `reader notes.md` the
+  shell passes `argv[0]` as the bare word `"reader"` — not a path. `URL(fileURLWithPath: "reader")` then
+  resolves it against the current working directory, yielding a path that has nothing to do with the
+  binary. No bundle is found, and dispatch silently degrades to the Launch Services roulette this whole
+  section exists to prevent — invisibly, on a machine with only one copy installed.
+  `Bundle.main.executableURL` is dyld-backed (`_NSGetExecutablePath`), not `argv[0]`-derived, and
+  survives it.
 
 Dispatch is then `NSWorkspace.openURLs(_:withApplicationAt:configuration:completionHandler:)` against
 that bundle: the app you invoked is the app that answers, no Launch Services roulette, and the scheme

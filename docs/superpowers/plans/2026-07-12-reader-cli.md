@@ -591,12 +591,25 @@ enum Dispatch {
         return app
     }
 
+    /// Where this binary actually lives. `Bundle.main.executableURL` is dyld-backed
+    /// (`_NSGetExecutablePath`), NOT argv[0]-derived — which is what makes it survive
+    /// the case that matters: Homebrew puts a symlink on PATH, so the shell passes
+    /// argv[0] as the bare word "reader", and `URL(fileURLWithPath:)` would resolve
+    /// that against the cwd and hand back nonsense.
+    ///
+    /// Note this is not `Bundle.main.bundleURL` — bundle-*climbing* from a secondary
+    /// executable is the assumption we refuse to make. This only reports the Mach-O's
+    /// own path.
+    static func selfExecutable(bundleExecutable: URL?, argv0: String) -> URL {
+        (bundleExecutable ?? URL(fileURLWithPath: argv0)).resolvingSymlinksInPath()
+    }
+
     /// Hand the URL to the app. Returns false if no Reader.md could be launched.
     static func send(_ url: URL) -> Bool {
-        // Homebrew's `binary` stanza puts a symlink on PATH, so resolve it before
-        // walking up to the bundle.
-        let executable = URL(fileURLWithPath: CommandLine.arguments[0])
-            .resolvingSymlinksInPath()
+        let executable = selfExecutable(
+            bundleExecutable: Bundle.main.executableURL,
+            argv0: CommandLine.arguments[0]
+        )
 
         guard let app = appBundle(forExecutable: executable) else {
             // Dev build outside any bundle: fall back to Launch Services, which
@@ -1273,5 +1286,5 @@ git commit -m "feat(cli): install menu item, Homebrew binary stanza, and docs"
 
 - **Do not** make the CLI write preferences, even though it would be easy. A running app holds `roots` in memory and re-persists the whole array on its next change — it would silently erase anything the CLI wrote.
 - **Do not** replace `Route.url`'s hand-rolled percent-encoding with `URLComponents.queryItems`. `URLComponents` leaves `&`, `+` and `=` unescaped inside a query value, so a path containing one would truncate. `RouteTests.testAmpersandAndSpaceInPathAreEncoded` fails if this regresses.
-- **Do not** switch `Dispatch` to `Bundle.main.bundleURL` or to shelling out to `/usr/bin/open`. The first assumes `Bundle` climbs correctly from a secondary executable; the second lets Launch Services choose which installed copy of Reader.md answers.
+- **Do not** switch `Dispatch` to `Bundle.main.bundleURL`, to `CommandLine.arguments[0]`, or to shelling out to `/usr/bin/open`. `bundleURL` assumes `Bundle` climbs correctly from a *secondary* executable. `argv[0]` is the bare word `"reader"` when the shell resolves it through Homebrew's PATH symlink, so `URL(fileURLWithPath:)` resolves it against the cwd and finds nothing — dispatch then degrades silently to the third option. And `/usr/bin/open` lets Launch Services choose which installed copy of Reader.md answers. `Bundle.main.executableURL` (dyld-backed) is the one that is actually correct.
 - `readermd://open?path=/` from a hostile web page will add `/` as a root, which means a whole-disk scan and a persistent watcher. This is a known, accepted cost (see the spec's Security section) — folder-add is deliberately **not** gated, because a confirmation prompt on every `reader .` would ruin the tool's main use. Do not "fix" it without revisiting the spec.
