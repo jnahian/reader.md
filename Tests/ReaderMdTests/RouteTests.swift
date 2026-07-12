@@ -71,17 +71,17 @@ final class RouteTests: XCTestCase {
         )
     }
 
-    /// The reason we hand-encode: URLComponents leaves `&` and `+` alone inside a
+    /// The reason we hand-encode: URLComponents leaves `&`, `=`, `?`, and `+` alone inside a
     /// query value (they are legal query delimiters), which would truncate the path.
     func testAmpersandAndSpaceInPathAreEncoded() {
-        let url = Route.url(for: .open(path: "/tmp/a & b/n +1.md"))
+        let url = Route.url(for: .open(path: "/tmp/a & b/n +1?test=value.md"))
         XCTAssertEqual(
             url?.absoluteString,
-            "readermd://open?path=/tmp/a%20%26%20b/n%20%2B1.md"
+            "readermd://open?path=/tmp/a%20%26%20b/n%20%2B1%3Ftest%3Dvalue.md"
         )
         // And it round-trips back to the original path.
         let items = URLComponents(url: url!, resolvingAgainstBaseURL: false)?.queryItems
-        XCTAssertEqual(items?.first(where: { $0.name == "path" })?.value, "/tmp/a & b/n +1.md")
+        XCTAssertEqual(items?.first(where: { $0.name == "path" })?.value, "/tmp/a & b/n +1?test=value.md")
     }
 
     func testRemoteURL() {

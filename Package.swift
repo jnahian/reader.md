@@ -7,6 +7,7 @@ let package = Package(
         .macOS(.v13)
     ],
     products: [
+        .executable(name: "ReaderMd", targets: ["ReaderMd"]),
         .executable(name: "reader", targets: ["ReaderCLI"])
     ],
     dependencies: [

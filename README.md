@@ -87,7 +87,7 @@ not notarized, so the first launch needs one right-click → **Open** (see
 ## Run (quick, for development)
 
 ```bash
-swift run
+swift run ReaderMd
 ```
 
 This launches the app directly. It's an unsandboxed executable, so it can read any folder you add.
