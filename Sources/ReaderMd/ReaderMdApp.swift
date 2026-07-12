@@ -64,7 +64,7 @@ struct ReaderMdApp: App {
                     .keyboardShortcut("r", modifiers: .command)
                     .disabled(state.selectedFile == nil)
                 Divider()
-                Button("Install `reader` Command Line Tool…") { InstallCLI.run() }
+                Button("Install reader Command Line Tool…") { InstallCLI.run() }
             }
 
             CommandMenu("Find") {

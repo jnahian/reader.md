@@ -11,9 +11,13 @@ enum InstallCLI {
         let source = Bundle.main.bundleURL.appendingPathComponent("Contents/MacOS/reader").path
         let fm = FileManager.default
 
-        if fm.fileExists(atPath: target) {
+        // lstat, not stat: `fileExists` follows symlinks and reports `false` for a
+        // DANGLING link (a leftover from a deleted app), which would send us into the
+        // permissions branch with an EEXIST error and a `sudo ln -s` that also fails.
+        let alreadyThere = (try? fm.attributesOfItem(atPath: target)) != nil
+        if alreadyThere {
             alert(
-                "`reader` is already installed",
+                "reader is already installed",
                 "\(target) already exists. Remove it first if you want to replace it."
             )
             return
@@ -21,7 +25,7 @@ enum InstallCLI {
 
         do {
             try fm.createSymbolicLink(atPath: target, withDestinationPath: source)
-            alert("Installed", "`reader` is on your PATH. Try `reader --help` in a terminal.")
+            alert("Installed", "reader is on your PATH. Try reader --help in a terminal.")
         } catch {
             // The normal outcome: /usr/local/bin is root-owned. Don't escalate —
             // hand over the command instead.
