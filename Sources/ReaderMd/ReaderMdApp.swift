@@ -21,7 +21,25 @@ struct ReaderMdApp: App {
                 .frame(minWidth: 720, minHeight: 460)
                 .preferredColorScheme(state.theme.colorScheme)
                 .onOpenURL { url in
-                    if url.isFileURL { state.open(FileNode(url: url, isDirectory: false)) }
+                    if url.isFileURL {
+                        state.open(FileNode(url: url, isDirectory: false))
+                        return
+                    }
+                    switch ReaderURL.action(for: url) {
+                    case .open(let path):
+                        // openDropped does the routing (folder -> root, markdown -> open)
+                        // AND rejects non-markdown files — which is what keeps a hostile
+                        // `readermd://open?path=/etc/passwd` from rendering.
+                        state.openDropped(URL(fileURLWithPath: path))
+                    case .addRemote(let spec):
+                        // Never sync straight from a URL: rsync-over-ssh needs a human.
+                        state.pendingRemote = spec
+                        state.showAddRemote = true
+                    case .remove(let token):
+                        state.removeRoot(matching: token)
+                    case nil:
+                        break
+                    }
                 }
                 .onAppear { state.checkWhatsNew() }
         }
@@ -45,6 +63,8 @@ struct ReaderMdApp: App {
                 Button("Reload") { state.triggerReload() }
                     .keyboardShortcut("r", modifiers: .command)
                     .disabled(state.selectedFile == nil)
+                Divider()
+                Button("Install reader Command Line Tool…") { InstallCLI.run() }
             }
 
             CommandMenu("Find") {

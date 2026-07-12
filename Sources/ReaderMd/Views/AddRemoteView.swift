@@ -8,11 +8,12 @@ struct AddRemoteView: View {
     @State private var destination: String
     @State private var remotePath: String
 
-    init(existing: RemoteSpec? = nil) {
+    init(existing: RemoteSpec? = nil, prefill: RemoteSpec? = nil) {
         self.existing = existing
-        _name = State(initialValue: existing?.name ?? "")
-        _destination = State(initialValue: existing?.sshDestination ?? "")
-        _remotePath = State(initialValue: existing?.remotePath ?? "")
+        let seed = existing ?? prefill
+        _name = State(initialValue: seed?.name ?? "")
+        _destination = State(initialValue: seed?.sshDestination ?? "")
+        _remotePath = State(initialValue: seed?.remotePath ?? "")
     }
 
     private var valid: Bool {
