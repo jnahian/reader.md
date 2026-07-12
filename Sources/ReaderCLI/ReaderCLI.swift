@@ -34,8 +34,14 @@ struct ReaderCLI {
                 fail("could not launch Reader.md")
             }
         case .stdin:
-            FileHandle.standardError.write(Data("not implemented yet\n".utf8))
-            exit(1)
+            let now = Date()
+            StdinDoc.reap(in: StdinDoc.directory, olderThan: 86400, now: now)
+            let data = FileHandle.standardInput.readDataToEndOfFile()
+            guard !data.isEmpty else { fail("nothing on stdin") }
+            guard let file = try? StdinDoc.write(data, now: now.timeIntervalSince1970, into: StdinDoc.directory),
+                  let url = Route.url(for: .open(path: file.path))
+            else { fail("could not write the piped document") }
+            guard Dispatch.send(url) else { fail("could not launch Reader.md") }
         }
     }
 
