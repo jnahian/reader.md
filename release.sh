@@ -29,13 +29,46 @@ if [ -n "${PUB_BUILD}" ] && [ "${NEW_BUILD}" -le "${PUB_BUILD}" ]; then
   exit 1
 fi
 
+# Release notes for Sparkle's update prompt. Without these the prompt shows a blank
+# notes pane. generate_appcast picks up a .md file named after the archive (minus its
+# extension), so "Reader.md.dmg" pairs with "Reader.md.md"; --embed-release-notes
+# inlines it as CDATA in the appcast, so there's no separate file to host.
+#
+# The notes are the changelog's section for THIS version. A release whose version has
+# no changelog entry is a mistake, not a release — refuse it, the same way we refuse a
+# CFBundleVersion that didn't increase.
+CHANGELOG="Sources/ReaderMd/Resources/docs/CHANGELOG.md"
+NOTES="$(awk -v v="${VERSION}" '
+  $0 ~ "^## " v "( |$|—)" { found = 1; next }   # skip the heading itself
+  found && /^## / { exit }                       # stop at the next version
+  found { print }
+' "${CHANGELOG}")"
+if [ -z "$(printf '%s' "${NOTES}" | tr -d '[:space:]')" ]; then
+  echo "No '## ${VERSION}' section in ${CHANGELOG}."
+  echo "Sparkle's update prompt would show empty release notes, and the app's"
+  echo "post-update What's New would show the previous version's. Add the entry first."
+  exit 1
+fi
+
 # generate_appcast signs the DMG (private key pulled from the keychain) and writes
 # appcast.xml. Isolate the DMG so only this build becomes an update entry; the
 # download URL points at where gh will host it under this tag.
 STAGE="$(mktemp -d)"
 cp "${DMG}" "${STAGE}/"
-"${GEN}" --download-url-prefix "https://github.com/${REPO}/releases/download/${TAG}/" "${STAGE}"
+printf '%s\n' "${NOTES}" > "${STAGE}/${APP_NAME}.md"
+"${GEN}" --embed-release-notes \
+  --download-url-prefix "https://github.com/${REPO}/releases/download/${TAG}/" "${STAGE}"
 cp "${STAGE}/appcast.xml" build/appcast.xml
+
+# The notes are what the user reads before agreeing to install. If they didn't make it
+# into the feed, the prompt is blank and we'd rather know now than after publishing.
+# (The tag carries an attribute — `<description sparkle:format="markdown">` — so match
+# the opening tag, not "<description>".)
+grep -q "<description" build/appcast.xml || {
+  echo "generate_appcast produced no <description> — release notes did not embed."
+  echo "Check that ${APP_NAME}.md pairs with ${APP_NAME}.dmg by basename in ${STAGE}."
+  exit 1
+}
 
 # Create the release (or replace assets if the tag already exists). Must be the
 # newest, non-prerelease release so releases/latest/download/appcast.xml resolves.
