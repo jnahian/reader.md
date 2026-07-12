@@ -12,7 +12,7 @@ enum StdinDoc {
     /// file as markdown.
     static func write(_ data: Data, now: TimeInterval, into directory: URL) throws -> URL {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let url = directory.appendingPathComponent("\(Int(now)).md")
+        let url = directory.appendingPathComponent("\(Int(now))-\(UUID().uuidString).md")
         try data.write(to: url)
         return url
     }

@@ -40,4 +40,23 @@ final class StdinDocTests: XCTestCase {
     func testReapOnAMissingDirectoryIsNotAnError() {
         StdinDoc.reap(in: tmp.appendingPathComponent("nope"), olderThan: 86400, now: Date())
     }
+
+    /// Two concurrent writes with the same `now` must produce distinct files.
+    /// Collision-free names prevent concurrent pipes from clobbering each other.
+    func testWriteWithSameNowProducesDistinctFiles() throws {
+        let now: TimeInterval = 1_700_000_000
+        let url1 = try StdinDoc.write(Data("content1".utf8), now: now, into: tmp)
+        let url2 = try StdinDoc.write(Data("content2".utf8), now: now, into: tmp)
+
+        // The URLs must be different (not the same file).
+        XCTAssertNotEqual(url1, url2)
+
+        // Both files must exist with their distinct content.
+        let fm = FileManager.default
+        XCTAssertTrue(fm.fileExists(atPath: url1.path))
+        XCTAssertTrue(fm.fileExists(atPath: url2.path))
+
+        XCTAssertEqual(try String(contentsOf: url1, encoding: .utf8), "content1")
+        XCTAssertEqual(try String(contentsOf: url2, encoding: .utf8), "content2")
+    }
 }
