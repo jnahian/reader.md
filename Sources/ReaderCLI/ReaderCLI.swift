@@ -17,8 +17,12 @@ struct ReaderCLI {
         }
 
         switch command {
-        case .usage:
+        case .help:
             print(usage)
+        case .misuse(let problem):
+            // stderr + exit 1: a script must be able to tell misuse from success.
+            FileHandle.standardError.write(Data("reader: \(problem)\n\n\(usage)\n".utf8))
+            exit(1)
         case .list:
             let roots = Prefs.roots()
             if roots.isEmpty {
@@ -28,7 +32,9 @@ struct ReaderCLI {
                 print(line)
             }
         case .open, .remote, .remove:
-            guard let url = Route.url(for: command) else { exit(1) }
+            guard let url = Route.url(for: command) else {
+                fail("could not build a URL for that command")
+            }
             guard Dispatch.send(url) else {
                 fail("could not launch Reader.md")
             }

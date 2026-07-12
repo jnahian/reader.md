@@ -9,8 +9,35 @@ final class RouteTests: XCTestCase {
 
     // MARK: - parse
 
-    func testNoArgsIsUsage() {
-        XCTAssertEqual(Route.parse([], cwd: cwd), .usage)
+    /// Bare `reader` and an explicit `--help` are a *request* for usage: stdout, exit 0.
+    /// Everything malformed is `.misuse` instead — see `testMisuseIsNotHelp`.
+    func testNoArgsOrHelpFlagIsHelp() {
+        XCTAssertEqual(Route.parse([], cwd: cwd), .help)
+        XCTAssertEqual(Route.parse(["--help"], cwd: cwd), .help)
+        XCTAssertEqual(Route.parse(["-h"], cwd: cwd), .help)
+    }
+
+    /// The distinction that makes the tool scriptable: `reader remote "$X" || fail`
+    /// must actually see a failure, not read usage text off stdout and exit 0.
+    func testMisuseIsNotHelp() {
+        let bad: [[String]] = [
+            ["rm"],                             // no token
+            ["rm", "a", "b"],                   // too many tokens
+            ["remote"],                         // no destination
+            ["remote", "me@vps"],               // no colon
+            ["remote", "vps:/srv/docs"],        // no user@
+            ["remote", "me@vps:srv/docs"],      // relative remote path
+            ["remote", "me@vps:/a", "extra"],   // too many arguments
+            ["--wat"],                          // unknown option
+            ["ls", "extra"],                    // ls takes nothing
+            ["-", "extra"],                     // stdin takes nothing
+            ["a.md", "b.md"],                   // one path at a time
+        ]
+        for args in bad {
+            guard case .misuse = Route.parse(args, cwd: cwd) else {
+                return XCTFail("\(args) should be .misuse, not silently accepted or treated as help")
+            }
+        }
     }
 
     func testRelativePathResolvesAgainstCwd() {
@@ -40,27 +67,11 @@ final class RouteTests: XCTestCase {
         XCTAssertEqual(Route.parse(["rm", "docs"], cwd: cwd), .remove(token: "docs"))
     }
 
-    func testRmWithoutTokenIsUsage() {
-        XCTAssertEqual(Route.parse(["rm"], cwd: cwd), .usage)
-    }
-
     func testRemoteParsesDestinationAndPathAndDerivesName() {
         XCTAssertEqual(
             Route.parse(["remote", "me@vps:/srv/docs"], cwd: cwd),
             .remote(dest: "me@vps", path: "/srv/docs", name: "docs")
         )
-    }
-
-    func testMalformedRemotesAreUsage() {
-        // No colon, no user@, and a relative remote path are all unusable.
-        XCTAssertEqual(Route.parse(["remote", "me@vps"], cwd: cwd), .usage)
-        XCTAssertEqual(Route.parse(["remote", "vps:/srv/docs"], cwd: cwd), .usage)
-        XCTAssertEqual(Route.parse(["remote", "me@vps:srv/docs"], cwd: cwd), .usage)
-        XCTAssertEqual(Route.parse(["remote"], cwd: cwd), .usage)
-    }
-
-    func testUnknownFlagIsUsage() {
-        XCTAssertEqual(Route.parse(["--wat"], cwd: cwd), .usage)
     }
 
     // MARK: - url
@@ -103,7 +114,8 @@ final class RouteTests: XCTestCase {
 
     func testCommandsWithNoURL() {
         XCTAssertNil(Route.url(for: .list))
-        XCTAssertNil(Route.url(for: .usage))
+        XCTAssertNil(Route.url(for: .help))
+        XCTAssertNil(Route.url(for: .misuse("nope")))
         XCTAssertNil(Route.url(for: .stdin))   // resolved to .open once the temp file exists
     }
 

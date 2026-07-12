@@ -7,7 +7,12 @@ enum Command: Equatable {
     case remove(token: String)
     case list
     case stdin
-    case usage
+    /// The user asked for the usage text: stdout, exit 0.
+    case help
+    /// The user got the invocation wrong: message on stderr, exit 1. Kept distinct
+    /// from `help` so `reader remote "$HOST" || handle_error` can actually see the
+    /// failure instead of reading usage text off stdout and exiting 0.
+    case misuse(String)
 }
 
 enum Route {
@@ -22,22 +27,35 @@ enum Route {
     // MARK: - argv -> Command
 
     static func parse(_ args: [String], cwd: String) -> Command {
-        guard let first = args.first else { return .usage }
+        guard let first = args.first else { return .help }
+        let extras = args.count - 1
 
         switch first {
+        case "-h", "--help", "help":
+            return .help
         case "-":
+            guard extras == 0 else { return .misuse("`-` reads the document from stdin and takes no arguments") }
             return .stdin
         case "ls":
+            guard extras == 0 else { return .misuse("ls takes no arguments") }
             return .list
         case "rm":
-            guard args.count == 2, !args[1].isEmpty else { return .usage }
+            guard extras == 1, !args[1].isEmpty else {
+                return .misuse("rm needs exactly one folder name or path")
+            }
             return .remove(token: args[1])
         case "remote":
-            guard args.count == 2, let spec = parseRemote(args[1]) else { return .usage }
+            guard extras == 1 else {
+                return .misuse("remote needs exactly one destination, e.g. me@vps:/srv/docs")
+            }
+            guard let spec = parseRemote(args[1]) else {
+                return .misuse("not a remote destination: \(args[1]) — expected user@host:/absolute/path")
+            }
             return spec
         default:
             // A leading dash that isn't the stdin "-" is a flag we don't have.
-            guard !first.hasPrefix("-") else { return .usage }
+            guard !first.hasPrefix("-") else { return .misuse("unknown option: \(first)") }
+            guard extras == 0 else { return .misuse("open one file or folder at a time") }
             return .open(path: absolute(first, cwd: cwd))
         }
     }
@@ -92,7 +110,7 @@ enum Route {
         case .remove(let token):
             components.host = "remove"
             components.percentEncodedQueryItems = encoded(["match": token])
-        case .list, .stdin, .usage:
+        case .list, .stdin, .help, .misuse:
             return nil
         }
         return components.url
