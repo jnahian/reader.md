@@ -14,9 +14,8 @@ struct ReaderCLI {
             if roots.isEmpty {
                 print("No folders. Add one with `reader <folder>`.")
             }
-            let width = roots.map(\.name.count).max() ?? 0
-            for root in roots {
-                print("\(root.name.padding(toLength: width, withPad: " ", startingAt: 0))  \(root.detail)")
+            for line in Prefs.lines(for: roots) {
+                print(line)
             }
         default:
             FileHandle.standardError.write(Data("not implemented yet\n".utf8))

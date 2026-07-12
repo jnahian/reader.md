@@ -43,4 +43,15 @@ enum Prefs {
 
         return local + remotes
     }
+
+    /// Left-aligned name column. Padding is built from the same unit the width is
+    /// measured in — `padding(toLength:)` counts UTF-16, so an NFD name like
+    /// "cafe\u{0301}" (how macOS hands back "café") would be truncated, not padded.
+    static func lines(for roots: [Root]) -> [String] {
+        let width = roots.map(\.name.count).max() ?? 0
+        return roots.map { root in
+            let pad = String(repeating: " ", count: width - root.name.count)
+            return "\(root.name)\(pad)  \(root.detail)"
+        }
+    }
 }
