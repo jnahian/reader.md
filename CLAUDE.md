@@ -16,7 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Native macOS markdown viewer: SwiftUI/AppKit shell wrapping a single `WKWebView` that renders markdown. Everything except the content pane is native; the web view exists only because Mermaid and LaTeX have no native equivalent.
 
 **Two-layer split:**
-- **Native shell** — `ContentView` (layout: topbar, resizable/collapsible sidebar, content, collapsible outline; find bar + quick-open as overlays). `Sources/ReaderMd/Views/` holds the SwiftUI pieces.
+- **Native shell** — `ContentView` (layout: resizable/collapsible sidebar, content, collapsible outline; find bar + quick-open as overlays) under the window's native toolbar (`Toolbar.swift`, applied as `.readerToolbar()`). `Sources/ReaderMd/Views/` holds the SwiftUI pieces.
 - **Web content** — `MarkdownWebView` (`NSViewRepresentable` over `WKWebView`) loads bundled assets from `Sources/ReaderMd/Resources/web/` (marked, highlight.js, KaTeX + fonts, Mermaid, `bridge.js`). Loaded via `Bundle.resources` (a helper: `Bundle.main` in a packaged `.app`, falling back to `Bundle.module` under `swift run`). `make-app.sh` copies the resources into `Contents/Resources` and ad-hoc code-signs the bundle — the SwiftPM `.bundle` can't live at the `.app` root (where `Bundle.module` looks) because codesign rejects contents there.
 
 **`AppState`** (`@MainActor ObservableObject`) is the single source of truth: roots, selection, theme, outline, typography, layout, history, find/export state. Persists to `UserDefaults`. Injected as `@EnvironmentObject`.
@@ -30,7 +30,7 @@ Native macOS markdown viewer: SwiftUI/AppKit shell wrapping a single `WKWebView`
 
 **File tree:** `FileScanner` / `RootFolder` (`FileNode.swift`) do a recursive markdown-only scan, pruning `node_modules`, `.git`, etc. `FolderWatcher` (FSEvents) watches each root subtree with a debounced callback; on disk change it bumps `reloadToken` (re-render, scroll preserved) and refreshes the tree.
 
-**Chrome / Liquid Glass:** `GlassPanel` applies `glassEffect` on macOS 26, falling back to `VisualEffectView` (an `NSVisualEffectView` wrapper) on 13–15. Glass is applied only to navigation layers (topbar, sidebar, outline, find bar, quick-open) — never behind scrolling content. Don't stack glass *surfaces*, but interactive glass *controls* may sit on a glass surface when grouped in a `GlassEffectContainer` — that's the sanctioned Tahoe pattern, used by the topbar buttons (`ToolbarIconButtonStyle` / `toolbarGlassCapsule`).
+**Chrome / Liquid Glass:** `GlassPanel` applies `glassEffect` on macOS 26, falling back to `VisualEffectView` (an `NSVisualEffectView` wrapper) on 13–15. Glass is applied only to navigation layers (sidebar, outline, find bar, quick-open) — never behind scrolling content. The window chrome is the **native toolbar** (`.toolbar` in `Toolbar.swift`), so AppKit draws its glass and groups items into capsules: use `ToolbarItemGroup` for a cluster rather than styling one yourself.
 
 ## Conventions
 
