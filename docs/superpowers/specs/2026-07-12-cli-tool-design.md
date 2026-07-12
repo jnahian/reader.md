@@ -136,9 +136,10 @@ The entry point is `@main` in `ReaderCLI.swift` — *not* top-level code in `mai
 cannot `@testable import` from a test target. This is what makes the pure logic below testable.
 
 - **Path resolution** — relative paths are made absolute against the cwd, `~` expanded, and the result
-  standardized (collapsing `.`/`..`/trailing slashes). Symlinks are deliberately **not** resolved — see
-  `Route.absolute`'s comment — so `reader /tmp/notes` and `reader /private/tmp/notes` register as two
-  distinct roots (on macOS `/tmp` is a symlink to `/private/tmp`). The result is sent as `open`, and the
+  standardized with `NSString.standardizingPath` (collapsing `.`/`..`/trailing slashes, and stripping a
+  leading `/private` from an existing path — so `reader /tmp/notes` and `reader /private/tmp/notes` both
+  land on `/tmp/notes`, one root). Symlinks generally are **not** resolved: a path through a user symlink
+  reaches the app as typed. The result is sent as `open`, and the
   app decides file-vs-folder. The CLI still validates locally first so the user gets feedback instead of
   silence: a path that does not exist, or a file whose extension is not markdown, is a message on stderr
   and exit 1. (The app re-checks anyway — it must, since URLs also arrive from elsewhere.)

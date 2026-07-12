@@ -56,8 +56,9 @@ enum Route {
     }
 
     /// Expand `~`, make relative paths absolute against the cwd, and collapse
-    /// `.`/`..`/trailing slashes. Symlinks are resolved later, by the caller that
-    /// touches the disk — this stays pure.
+    /// `.`/`..`/trailing slashes. Nothing resolves symlinks — a path through a user
+    /// symlink reaches the app as typed. (`standardizingPath` does strip a leading
+    /// `/private` from an existing path, so `/private/tmp/x` and `/tmp/x` agree.)
     static func absolute(_ path: String, cwd: String) -> String {
         let expanded = (path as NSString).expandingTildeInPath
         let joined = expanded.hasPrefix("/")
