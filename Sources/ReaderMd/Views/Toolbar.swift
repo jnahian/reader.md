@@ -199,6 +199,8 @@ private struct FindTextField: NSViewRepresentable {
     func updateNSView(_ field: NSTextField, context: Context) {
         context.coordinator.parent = self
         if field.stringValue != text { field.stringValue = text }
+        // An NSViewRepresentable doesn't pick up `.disabled` on its own.
+        field.isEnabled = context.environment.isEnabled
 
         guard context.coordinator.focusToken != focusToken else { return }
         context.coordinator.focusToken = focusToken
