@@ -6,6 +6,9 @@ let package = Package(
     platforms: [
         .macOS(.v13)
     ],
+    products: [
+        .executable(name: "reader", targets: ["ReaderCLI"])
+    ],
     dependencies: [
         .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.6.0")
     ],
@@ -20,9 +23,13 @@ let package = Package(
                 .copy("Resources/AppIcon.png")
             ]
         ),
+        .executableTarget(
+            name: "ReaderCLI",
+            path: "Sources/ReaderCLI"
+        ),
         .testTarget(
             name: "ReaderMdTests",
-            dependencies: ["ReaderMd"],
+            dependencies: ["ReaderMd", "ReaderCLI"],
             path: "Tests/ReaderMdTests"
         )
     ]
