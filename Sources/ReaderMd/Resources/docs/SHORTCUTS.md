@@ -5,6 +5,8 @@
 | Shortcut | Action |
 | --- | --- |
 | ⌘O | Open File… |
+| ⇧⌘A | Add Folder… |
+| ⌥⌘A | Add Remote Folder… |
 | ⌘P | Quick Open (fuzzy file search) |
 | ⌘E | Export as PDF… |
 | ⌘R | Reload |
