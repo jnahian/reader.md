@@ -70,11 +70,13 @@ root from the list. `add-remote` is the dangerous one: it causes `rsync` over ss
 `~/.ssh` keys. `open` sits in between, and is an **accepted** cost, stated rather than waved away:
 
 > `readermd://open?path=/` from a hostile page adds `/` as a root, which starts a recursive markdown
-> scan of the whole disk plus a persistent FSEvents watcher, and *persists* it across restarts. That is
-> a real annoyance, not a data leak — no content leaves the machine, and the user can remove the root.
-> We accept it rather than gate folder-add, because a confirmation prompt on every `reader .` would make
-> the tool's primary use hostile to its primary user. Revisit if `readermd://` links ever appear in the
-> wild.
+> scan of the whole disk plus a persistent FSEvents watcher, and *persists* it across restarts. More
+> broadly, `open` isn't limited to the folder case: `readermd://open?path=` naming *any* readable `.md`
+> file on disk will render it and add it to recents, same as a folder path adds a root. That is a real
+> annoyance, not a data leak — no content leaves the machine, and the user can remove the root or the
+> recent entry. We accept it rather than gate folder-add or file-open, because a confirmation prompt on
+> every `reader .` would make the tool's primary use hostile to its primary user. Revisit if
+> `readermd://` links ever appear in the wild.
 
 So `add-remote` **arriving from a URL** opens the **prefilled Add Remote sheet** for confirmation
 instead of syncing silently. The CLI's remote command therefore ends in a visible sheet the user
@@ -133,11 +135,13 @@ A second SwiftPM executable target (product `reader`), a single Swift file, no d
 The entry point is `@main` in `ReaderCLI.swift` — *not* top-level code in `main.swift`, which SwiftPM
 cannot `@testable import` from a test target. This is what makes the pure logic below testable.
 
-- **Path resolution** — relative paths are made absolute against the cwd, `~` expanded, symlinks
-  resolved. The result is sent as `open`, and the app decides file-vs-folder. The CLI still validates
-  locally first so the user gets feedback instead of silence: a path that does not exist, or a file
-  whose extension is not markdown, is a message on stderr and exit 1. (The app re-checks anyway — it
-  must, since URLs also arrive from elsewhere.)
+- **Path resolution** — relative paths are made absolute against the cwd, `~` expanded, and the result
+  standardized (collapsing `.`/`..`/trailing slashes). Symlinks are deliberately **not** resolved — see
+  `Route.absolute`'s comment — so `reader /tmp/notes` and `reader /private/tmp/notes` register as two
+  distinct roots (on macOS `/tmp` is a symlink to `/private/tmp`). The result is sent as `open`, and the
+  app decides file-vs-folder. The CLI still validates locally first so the user gets feedback instead of
+  silence: a path that does not exist, or a file whose extension is not markdown, is a message on stderr
+  and exit 1. (The app re-checks anyway — it must, since URLs also arrive from elsewhere.)
 - **`ls`** — reads `reader.md.folders` (string array) and `reader.md.remotes` (JSON blob) from the
   `com.nahian.reader-md` domain. Remotes are decoded with `JSONSerialization` into dictionaries, so the
   `RemoteSpec` struct is not duplicated in the CLI. Prints one root per line; remote roots are tagged
