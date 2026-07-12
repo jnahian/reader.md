@@ -25,7 +25,6 @@ struct ReaderMdApp: App {
                 }
                 .onAppear { state.checkWhatsNew() }
         }
-        .windowStyle(.hiddenTitleBar)
         .commands {
             CommandGroup(replacing: .appInfo) {
                 Button("About Reader.md") { showAboutPanel() }

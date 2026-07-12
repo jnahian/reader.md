@@ -9,9 +9,7 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             VStack(spacing: 0) {
-                TopBar()
                 ReadingProgressBar()
-                Divider()
                 contentRow
             }
 
@@ -27,9 +25,7 @@ struct ContentView: View {
                     .zIndex(3)
             }
         }
-        // Extend our custom topbar all the way to the top of the window, replacing
-        // the default titlebar entirely.
-        .ignoresSafeArea(.container, edges: .top)
+        .readerToolbar()
         .animation(.easeInOut(duration: 0.15), value: state.showSidebar)
         .animation(.easeInOut(duration: 0.15), value: state.showTOC)
         .animation(.easeInOut(duration: 0.12), value: state.showQuickOpen)

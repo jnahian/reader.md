@@ -29,8 +29,8 @@ The codebase is split into a native shell and web content pane. See
 [`README.md`](README.md) and [`CLAUDE.md`](CLAUDE.md) for the full layout;
 the short version:
 
-- **Native shell** — `ContentView` + `Sources/ReaderMd/Views/` (topbar, sidebar,
-  content, outline, find bar, quick-open).
+- **Native shell** — `ContentView` + `Sources/ReaderMd/Views/` (native toolbar,
+  sidebar, content, outline, find bar, quick-open).
 - **Web content** — `MarkdownWebView` (`WKWebView`) renders markdown via bundled
   assets in `Sources/ReaderMd/Resources/web/` (marked, highlight.js, KaTeX,
   Mermaid, `bridge.js`).

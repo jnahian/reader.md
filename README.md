@@ -2,17 +2,17 @@
 
 **Website:** [reader-md.jnahian.me](https://reader-md.jnahian.me)
 
-A native macOS rebuild of the markdown viewer using SwiftUI and AppKit. The whole shell — topbar, sidebar, file search, outline, folder management, file watching, and SF Symbol icons — is native SwiftUI. The markdown content pane is a `WKWebView` that renders through bundled JS engines, because Mermaid diagrams and LaTeX math have no native equivalent.
+A native macOS rebuild of the markdown viewer using SwiftUI and AppKit. The whole shell — toolbar, sidebar, file search, outline, folder management, file watching, and SF Symbol icons — is native SwiftUI. The markdown content pane is a `WKWebView` that renders through bundled JS engines, because Mermaid diagrams and LaTeX math have no native equivalent.
 
 ## Architecture
 
-- **SwiftUI shell** — `ContentView` lays out a draggable topbar, a resizable/collapsible sidebar, the content pane, and a collapsible outline; overlays host the find bar and quick-open palette.
+- **SwiftUI shell** — the window's native toolbar (`Toolbar.swift`) over `ContentView`, which lays out a resizable/collapsible sidebar, the content pane, and a collapsible outline; overlays host the find bar and quick-open palette.
 - **`AppState`** (`ObservableObject`, `@MainActor`) — roots, selection, theme, search, outline, typography, layout, history, and find/export triggers; persists to `UserDefaults`.
 - **`FileScanner` / `RootFolder`** — recursive markdown-only tree scan, pruning `node_modules`, `.git`, etc.
 - **`RemoteSpec` / `RemoteSync`** — a remote (SSH) folder is `rsync`'d read-only into a stable local cache dir, which registers as an ordinary root; `RemoteSync` builds the `rsync -e ssh` invocation (mirroring the scanner's include/ignore filters) and runs it via `Process`. Credentials come from the user's `~/.ssh` config/keys — none are stored in-app. The stable cache path keeps annotations intact across re-syncs.
 - **`FolderWatcher`** — FSEvents subtree watcher with a debounced callback for live reload.
 - **`MarkdownWebView`** — `NSViewRepresentable` around `WKWebView`. Swift ↔ JS bridge: Swift pushes markdown / theme / font settings via `evaluateJavaScript`; JS posts the outline, active heading, word count, scroll progress, and link clicks back through `WKScriptMessageHandler`. Native `WKWebView.find` powers in-page search; `createPDF` powers export.
-- **`GlassPanel` / `VisualEffectView`** — chrome surfaces use Apple's **Liquid Glass** (`glassEffect`) on macOS 26 (Tahoe) and fall back to an `NSVisualEffectView` material on macOS 13–15. Glass is applied only to the navigation layer (topbar, sidebar, outline, find bar, quick-open), never behind scrolling content.
+- **`GlassPanel` / `VisualEffectView`** — chrome surfaces use Apple's **Liquid Glass** (`glassEffect`) on macOS 26 (Tahoe) and fall back to an `NSVisualEffectView` material on macOS 13–15. Glass is applied only to the navigation layer (sidebar, outline, find bar, quick-open), never behind scrolling content; the toolbar is native, so AppKit draws its glass.
 - **Bundled web assets** (`Resources/web`) — marked, highlight.js, KaTeX (+ fonts), Mermaid. No network access.
 
 ## Features
@@ -28,11 +28,11 @@ A native macOS rebuild of the markdown viewer using SwiftUI and AppKit. The whol
 - **In-page find** — ⇧⌘F native find bar with match highlighting (⌘G / ⇧⌘G for next/prev)
 - **Outline** — collapsible right pane (⌘⇧O) with a sliding accent rail marker and scrollspy
 - **Typography** — font size (⌘+ / ⌘− / ⌘0) and a wide/narrow reading-column toggle, both persisted
-- **Finder-style chrome** — capsule search field; topbar controls grouped into left/right glass capsules with divider separators; a "FOLDERS" section header with tinted icons and a full-width selection pill; and a bottom status bar (markdown file count, or word count / reading-time for the open file), mirroring the macOS 26 Finder
-- **Reading feedback** — accent progress bar under the topbar; word count and reading time in the status bar
+- **Finder-style chrome** — capsule search field; native toolbar controls grouped into capsules by function; a "FOLDERS" section header with tinted icons and a full-width selection pill; and a bottom status bar (markdown file count, or word count / reading-time for the open file), mirroring the macOS 26 Finder
+- **Reading feedback** — accent progress bar under the toolbar; word count and reading time in the status bar
 - **Code copy buttons**, **image click-to-zoom** lightbox, and hover **heading anchors**
 - **Export to PDF** (⌘E) and **manual reload** (⌘R) — toolbar buttons on the right, plus the web view's native PDF renderer
-- **Liquid Glass chrome** — on macOS 26 (Tahoe) the topbar, sidebar, outline, find bar, and quick-open palette use Apple's `glassEffect`; on macOS 13–15 they fall back to translucent `NSVisualEffectView` material. Collapsible + resizable sidebar (⌘\, width persisted); breadcrumb reveals the file in Finder
+- **Liquid Glass chrome** — on macOS 26 (Tahoe) the native toolbar, sidebar, outline, find bar, and quick-open palette all read as Liquid Glass; on macOS 13–15 they fall back to translucent `NSVisualEffectView` material. Collapsible + resizable sidebar (⌘\, width persisted); the title's proxy icon reveals the file in Finder
 - **Syntax highlighting, Mermaid, LaTeX math** — via the bundled JS engines
 - **YAML frontmatter** — rendered as a clean key/value table at the top of the document
 - **Dark mode** — system / light / dark cycle, applied to both native chrome and web content
