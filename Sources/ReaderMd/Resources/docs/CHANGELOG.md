@@ -1,5 +1,35 @@
 # Changelog
 
+## 1.7.0 — 2026-07-12
+
+- **A `reader` command line tool.** Open a file, add a folder, add a remote, or
+  pipe markdown straight into the app from your terminal:
+
+  ```
+  reader notes.md                    open a markdown file
+  reader .                           add the current directory to the sidebar
+  reader remote me@vps:/srv/docs     add a remote (SSH) folder
+  reader ls                          list your folders
+  reader rm <name|path>              remove one
+  git diff | reader -                open piped markdown
+  ```
+
+  It drives the app rather than replacing it — each command hands the work to
+  Reader.md. `reader remote` opens the Add Remote sheet for confirmation rather
+  than connecting behind your back.
+
+  **Already installed with Homebrew?** Run `brew reinstall --cask reader-md`
+  once to put `reader` on your PATH — an in-place update can't add it. If you
+  installed from the DMG, use **File → Install reader Command Line Tool…**.
+- **Add Remote Folder… is now in the File menu**, so it's reachable with the
+  sidebar collapsed. New shortcuts: **⇧⌘A** adds a folder, **⌥⌘A** adds a remote.
+- **The window uses the native macOS toolbar**, so on macOS 26 it reads as real
+  Liquid Glass and its controls group into capsules the way the system draws them.
+- **Update prompts now show what changed** instead of a blank pane.
+- **A website:** [reader-md.jnahian.me](https://reader-md.jnahian.me).
+- Fixed: the find field is disabled when no document is open, and ⌘F focuses it
+  reliably.
+
 ## 1.6.0 — 2026-07-10
 
 - **Find in Page** — highlights every match, shows a live "N of M" count, and
