@@ -65,10 +65,16 @@ because that is where the names and the `RootFolder` values already are; the CLI
 
 ### Security — only `add-remote` is gated
 
-Any web page can fire a `readermd://` link. Of the three verbs, `open` and `remove` are harmless: they
-add, select, or un-list an entry in a sidebar, and touch nothing outside the user's own disk — `remove`
-in particular never deletes anything, it only drops the root from the list. `add-remote` is different:
-it causes `rsync` over ssh with the user's `~/.ssh` keys.
+Any web page can fire a `readermd://` link. `remove` is harmless — it deletes nothing, it only drops a
+root from the list. `add-remote` is the dangerous one: it causes `rsync` over ssh with the user's
+`~/.ssh` keys. `open` sits in between, and is an **accepted** cost, stated rather than waved away:
+
+> `readermd://open?path=/` from a hostile page adds `/` as a root, which starts a recursive markdown
+> scan of the whole disk plus a persistent FSEvents watcher, and *persists* it across restarts. That is
+> a real annoyance, not a data leak — no content leaves the machine, and the user can remove the root.
+> We accept it rather than gate folder-add, because a confirmation prompt on every `reader .` would make
+> the tool's primary use hostile to its primary user. Revisit if `readermd://` links ever appear in the
+> wild.
 
 So `add-remote` **arriving from a URL** opens the **prefilled Add Remote sheet** for confirmation
 instead of syncing silently. The CLI's remote command therefore ends in a visible sheet the user
@@ -85,11 +91,29 @@ The CLI does **not** shell out to `/usr/bin/open`, and does not rely on Launch S
 right handler. With a `build/Reader.md.app` and an `/Applications/Reader.md.app` both registered, a bare
 `readermd://` URL can be routed to the stale one.
 
-The CLI binary lives *inside* the bundle, so `Bundle.main.bundleURL` **is** its own app. It dispatches
-with `NSWorkspace.openURLs(_:withApplicationAt:configuration:)` against that bundle — the app you
-invoked is the app that answers, and the scheme need not even be registered for this path to work. If
-the binary is running outside any bundle (dev builds from `.build/`), it falls back to
-`NSWorkspace.open(url)`; if that also fails, it reports that Reader.md could not be found and exits 1.
+The CLI binary lives *inside* the bundle, at `Reader.md.app/Contents/MacOS/reader`. It finds its app by
+**walking up from its own executable path** — `Bundle.main.executableURL`, resolved through symlinks
+(Homebrew's `binary` stanza means `argv[0]` is usually a symlink), then up two directories, checking the
+result ends in `.app`.
+
+It deliberately does **not** ask `Bundle.main.bundleURL`. `reader` is not the bundle's
+`CFBundleExecutable` (that is `Reader.md`), so whether `Bundle.main` climbs to the enclosing `.app` from
+a *secondary* executable is an assumption, not a guarantee — the same assumption the `ls` section
+already refuses to make about `UserDefaults.standard`. Deriving from the executable path rests on the
+binary's location, which we control.
+
+Dispatch is then `NSWorkspace.openURLs(_:withApplicationAt:configuration:completionHandler:)` against
+that bundle: the app you invoked is the app that answers, no Launch Services roulette, and the scheme
+need not even be registered for this path to work.
+
+**That API is asynchronous.** A CLI that returns from `main` right after calling it exits before the
+launch dispatches, and the command silently does nothing. The process must block on a `DispatchSemaphore`
+until the completion handler fires (with a timeout), and exit non-zero if it reports an error.
+
+If the executable is not inside an `.app` (dev builds run out of `.build/`), it falls back to the
+synchronous `NSWorkspace.open(url) -> Bool`, which needs the scheme registered — meaning a packaged
+build must have been launched at least once. If that also fails, it reports that Reader.md could not be
+found and exits 1.
 
 ### The CLI binary
 
@@ -125,6 +149,11 @@ cannot `@testable import` from a test target. This is what makes the pure logic 
   required or the app will not render it as markdown. The CLI cannot delete the file before the app has
   read it, so ownership of cleanup sits with the CLI: on each run it reaps stdin temps older than one
   day.
+
+  These temps must be **kept out of recents**. `AppState.open()` pushes every non-bundled path there, so
+  without an exclusion `reader -` litters the recent-files list with paths that get reaped a day later,
+  leaving dead entries. `isBundledDoc` already establishes the pattern for a path-prefix exclusion; the
+  stdin cache directory gets the same treatment.
 - **`reader` with no args** — usage on stdout, exit 0.
 
 ### Consistency
@@ -175,15 +204,19 @@ see this. The README's CLI section says to launch the app once before using the 
      app it was invoked from — not the other one.
   4. `codesign -vvv --deep --strict` on the bundle after `make-app.sh`: `reader` is a second Mach-O in
      `Contents/MacOS`, i.e. nested code that must be sealed, not treated as a resource.
-  5. `echo '# hi' | reader -` renders, and the temp file lands in the cache dir with a `.md` extension.
+  5. `echo '# hi' | reader -` renders, the temp file lands in the cache dir with a `.md` extension, and
+     it does **not** appear in recents.
+  6. `reader ~/docs; echo $?` — the CLI must not exit before the async dispatch completes (the failure
+     mode is a silent no-op with exit 0), and must exit non-zero when the app cannot be launched.
 
 ## Files touched
 
 - `Sources/ReaderCLI/ReaderCLI.swift` — new, the whole CLI (`@main`).
 - `Package.swift` — new executable target + `reader` product.
 - `Sources/ReaderMd/ReaderMdApp.swift` — `readermd://` router in `.onOpenURL`; "Install CLI" menu item.
-- `Sources/ReaderMd/Models/AppState.swift` — `removeRoot(matching:)` (token → root) and prefilling the
-  Add Remote sheet from a URL. `openDropped` is reused as-is.
+- `Sources/ReaderMd/Models/AppState.swift` — `removeRoot(matching:)` (token → root), `pendingRemote` for
+  the prefilled sheet, and a recents exclusion for the stdin cache dir. `openDropped` is reused as-is.
+- `Sources/ReaderMd/Views/SidebarView.swift` — the Add Remote sheet seeds from `pendingRemote`.
 - `make-app.sh` — `CFBundleURLTypes`; copy `reader` into `Contents/MacOS` before signing.
 - `Casks/reader-md.rb` — `binary` stanza.
 - `Tests/ReaderMdTests/` — CLI logic tests.
