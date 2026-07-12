@@ -20,12 +20,22 @@ enum Dispatch {
         return app
     }
 
+    /// Where this binary actually lives. `Bundle.main.executableURL` is dyld-backed
+    /// (not argv[0]), so it survives the case that matters: Homebrew puts a symlink
+    /// on PATH, and the shell then passes argv[0] as the bare word "reader" — which
+    /// `URL(fileURLWithPath:)` would resolve against the cwd, giving nonsense.
+    /// Not `Bundle.main.bundleURL`: bundle-climbing from a *secondary* executable is
+    /// an assumption we don't make. This only reports the Mach-O's own path.
+    static func selfExecutable(bundleExecutable: URL?, argv0: String) -> URL {
+        (bundleExecutable ?? URL(fileURLWithPath: argv0)).resolvingSymlinksInPath()
+    }
+
     /// Hand the URL to the app. Returns false if no Reader.md could be launched.
     static func send(_ url: URL) -> Bool {
-        // Homebrew's `binary` stanza puts a symlink on PATH, so resolve it before
-        // walking up to the bundle.
-        let executable = URL(fileURLWithPath: CommandLine.arguments[0])
-            .resolvingSymlinksInPath()
+        let executable = selfExecutable(
+            bundleExecutable: Bundle.main.executableURL,
+            argv0: CommandLine.arguments[0]
+        )
 
         guard let app = appBundle(forExecutable: executable) else {
             // Dev build outside any bundle: fall back to Launch Services, which
