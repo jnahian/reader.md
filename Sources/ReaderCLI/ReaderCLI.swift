@@ -39,8 +39,14 @@ struct ReaderCLI {
                 fail("could not launch Reader.md")
             }
         case .stdin:
+            // Without this, a bare `reader -` on a terminal blocks on readDataToEndOfFile
+            // until the user works out that it wants ^D. Nobody pipes into this tool
+            // interactively, so a TTY on stdin means they meant something else.
+            guard isatty(FileHandle.standardInput.fileDescriptor) == 0 else {
+                fail("nothing piped in — use `cat notes.md | reader -`, or `reader notes.md`")
+            }
             let now = Date()
-            StdinDoc.reap(in: StdinDoc.directory, olderThan: 86400, now: now)
+            StdinDoc.reap(in: StdinDoc.directory, olderThan: StdinDoc.maxAge, now: now)
             let data = FileHandle.standardInput.readDataToEndOfFile()
             guard !data.isEmpty else { fail("nothing on stdin") }
             guard let file = try? StdinDoc.write(data, now: now.timeIntervalSince1970, into: StdinDoc.directory),

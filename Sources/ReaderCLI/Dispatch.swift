@@ -56,6 +56,12 @@ enum Dispatch {
             ok = (error == nil)
             semaphore.signal()
         }
-        return semaphore.wait(timeout: .now() + 20) == .success && ok
+        return semaphore.wait(timeout: .now() + launchTimeout) == .success && ok
     }
+
+    /// A deliberate tradeoff, not a guess. A cold launch on a loaded machine can
+    /// legitimately exceed this, in which case we report failure for a command that
+    /// then succeeds anyway — annoying, but bounded. The alternative, waiting forever,
+    /// hangs the user's shell on a wedged launch with no way out but ^C.
+    static let launchTimeout: TimeInterval = 20
 }

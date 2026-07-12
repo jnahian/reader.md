@@ -8,6 +8,11 @@ enum StdinDoc {
         .urls(for: .cachesDirectory, in: .userDomainMask)[0]
         .appendingPathComponent("com.nahian.reader-md/stdin", isDirectory: true)
 
+    /// How long a piped document survives before the next run reaps it. Long enough
+    /// that the app has certainly read and rendered it; short enough that the cache
+    /// doesn't grow without bound.
+    static let maxAge: TimeInterval = 86400
+
     /// The `.md` extension is required: without it the app will not render the
     /// file as markdown.
     static func write(_ data: Data, now: TimeInterval, into directory: URL) throws -> URL {

@@ -32,7 +32,12 @@ struct ContentView: View {
         .animation(.easeInOut(duration: 0.12), value: showDropOverlay)
         .onDrop(of: [UTType.fileURL], isTargeted: $dropTargeted, perform: handleDrop)
         .sheet(isPresented: $state.showAddRemote, onDismiss: { state.pendingRemote = nil }) {
-            AddRemoteView(prefill: state.pendingRemote).environmentObject(state)
+            // Keyed on the pending remote so a second `reader remote …` arriving while
+            // the sheet is already open re-seeds the fields. Without the id, SwiftUI
+            // keeps the first presentation's @State and the new prefill is dropped.
+            AddRemoteView(prefill: state.pendingRemote)
+                .environmentObject(state)
+                .id(state.pendingRemote?.id)
         }
     }
 
