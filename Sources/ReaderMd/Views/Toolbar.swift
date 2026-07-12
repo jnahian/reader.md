@@ -10,7 +10,6 @@ extension View {
 /// `@FocusState` and the `@EnvironmentObject` live in a real view scope.
 private struct ReaderToolbar: ViewModifier {
     @EnvironmentObject var state: AppState
-    @FocusState private var findFocused: Bool
 
     func body(content: Content) -> some View {
         titled(content)
@@ -122,13 +121,13 @@ private struct ReaderToolbar: ViewModifier {
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
 
-            TextField("Search", text: $state.findQuery)
-                .textFieldStyle(.plain)
-                .font(.system(size: 12.5))
-                .frame(width: 110)
-                .focused($findFocused)
-                .onSubmit { state.triggerFindNext() }
-                .onExitCommand { state.findQuery = "" }
+            FindTextField(
+                text: $state.findQuery,
+                focusToken: state.focusFind,
+                onSubmit: { state.triggerFindNext() },
+                onCancel: { state.findQuery = "" }
+            )
+            .frame(width: 110, height: 18)
 
             if !state.findQuery.isEmpty {
                 Text(state.findCount > 0 ? "\(state.findIndex + 1)/\(state.findCount)" : "0")
@@ -147,14 +146,9 @@ private struct ReaderToolbar: ViewModifier {
         }
         .padding(.horizontal, 10)
         .frame(height: 26)
-        .glassCapsule()
+        .modifier(FindFieldSurface())
         .disabled(state.selectedFile == nil)
         .opacity(state.selectedFile == nil ? 0.5 : 1)
-        // ⌘F is a menu command; AppKit restores first responder after the menu
-        // dismisses, so the focus request has to land a tick later.
-        .onChange(of: state.focusFind) { _ in
-            DispatchQueue.main.async { findFocused = true }
-        }
     }
 
     /// The old status bar's summary, now the window title's second line.
@@ -166,5 +160,75 @@ private struct ReaderToolbar: ViewModifier {
         let count = state.allFiles().count
         if count == 0 { return "No markdown files" }
         return "\(count) markdown \(count == 1 ? "file" : "files")"
+    }
+}
+
+/// The native toolbar already gives its items a glass surface on macOS 26 — only
+/// the pre-26 toolbar needs a capsule of its own, or the field reads as bare text.
+private struct FindFieldSurface: ViewModifier {
+    @ViewBuilder func body(content: Content) -> some View {
+        if #available(macOS 26.0, *) {
+            content
+        } else {
+            content.glassCapsule()
+        }
+    }
+}
+
+/// SwiftUI's `@FocusState` doesn't reach into the toolbar's own hosting view, so
+/// ⌘F can't focus a SwiftUI `TextField` there. An `NSTextField` we can make first
+/// responder ourselves does work.
+private struct FindTextField: NSViewRepresentable {
+    @Binding var text: String
+    /// Flipped by ⌘F; a change (not a value) is the request to focus.
+    var focusToken: Bool
+    var onSubmit: () -> Void
+    var onCancel: () -> Void
+
+    func makeNSView(context: Context) -> NSTextField {
+        let field = NSTextField()
+        field.isBordered = false
+        field.drawsBackground = false
+        field.focusRingType = .none
+        field.placeholderString = "Search"
+        field.font = .systemFont(ofSize: 12.5)
+        field.delegate = context.coordinator
+        return field
+    }
+
+    func updateNSView(_ field: NSTextField, context: Context) {
+        context.coordinator.parent = self
+        if field.stringValue != text { field.stringValue = text }
+
+        guard context.coordinator.focusToken != focusToken else { return }
+        context.coordinator.focusToken = focusToken
+        // ⌘F is a menu command; AppKit restores first responder after the menu
+        // dismisses, so the focus request has to land a tick later.
+        DispatchQueue.main.async { field.window?.makeFirstResponder(field) }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    final class Coordinator: NSObject, NSTextFieldDelegate {
+        var parent: FindTextField
+        var focusToken: Bool
+
+        init(_ parent: FindTextField) {
+            self.parent = parent
+            self.focusToken = parent.focusToken
+        }
+
+        func controlTextDidChange(_ note: Notification) {
+            guard let field = note.object as? NSTextField else { return }
+            parent.text = field.stringValue
+        }
+
+        func control(_ control: NSControl, textView: NSTextView, doCommandBy selector: Selector) -> Bool {
+            switch selector {
+            case #selector(NSResponder.insertNewline(_:)): parent.onSubmit(); return true
+            case #selector(NSResponder.cancelOperation(_:)): parent.onCancel(); return true
+            default: return false
+            }
+        }
     }
 }
