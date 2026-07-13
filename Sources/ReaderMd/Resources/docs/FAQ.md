@@ -24,7 +24,7 @@ choose Reader.md → **Change All…**.
 **Quick Open** (⌘P) — fuzzy-search every file across all your folders.
 
 **Where's the document outline?**
-Toggle it with ⇧⌘O. It tracks your scroll position and clicking a heading jumps
+Toggle it with ⇧⌘B. It tracks your scroll position and clicking a heading jumps
 to it.
 
 **Does it support diagrams and math?**

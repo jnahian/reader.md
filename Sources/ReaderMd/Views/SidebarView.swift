@@ -175,15 +175,13 @@ struct RecentRow: View {
                 .foregroundStyle(isSelected ? Color.white : Color.primary)
                 .lineLimit(1)
             Spacer(minLength: 0)
-            // Only on the open file: closing is the one thing the × can mean here.
-            // Removing from recents lives in the context menu.
-            if hovering && isSelected {
-                Button { state.closeFile() } label: {
+            if hovering {
+                Button { state.removeRecent(path) } label: {
                     Image(systemName: "xmark").font(.system(size: 10))
                 }
                 .buttonStyle(.borderless)
-                .foregroundStyle(Color.white)
-                .help("Close file")
+                .foregroundStyle(isSelected ? Color.white : Color.secondary)
+                .help("Remove from Recents")
             }
         }
         .padding(.vertical, 4)
@@ -318,6 +316,17 @@ struct RootSectionView: View {
                 }
             }
         }
+        // Reveal the open file: expand the root that holds it (each directory on the
+        // way down does the same, so the whole path opens).
+        .onAppear { if holdsSelection { expanded = true } }
+        .onChange(of: state.selectedFile?.url.path) { _ in
+            if holdsSelection { withAnimation(.easeInOut(duration: 0.12)) { expanded = true } }
+        }
+    }
+
+    private var holdsSelection: Bool {
+        guard let path = state.selectedFile?.url.standardizedFileURL.path else { return false }
+        return path.hasPrefix(root.url.standardizedFileURL.path + "/")
     }
 }
 

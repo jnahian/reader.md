@@ -45,6 +45,18 @@ struct FileTreeRow: View {
                 }
             }
         }
+        // Expand on the way to the open file, so opening one (⌘P, Recents, a link)
+        // reveals it in the tree rather than leaving it hidden in a collapsed folder.
+        .onAppear { if holdsSelection { expanded = true } }
+        .onChange(of: state.selectedFile?.url.path) { _ in
+            if holdsSelection { withAnimation(.easeInOut(duration: 0.12)) { expanded = true } }
+        }
+    }
+
+    private var holdsSelection: Bool {
+        guard node.isDirectory,
+              let path = state.selectedFile?.url.standardizedFileURL.path else { return false }
+        return path.hasPrefix(node.url.standardizedFileURL.path + "/")
     }
 
     private var fileRow: some View {

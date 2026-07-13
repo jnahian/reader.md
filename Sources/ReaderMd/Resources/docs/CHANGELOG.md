@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.9.0 — 2026-07-13
+
+- **New sidebar shortcuts.** ⌘B toggles the file sidebar and ⇧⌘B the outline —
+  the keys the rest of the Mac uses. (They were ⌘\ and ⇧⌘O.)
+- **The empty screen is clickable.** Open a file, add a folder, quick-open, or
+  jump to the sidebar filter by clicking the row instead of only reading about
+  the shortcut.
+- **A close button on the open document** — a floating × in the top-right corner,
+  the visible form of ⌘W.
+- **The sidebar reveals what you open.** Opening a file from Quick Open, Recents,
+  or a link in a document expands the folders down to it, instead of leaving it
+  hidden in a collapsed tree.
+- The × on a Recents row removes the entry from Recents again (it briefly closed
+  the file instead). Closing lives on the document's own × and ⌘W.
+
 ## 1.8.0 — 2026-07-13
 
 - **Full-width reading column.** The content column now has three widths —

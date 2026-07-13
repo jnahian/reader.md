@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 import UniformTypeIdentifiers
 
 struct ContentView: View {
@@ -55,6 +56,12 @@ struct ContentView: View {
                 }
                 MarkdownWebView()
                     .opacity(state.selectedFile == nil ? 0 : 1)
+
+                if state.selectedFile != nil {
+                    CloseDocButton()
+                        .padding(.top, 10)
+                        .padding(.trailing, 14)
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
@@ -111,6 +118,28 @@ struct ContentView: View {
     }
 }
 
+/// Floating × over the open document — the discoverable form of ⌘W / File → Close.
+struct CloseDocButton: View {
+    @EnvironmentObject var state: AppState
+    @State private var hovering = false
+
+    var body: some View {
+        Button { state.closeFile() } label: {
+            Image(systemName: "xmark")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(hovering ? .primary : .secondary)
+                .frame(width: 24, height: 24)
+                .background(GlassPanel(cornerRadius: 12, material: .hudWindow))
+                .overlay(Circle().stroke(Color.primary.opacity(0.08)))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .opacity(hovering ? 1 : 0.45)
+        .onHover { hovering = $0 }
+        .help("Close file (⌘W)")
+    }
+}
+
 /// Shown while a valid file drag is over the window. Drop already worked; without
 /// this there was no sign of it, so people assumed it wasn't supported.
 struct DropTargetOverlay: View {
@@ -164,13 +193,26 @@ struct ReadingProgressBar: View {
 struct EmptyStateView: View {
     @EnvironmentObject var state: AppState
 
-    private let hints: [(String, String, String)] = [
-        ("doc.text", "Open a file", "⌘O"),
-        ("folder.badge.plus", "Add a folder", ""),
-        ("magnifyingglass", "Quick-open a file", "⌘P"),
-        ("sidebar.left", "Filter files in the sidebar", "⇧⌘F"),
-        ("arrow.down.doc", "…or drag a file or folder onto the window", ""),
-    ]
+    private struct Hint: Identifiable {
+        let id = UUID()
+        let icon: String
+        let label: String
+        let shortcut: String
+        let action: (() -> Void)?   // nil = not an action, just a hint
+    }
+
+    private var hints: [Hint] {
+        [
+            Hint(icon: "doc.text", label: "Open a file", shortcut: "⌘O", action: { state.pickFile() }),
+            Hint(icon: "folder.badge.plus", label: "Add a folder", shortcut: "", action: { state.pickFolders() }),
+            Hint(icon: "magnifyingglass", label: "Quick-open a file", shortcut: "⌘P", action: { state.showQuickOpen = true }),
+            Hint(icon: "sidebar.left", label: "Filter files in the sidebar", shortcut: "⇧⌘F", action: {
+                if !state.showSidebar { state.toggleSidebar() }
+                state.focusSearch.toggle()
+            }),
+            Hint(icon: "arrow.down.doc", label: "…or drag a file or folder onto the window", shortcut: "", action: nil),
+        ]
+    }
 
     var body: some View {
         VStack(spacing: 22) {
@@ -186,34 +228,14 @@ struct EmptyStateView: View {
                     .foregroundStyle(.tertiary)
             }
 
-            VStack(alignment: .leading, spacing: 11) {
-                ForEach(hints, id: \.1) { icon, label, shortcut in
-                    HStack(spacing: 11) {
-                        Image(systemName: icon)
-                            .font(.system(size: 13))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 18)
-                        Text(label)
-                            .font(.system(size: 13))
-                            .foregroundStyle(.secondary)
-                        Spacer(minLength: 12)
-                        if !shortcut.isEmpty {
-                            Text(shortcut)
-                                .font(.system(size: 12, weight: .medium, design: .rounded))
-                                .foregroundStyle(.secondary)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 5, style: .continuous)
-                                        .fill(Color.primary.opacity(0.07))
-                                )
-                        }
-                    }
+            VStack(alignment: .leading, spacing: 3) {
+                ForEach(hints) { hint in
+                    HintRow(hint: hint)
                 }
             }
             .frame(width: 320)
-            .padding(.vertical, 17)
-            .padding(.horizontal, 22)
+            .padding(.vertical, 12)
+            .padding(.horizontal, 14)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(Color.primary.opacity(0.035))
@@ -221,5 +243,49 @@ struct EmptyStateView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .textBackgroundColor))
+    }
+
+    /// One line of the empty state. The actionable ones run their action on click
+    /// and light up on hover; the drag hint is inert.
+    private struct HintRow: View {
+        let hint: Hint
+        @State private var hovering = false
+
+        var body: some View {
+            HStack(spacing: 11) {
+                Image(systemName: hint.icon)
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 18)
+                Text(hint.label)
+                    .font(.system(size: 13))
+                    .foregroundStyle(hint.action != nil && hovering ? .primary : .secondary)
+                Spacer(minLength: 12)
+                if !hint.shortcut.isEmpty {
+                    Text(hint.shortcut)
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(
+                            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                .fill(Color.primary.opacity(0.07))
+                        )
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(hovering && hint.action != nil ? Color.primary.opacity(0.06) : Color.clear)
+            )
+            .contentShape(Rectangle())
+            .onHover { inside in
+                guard hint.action != nil else { return }
+                hovering = inside
+                if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+            }
+            .onTapGesture { hint.action?() }
+        }
     }
 }

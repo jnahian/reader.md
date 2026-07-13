@@ -32,7 +32,7 @@ A native macOS rebuild of the markdown viewer using SwiftUI and AppKit. The whol
 - **Reading feedback** — accent progress bar under the toolbar; word count and reading time in the status bar
 - **Code copy buttons**, **image click-to-zoom** lightbox, and hover **heading anchors**
 - **Export to PDF** (⌘E) and **manual reload** (⌘R) — toolbar buttons on the right, plus the web view's native PDF renderer
-- **Liquid Glass chrome** — on macOS 26 (Tahoe) the native toolbar, sidebar, outline, find bar, and quick-open palette all read as Liquid Glass; on macOS 13–15 they fall back to translucent `NSVisualEffectView` material. Collapsible + resizable sidebar (⌘\, width persisted); the title's proxy icon reveals the file in Finder
+- **Liquid Glass chrome** — on macOS 26 (Tahoe) the native toolbar, sidebar, outline, find bar, and quick-open palette all read as Liquid Glass; on macOS 13–15 they fall back to translucent `NSVisualEffectView` material. Collapsible + resizable sidebar (⌘B, width persisted); the title's proxy icon reveals the file in Finder
 - **Syntax highlighting, Mermaid, LaTeX math** — via the bundled JS engines
 - **YAML frontmatter** — rendered as a clean key/value table at the top of the document
 - **Dark mode** — system / light / dark cycle, applied to both native chrome and web content
@@ -48,7 +48,7 @@ A native macOS rebuild of the markdown viewer using SwiftUI and AppKit. The whol
 | ⇧⌘A | Add folder | ⌥⌘A | Add remote folder |
 | ⌘F | Filter files | ⇧⌘F | Find in page |
 | ⌘G / ⇧⌘G | Find next / previous | ⌘[ / ⌘] | Back / forward |
-| ⌘\ | Toggle sidebar | ⌘⇧O | Toggle outline |
+| ⌘B | Toggle sidebar | ⇧⌘B | Toggle outline |
 | ⌘+ / ⌘− / ⌘0 | Text bigger / smaller / reset | ⌘E | Export PDF |
 | ⌘R | Reload | | |
 

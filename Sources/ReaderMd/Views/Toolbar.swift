@@ -20,7 +20,7 @@ private struct ReaderToolbar: ViewModifier {
                     Button { state.toggleSidebar() } label: {
                         Image(systemName: "sidebar.left")
                     }
-                    .help("Toggle sidebar (⌘\\)")
+                    .help("Toggle sidebar (⌘B)")
                 }
 
                 // Back / forward, kept together like Finder.
@@ -47,7 +47,7 @@ private struct ReaderToolbar: ViewModifier {
                         Button { state.setShowTOC(!state.showTOC) } label: {
                             Image(systemName: "list.bullet")
                         }
-                        .help("Toggle outline (⌘⇧O)")
+                        .help("Toggle outline (⇧⌘B)")
                     }
                 }
 

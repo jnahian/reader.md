@@ -17,8 +17,8 @@
 | --- | --- |
 | ⌘[ | Back |
 | ⌘] | Forward |
-| ⌘\\ | Toggle Sidebar |
-| ⇧⌘O | Toggle Outline |
+| ⌘B | Toggle Sidebar |
+| ⇧⌘B | Toggle Outline |
 
 ## Find
 

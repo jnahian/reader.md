@@ -99,9 +99,9 @@ struct ReaderMdApp: App {
 
             CommandGroup(after: .toolbar) {
                 Button("Toggle Sidebar") { state.toggleSidebar() }
-                    .keyboardShortcut("\\", modifiers: .command)
+                    .keyboardShortcut("b", modifiers: .command)
                 Button("Toggle Outline") { state.setShowTOC(!state.showTOC) }
-                    .keyboardShortcut("o", modifiers: [.command, .shift])
+                    .keyboardShortcut("b", modifiers: [.command, .shift])
                 Divider()
                 Button("Increase Text") { state.adjustFontScale(0.1) }
                     .keyboardShortcut("+", modifiers: .command)
@@ -151,7 +151,7 @@ struct ReaderMdApp: App {
 // ponytail: fallback version for `swift run` (no Info.plist); keep in sync with make-app.sh.
 private func showAboutPanel() {
     let info = Bundle.main.infoDictionary
-    let version = info?["CFBundleShortVersionString"] as? String ?? "1.8.0"
+    let version = info?["CFBundleShortVersionString"] as? String ?? "1.9.0"
     let build = info?["CFBundleVersion"] as? String ?? "dev"
     let credits = NSAttributedString(
         string: "A native macOS markdown viewer.\nMermaid & LaTeX, live reload, PDF export.",
