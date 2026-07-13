@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.7.1 — 2026-07-13
+
+- **You can close a document now.** ⌘W closes the open file and leaves the window
+  up, rather than closing the window — which, with one window open, quit the app.
+  Press it again with nothing open and Reader.md asks before quitting. **File →
+  Close** does the same, and right-clicking the open file in the sidebar or in
+  Recents offers **Close**. On the Recents row for the open file, the hover **×**
+  closes it; removing the entry from Recents moved to that row's context menu.
+- Fixed: `reader` opened a new window on every invocation instead of reusing the
+  window you already had open.
+
 ## 1.7.0 — 2026-07-12
 
 - **A `reader` command line tool.** Open a file, add a folder, add a remote, or

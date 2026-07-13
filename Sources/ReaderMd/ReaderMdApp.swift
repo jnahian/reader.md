@@ -41,8 +41,15 @@ struct ReaderMdApp: App {
                         break
                     }
                 }
-                .onAppear { state.checkWhatsNew() }
+                .onAppear {
+                    appDelegate.state = state
+                    state.checkWhatsNew()
+                }
+                // Without this, SwiftUI answers every incoming readermd:// URL by
+                // opening a *second* window instead of routing it to the existing one.
+                .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
         }
+        .handlesExternalEvents(matching: ["*"])
         .commands {
             CommandGroup(replacing: .appInfo) {
                 Button("About Reader.md") { showAboutPanel() }
@@ -135,7 +142,7 @@ struct ReaderMdApp: App {
 // ponytail: fallback version for `swift run` (no Info.plist); keep in sync with make-app.sh.
 private func showAboutPanel() {
     let info = Bundle.main.infoDictionary
-    let version = info?["CFBundleShortVersionString"] as? String ?? "1.7.0"
+    let version = info?["CFBundleShortVersionString"] as? String ?? "1.7.1"
     let build = info?["CFBundleVersion"] as? String ?? "dev"
     let credits = NSAttributedString(
         string: "A native macOS markdown viewer.\nMermaid & LaTeX, live reload, PDF export.",
@@ -153,6 +160,8 @@ private func showAboutPanel() {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    weak var state: AppState?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
         if let url = Bundle.resources.url(forResource: "AppIcon", withExtension: "png"),
@@ -160,6 +169,55 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.applicationIconImage = image
         }
         NSApp.activate(ignoringOtherApps: true)
+
+        // ⌘W should close the open document, not the window — closing the only window
+        // quits the app, which is a surprising way to lose your place. Intercepting the
+        // key event rather than retargeting the File > Close item, because SwiftUI
+        // rebuilds that menu whenever a command's `.disabled` state changes (opening a
+        // file does exactly that) and the rebuild puts `performClose:` right back.
+        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
+                  event.charactersIgnoringModifiers == "w",
+                  // A sheet or the quit alert is already up: leave ⌘W alone, or repeat
+                  // presses stack a second alert on top of the first.
+                  NSApp.modalWindow == nil, NSApp.keyWindow?.sheets.isEmpty ?? true,
+                  let self
+            else { return event }
+            // Deferred, not called inline: the quit path runs a modal alert, and
+            // spinning a modal loop from inside sendEvent() swallows it silently.
+            DispatchQueue.main.async { self.closeFileOrQuit(nil) }
+            return nil
+        }
+        // The menu item itself is rebuilt constantly, so re-point it each time the user
+        // pulls the menu bar down — otherwise clicking Close would still quit.
+        NotificationCenter.default.addObserver(
+            forName: NSMenu.didBeginTrackingNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.retargetCloseItem() }
+        }
+    }
+
+    private func retargetCloseItem() {
+        let items = NSApp.mainMenu?.items.compactMap(\.submenu).flatMap(\.items) ?? []
+        guard let close = items.first(where: { $0.action == #selector(NSWindow.performClose(_:)) })
+        else { return }
+        // Target is `self`, not nil: left to the responder chain the item validates as
+        // disabled and the menu entry greys out.
+        close.target = self
+        close.action = #selector(closeFileOrQuit(_:))
+    }
+
+    @MainActor @objc func closeFileOrQuit(_ sender: Any?) {
+        if let state, state.selectedFile != nil {
+            state.closeFile()
+            return
+        }
+        let alert = NSAlert()
+        alert.messageText = "Quit Reader.md?"
+        alert.informativeText = "No document is open."
+        alert.addButton(withTitle: "Quit")
+        alert.addButton(withTitle: "Cancel")
+        if alert.runModal() == .alertFirstButtonReturn { NSApp.terminate(nil) }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

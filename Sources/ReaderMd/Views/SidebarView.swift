@@ -175,13 +175,15 @@ struct RecentRow: View {
                 .foregroundStyle(isSelected ? Color.white : Color.primary)
                 .lineLimit(1)
             Spacer(minLength: 0)
-            if hovering {
-                Button { state.removeRecent(path) } label: {
+            // Only on the open file: closing is the one thing the × can mean here.
+            // Removing from recents lives in the context menu.
+            if hovering && isSelected {
+                Button { state.closeFile() } label: {
                     Image(systemName: "xmark").font(.system(size: 10))
                 }
                 .buttonStyle(.borderless)
-                .foregroundStyle(isSelected ? Color.white : Color.secondary)
-                .help("Remove from recents")
+                .foregroundStyle(Color.white)
+                .help("Close file")
             }
         }
         .padding(.vertical, 4)
@@ -197,6 +199,11 @@ struct RecentRow: View {
         .onHover { hovering = $0 }
         .onTapGesture { state.openPath(path) }
         .contextMenu {
+            if isSelected {
+                Button("Close") { state.closeFile() }
+            } else {
+                Button("Open") { state.openPath(path) }
+            }
             Button("Reveal in Finder") {
                 NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
             }

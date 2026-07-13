@@ -52,7 +52,11 @@ struct FileTreeRow: View {
             .contentShape(Rectangle())
             .onTapGesture { state.open(node) }
             .contextMenu {
-                Button("Open") { state.open(node) }
+                if isSelected {
+                    Button("Close") { state.closeFile() }
+                } else {
+                    Button("Open") { state.open(node) }
+                }
                 Button("Reveal in Finder") { revealInFinder() }
                 Button("Copy Path") { copyPath() }
             }

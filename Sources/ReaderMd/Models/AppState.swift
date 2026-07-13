@@ -427,6 +427,15 @@ final class AppState: ObservableObject {
         return url.standardizedFileURL.path.hasPrefix(dir + "/")
     }
 
+    /// Back to the empty state. History stacks survive, so ⌘[ still works.
+    func closeFile() {
+        selectedFile = nil
+        toc = []
+        activeHeadingID = nil
+        scrollProgress = 0
+        loadMarksForCurrentFile()
+    }
+
     func openPath(_ path: String) {
         open(FileNode(url: URL(fileURLWithPath: path), isDirectory: false))
     }
