@@ -91,8 +91,8 @@ window.ReaderMd = {
     document.documentElement.style.setProperty('--content-size', `${16 * scale}px`);
   },
 
-  setWide(wide) {
-    document.documentElement.style.setProperty('--content-width', wide ? '1080px' : '760px');
+  setContentWidth(css) {
+    document.documentElement.style.setProperty('--content-width', css);
   },
 
   applyMarks(marksJSON) {

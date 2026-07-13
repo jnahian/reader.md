@@ -8,7 +8,8 @@ enum Settings {
     private static let themeKey = "reader.md.theme"
     private static let showTOCKey = "reader.md.showTOC"
     private static let fontScaleKey = "reader.md.fontScale"
-    private static let wideKey = "reader.md.wideReading"
+    private static let wideKey = "reader.md.wideReading"   // legacy Bool; read once for migration
+    private static let contentWidthKey = "reader.md.contentWidth"
     private static let showSidebarKey = "reader.md.showSidebar"
     private static let sidebarWidthKey = "reader.md.sidebarWidth"
     private static let recentsKey = "reader.md.recents"
@@ -75,11 +76,15 @@ enum Settings {
         defaults.set(value, forKey: fontScaleKey)
     }
 
-    static func loadWideReading() -> Bool {
-        defaults.object(forKey: wideKey) as? Bool ?? false
+    /// Falls back to the old boolean `wideReading` key so an upgrade keeps the
+    /// user's column choice.
+    static func loadContentWidth() -> ContentWidth {
+        if let raw = defaults.string(forKey: contentWidthKey),
+           let w = ContentWidth(rawValue: raw) { return w }
+        return (defaults.object(forKey: wideKey) as? Bool ?? false) ? .wide : .narrow
     }
-    static func saveWideReading(_ value: Bool) {
-        defaults.set(value, forKey: wideKey)
+    static func saveContentWidth(_ value: ContentWidth) {
+        defaults.set(value.rawValue, forKey: contentWidthKey)
     }
 
     // Sidebar

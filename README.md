@@ -27,7 +27,7 @@ A native macOS rebuild of the markdown viewer using SwiftUI and AppKit. The whol
 - **File filter** — ⌘F filters the tree live across all roots
 - **In-page find** — ⇧⌘F native find bar with match highlighting (⌘G / ⇧⌘G for next/prev)
 - **Outline** — collapsible right pane (⌘⇧O) with a sliding accent rail marker and scrollspy
-- **Typography** — font size (⌘+ / ⌘− / ⌘0) and a wide/narrow reading-column toggle, both persisted
+- **Typography** — font size (⌘+ / ⌘− / ⌘0) and a narrow/wide/full-width reading column (⇧⌘\), both persisted
 - **Finder-style chrome** — capsule search field; native toolbar controls grouped into capsules by function; a "FOLDERS" section header with tinted icons and a full-width selection pill; and a bottom status bar (markdown file count, or word count / reading-time for the open file), mirroring the macOS 26 Finder
 - **Reading feedback** — accent progress bar under the toolbar; word count and reading time in the status bar
 - **Code copy buttons**, **image click-to-zoom** lightbox, and hover **heading anchors**

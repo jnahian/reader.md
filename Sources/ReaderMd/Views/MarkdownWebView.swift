@@ -110,7 +110,7 @@ struct MarkdownWebView: NSViewRepresentable {
         coord.applyTheme(isDark: context.environment.colorScheme == .dark)
         coord.applyAccent(isDark: context.environment.colorScheme == .dark)
         coord.applyReadingTheme(state.readingTheme.rawValue)
-        coord.applyTypography(scale: state.fontScale, wide: state.wideReading)
+        coord.applyTypography(scale: state.fontScale, width: state.contentWidth)
 
         if let file = state.selectedFile, file.url.path != coord.loadedPath {
             coord.load(file: file)
@@ -171,7 +171,7 @@ struct MarkdownWebView: NSViewRepresentable {
         private var lastAccent: String?
         private var lastReadingTheme: String?
         private var lastScale: Double?
-        private var lastWide: Bool?
+        private var lastWidth: ContentWidth?
         private var lastFindQuery: String = ""
         private var activePopover: NSPopover?
 
@@ -235,15 +235,15 @@ struct MarkdownWebView: NSViewRepresentable {
             webView?.evaluateJavaScript("window.ReaderMd.setReadingTheme('\(name)');")
         }
 
-        func applyTypography(scale: Double, wide: Bool) {
-            guard isReady else { lastScale = scale; lastWide = wide; return }
+        func applyTypography(scale: Double, width: ContentWidth) {
+            guard isReady else { lastScale = scale; lastWidth = width; return }
             if lastScale != scale {
                 lastScale = scale
                 webView?.evaluateJavaScript("window.ReaderMd.setFontScale(\(scale));")
             }
-            if lastWide != wide {
-                lastWide = wide
-                webView?.evaluateJavaScript("window.ReaderMd.setWide(\(wide));")
+            if lastWidth != width {
+                lastWidth = width
+                webView?.evaluateJavaScript("window.ReaderMd.setContentWidth('\(width.css)');")
             }
         }
 
@@ -463,7 +463,7 @@ struct MarkdownWebView: NSViewRepresentable {
                     webView?.evaluateJavaScript("window.ReaderMd.setAccent('\(accent)');")
                 }
                 if let scale = lastScale { webView?.evaluateJavaScript("window.ReaderMd.setFontScale(\(scale));") }
-                if let wide = lastWide { webView?.evaluateJavaScript("window.ReaderMd.setWide(\(wide));") }
+                if let width = lastWidth { webView?.evaluateJavaScript("window.ReaderMd.setContentWidth('\(width.css)');") }
                 if let name = lastReadingTheme {
                     webView?.evaluateJavaScript("window.ReaderMd.setReadingTheme('\(name)');")
                 }

@@ -109,7 +109,16 @@ struct ReaderMdApp: App {
                     .keyboardShortcut("-", modifiers: .command)
                 Button("Actual Size") { state.resetFontScale() }
                     .keyboardShortcut("0", modifiers: .command)
-                Button(state.wideReading ? "Narrow Column" : "Wide Column") { state.toggleWideReading() }
+                Picker("Column Width", selection: Binding(
+                    get: { state.contentWidth },
+                    set: { state.setContentWidth($0) }
+                )) {
+                    ForEach(ContentWidth.allCases, id: \.self) { width in
+                        Text(width.displayName).tag(width)
+                    }
+                }
+                Button("Cycle Column Width") { state.cycleContentWidth() }
+                    .keyboardShortcut("\\", modifiers: [.command, .shift])
                 Divider()
             }
 
@@ -142,7 +151,7 @@ struct ReaderMdApp: App {
 // ponytail: fallback version for `swift run` (no Info.plist); keep in sync with make-app.sh.
 private func showAboutPanel() {
     let info = Bundle.main.infoDictionary
-    let version = info?["CFBundleShortVersionString"] as? String ?? "1.7.1"
+    let version = info?["CFBundleShortVersionString"] as? String ?? "1.8.0"
     let build = info?["CFBundleVersion"] as? String ?? "dev"
     let credits = NSAttributedString(
         string: "A native macOS markdown viewer.\nMermaid & LaTeX, live reload, PDF export.",

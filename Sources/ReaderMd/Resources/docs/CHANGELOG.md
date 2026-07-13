@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.8.0 — 2026-07-13
+
+- **Full-width reading column.** The content column now has three widths —
+  Narrow, Wide, and Full Width — instead of the old narrow/wide toggle. Full
+  Width fills the window, so wide tables and code blocks stop scrolling
+  sideways on a large display. Pick one from the toolbar's text menu or **View →
+  Column Width**; ⇧⌘\ cycles them. If you had the wide column on, you stay on
+  Wide.
+
 ## 1.7.1 — 2026-07-13
 
 - **You can close a document now.** ⌘W closes the open file and leaves the window

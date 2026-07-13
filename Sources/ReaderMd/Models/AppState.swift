@@ -45,6 +45,29 @@ enum ReadingTheme: String, CaseIterable {
     }
 }
 
+/// Width of the reading column. `full` fills the pane — wide tables and code
+/// blocks stop scrolling horizontally on a large display.
+enum ContentWidth: String, CaseIterable {
+    case narrow, wide, full
+
+    var displayName: String {
+        switch self {
+        case .narrow: return "Narrow"
+        case .wide:   return "Wide"
+        case .full:   return "Full Width"
+        }
+    }
+
+    /// CSS value for `--content-width`.
+    var css: String {
+        switch self {
+        case .narrow: return "760px"
+        case .wide:   return "1080px"
+        case .full:   return "100%"
+        }
+    }
+}
+
 /// A heading in the currently open document, used for the outline.
 struct TOCEntry: Identifiable, Equatable {
     let id: String   // heading element id
@@ -94,7 +117,7 @@ final class AppState: ObservableObject {
 
     // Reading / typography
     @Published var fontScale: Double = 1.0     // 0.7 ... 1.6
-    @Published var wideReading: Bool = false
+    @Published var contentWidth: ContentWidth = .narrow
 
     // Chrome layout
     @Published var showSidebar: Bool = true
@@ -151,7 +174,7 @@ final class AppState: ObservableObject {
         readingTheme = Settings.loadReadingTheme()
         showTOC = Settings.loadShowTOC()
         fontScale = Settings.loadFontScale()
-        wideReading = Settings.loadWideReading()
+        contentWidth = Settings.loadContentWidth()
         showSidebar = Settings.loadShowSidebar()
         sidebarWidth = Settings.loadSidebarWidth()
         // Drop help-doc paths saved by builds that recorded them.
@@ -391,9 +414,15 @@ final class AppState: ObservableObject {
 
     func resetFontScale() { setFontScale(1.0) }
 
-    func toggleWideReading() {
-        wideReading.toggle()
-        Settings.saveWideReading(wideReading)
+    func setContentWidth(_ value: ContentWidth) {
+        contentWidth = value
+        Settings.saveContentWidth(value)
+    }
+
+    func cycleContentWidth() {
+        let all = ContentWidth.allCases
+        let next = all[(all.firstIndex(of: contentWidth)! + 1) % all.count]
+        setContentWidth(next)
     }
 
     // MARK: - Navigation & history

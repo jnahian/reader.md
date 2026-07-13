@@ -45,6 +45,7 @@
 | ⌘+ | Increase Text |
 | ⌘- | Decrease Text |
 | ⌘0 | Actual Size |
+| ⇧⌘\\ | Cycle Column Width (Narrow / Wide / Full) |
 
 ## Help
 

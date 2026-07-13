@@ -34,7 +34,7 @@ Yes. Mermaid fenced code blocks render as diagrams, and LaTeX (`$…$` /
 **Can I change the theme or text size?**
 Light/dark follows the toggle in the topbar, which also picks a reading theme —
 Standard, Editorial, or Terminal. Text size is ⌘+ / ⌘- / ⌘0, and
-**View → Wide Column** widens the reading measure.
+**View → Column Width** picks Narrow, Wide, or Full Width (⇧⌘\ cycles them). Full Width fills the window, so wide tables stop scrolling sideways.
 
 In the Standard theme, links and heading anchors use the accent color you picked
 in System Settings, and follow it when you change it. Editorial and Terminal keep

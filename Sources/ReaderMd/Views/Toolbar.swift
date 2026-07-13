@@ -101,10 +101,15 @@ private struct ReaderToolbar: ViewModifier {
             Button("Decrease Text  ⌘−") { state.adjustFontScale(-0.1) }
             Button("Actual Size  ⌘0") { state.resetFontScale() }
             Divider()
-            Toggle("Wide Reading Column", isOn: Binding(
-                get: { state.wideReading },
-                set: { _ in state.toggleWideReading() }
-            ))
+            Picker("Column Width", selection: Binding(
+                get: { state.contentWidth },
+                set: { state.setContentWidth($0) }
+            )) {
+                ForEach(ContentWidth.allCases, id: \.self) { width in
+                    Text(width.displayName).tag(width)
+                }
+            }
+            .pickerStyle(.inline)
         } label: {
             Image(systemName: "textformat.size")
         }
