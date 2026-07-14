@@ -8,6 +8,7 @@ final class ReadingThemeTests: XCTestCase {
 
     func testKnownNamesResolve() {
         XCTAssertEqual(ReadingTheme.named("standard"), .standard)
+        XCTAssertEqual(ReadingTheme.named("github"), .github)
         XCTAssertEqual(ReadingTheme.named("editorial"), .editorial)
         XCTAssertEqual(ReadingTheme.named("terminal"), .terminal)
     }
@@ -21,7 +22,8 @@ final class ReadingThemeTests: XCTestCase {
         XCTAssertEqual(ReadingTheme.named(""), .standard)
     }
 
-    func testCaseIterableCoversAllThree() {
-        XCTAssertEqual(ReadingTheme.allCases, [.standard, .editorial, .terminal])
+    /// Order matters — it's the order the theme picker offers them in.
+    func testCaseIterableCoversEveryTheme() {
+        XCTAssertEqual(ReadingTheme.allCases, [.standard, .github, .editorial, .terminal])
     }
 }

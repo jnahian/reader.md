@@ -10,6 +10,7 @@ let currentDir = '';
 // already correct when the mode toggles — no flash of unstyled code.
 const HLJS = {
   standard:  ['styles/github.min.css',             'styles/github-dark.min.css'],
+  github:    ['styles/github.min.css',             'styles/github-dark.min.css'],
   editorial: ['styles/atom-one-light.min.css',     'styles/atom-one-dark.min.css'],
   terminal:  ['styles/stackoverflow-light.min.css', 'styles/stackoverflow-dark.min.css'],
 };
@@ -74,8 +75,8 @@ window.ReaderMd = {
     applyAccent();
   },
 
-  loadMarkdown(text, dir) {
-    render(text, dir, false);
+  loadMarkdown(text, dir, resume) {
+    render(text, dir, false, resume);
   },
 
   reloadMarkdown(text, dir) {
@@ -160,7 +161,7 @@ function splitFrontmatter(text) {
   return { table: `<table class="frontmatter">${rows.join('')}</table>`, body: text.slice(m[0].length) };
 }
 
-async function render(text, dir, keepScroll) {
+async function render(text, dir, keepScroll, resume) {
   const prevScroll = keepScroll ? window.scrollY : 0;
   window.__lastMarkdown = text;
   currentDir = dir || '';
@@ -185,7 +186,12 @@ async function render(text, dir, keepScroll) {
   addImageZoom();
   addHeadingAnchors();
 
-  window.scrollTo(0, prevScroll);
+  // A fresh document resumes at its saved fraction — measured here, after mermaid
+  // and KaTeX have laid out, so scrollHeight is final. Images without intrinsic
+  // dimensions can still land late and shift the target slightly.
+  // ponytail: fraction, not an anchor. Good enough until reflow drift annoys someone.
+  const max = document.documentElement.scrollHeight - window.innerHeight;
+  window.scrollTo(0, keepScroll ? prevScroll : (resume > 0 && max > 0 ? resume * max : 0));
   reportActiveHeading();
   reportProgress();
   post('rendered', true);

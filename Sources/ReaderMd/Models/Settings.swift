@@ -15,6 +15,7 @@ enum Settings {
     private static let recentsKey = "reader.md.recents"
     private static let showResolvedThreadsKey = "reader.md.showResolvedThreads"
     private static let readingThemeKey = "reader.md.readingTheme"
+    private static let positionsKey = "reader.md.positions"
 
     private static var defaults: UserDefaults { .standard }
 
@@ -109,6 +110,14 @@ enum Settings {
     }
     static func saveRecents(_ paths: [String]) {
         defaults.set(paths, forKey: recentsKey)
+    }
+
+    // Reading positions: path -> scroll fraction (0...1)
+    static func loadPositions() -> [String: Double] {
+        defaults.dictionary(forKey: positionsKey) as? [String: Double] ?? [:]
+    }
+    static func savePositions(_ positions: [String: Double]) {
+        defaults.set(positions, forKey: positionsKey)
     }
 
     // Comment threads (#3)
