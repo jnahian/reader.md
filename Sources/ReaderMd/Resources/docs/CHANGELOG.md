@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.10.0 — 2026-07-14
+
+- **Documents remember where you stopped.** Reopening a long file returns you to
+  the place you left off instead of the top. A document you barely started, or
+  one you finished, still opens at the top — resuming into the last screen of
+  something you've already read is worse than not resuming.
+- **A GitHub reading theme.** The content pane can now wear GitHub's palette,
+  fonts, and code colours, alongside Standard, Editorial, and Terminal. Pick it
+  from the toolbar's text menu.
+
 ## 1.9.0 — 2026-07-13
 
 - **New sidebar shortcuts.** ⌘B toggles the file sidebar and ⇧⌘B the outline —
