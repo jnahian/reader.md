@@ -158,6 +158,10 @@ final class AppState: ObservableObject {
 
     // Navigation history
     @Published private(set) var recentFiles: [String] = []
+
+    /// Saved scroll fraction per file path. Not @Published — nothing in the UI
+    /// renders it; it's read once at load time to resume the document.
+    private var positions: [String: Double] = [:]
     private var backStack: [FileNode] = []
     private var forwardStack: [FileNode] = []
     var canGoBack: Bool { !backStack.isEmpty }
@@ -181,6 +185,8 @@ final class AppState: ObservableObject {
         // Drop help-doc paths saved by builds that recorded them.
         recentFiles = Settings.loadRecents().filter { !Self.isBundledDoc(URL(fileURLWithPath: $0)) }
         showResolvedThreads = Settings.loadShowResolvedThreads()
+        // Drop positions for files that are gone, so the dictionary can't grow forever.
+        positions = Settings.loadPositions().filter { FileManager.default.fileExists(atPath: $0.key) }
         loadSavedRoots()
         loadSavedRemotes()
     }
@@ -504,6 +510,29 @@ final class AppState: ObservableObject {
         activeHeadingID = nil
         scrollProgress = 0
         loadMarksForCurrentFile()
+    }
+
+    // MARK: - Reading position
+
+    /// Live scroll fraction from the web view, persisted per file so reopening a
+    /// long document resumes where you left off. The web view posts on every
+    /// scroll event, so only meaningful moves are written back.
+    func recordProgress(_ fraction: Double) {
+        scrollProgress = fraction
+        guard let url = selectedFile?.url,
+              !Self.isBundledDoc(url), !Self.isStdinTemp(url) else { return }
+        let path = url.path
+        guard abs((positions[path] ?? 0) - fraction) >= 0.01 else { return }
+        positions[path] = fraction
+        Settings.savePositions(positions)
+    }
+
+    /// Where the reader left off. A document barely started or already finished
+    /// opens at the top — resuming into the last screen of something you've read
+    /// is worse than not resuming at all.
+    func savedProgress(for path: String) -> Double {
+        let fraction = positions[path] ?? 0
+        return (0.02...0.98).contains(fraction) ? fraction : 0
     }
 
     private func pushRecent(_ path: String) {

@@ -113,7 +113,7 @@ struct MarkdownWebView: NSViewRepresentable {
         coord.applyTypography(scale: state.fontScale, width: state.contentWidth)
 
         if let file = state.selectedFile, file.url.path != coord.loadedPath {
-            coord.load(file: file)
+            coord.load(file: file, resume: state.savedProgress(for: file.url.path))
         } else if state.selectedFile == nil {
             coord.clear()
         } else if state.reloadToken != coord.lastReloadToken {
@@ -161,6 +161,7 @@ struct MarkdownWebView: NSViewRepresentable {
         weak var webView: WKWebView?
         var isReady = false
         var loadedPath: String?
+        var pendingResume: Double = 0
         var lastReloadToken: Int = 0
         var lastFindNext: Int = 0
         var lastFindPrev: Int = 0
@@ -247,8 +248,12 @@ struct MarkdownWebView: NSViewRepresentable {
             }
         }
 
-        func load(file: FileNode) {
+        /// `resume` is the saved scroll fraction; the web view applies it once the
+        /// document has rendered. Held on the coordinator so a load that arrives
+        /// before `ready` still resumes when it's flushed.
+        func load(file: FileNode, resume: Double) {
             loadedPath = file.url.path
+            pendingResume = resume
             guard isReady else { return }
             pushCurrentFile(keepScroll: false)
         }
@@ -268,8 +273,11 @@ struct MarkdownWebView: NSViewRepresentable {
             guard let path = loadedPath else { return }
             let dir = (path as NSString).deletingLastPathComponent
             let text = (try? String(contentsOfFile: path, encoding: .utf8)) ?? ""
-            let fn = keepScroll ? "reloadMarkdown" : "loadMarkdown"
-            webView?.evaluateJavaScript("window.ReaderMd.\(fn)(\(Self.encode(text)), \(Self.encode(dir)));")
+            if keepScroll {
+                webView?.evaluateJavaScript("window.ReaderMd.reloadMarkdown(\(Self.encode(text)), \(Self.encode(dir)));")
+            } else {
+                webView?.evaluateJavaScript("window.ReaderMd.loadMarkdown(\(Self.encode(text)), \(Self.encode(dir)), \(pendingResume));")
+            }
         }
 
         func scroll(to id: String) {
@@ -492,7 +500,7 @@ struct MarkdownWebView: NSViewRepresentable {
 
             case "progress":
                 guard let p = message.body as? Double else { return }
-                Task { @MainActor in self.state.scrollProgress = p }
+                Task { @MainActor in self.state.recordProgress(p) }
 
             case "openExternal":
                 if let s = message.body as? String, let url = URL(string: s) {
