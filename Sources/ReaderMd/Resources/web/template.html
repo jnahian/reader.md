@@ -18,6 +18,17 @@
       --code-bg: #161b22; --blockquote: #8b949e;
     }
 
+    /* GitHub — Primer palette verbatim (canvas/default, fg/default, border/default,
+       accent/fg). Unlike standard, it ignores the system accent so it stays GitHub blue. */
+    html[data-theme="github"] {
+      --bg: #ffffff; --fg: #1f2328; --border: #d1d9e0; --accent: #0969da;
+      --code-bg: #f6f8fa; --blockquote: #59636e;
+    }
+    html[data-theme="github"].dark {
+      --bg: #0d1117; --fg: #f0f6fc; --border: #3d444d; --accent: #4493f8;
+      --code-bg: #151b23; --blockquote: #9198a1;
+    }
+
     /* Editorial — warm paper, serif body. Palette is a starting point, tuned in Task 7. */
     html[data-theme="editorial"] {
       --bg: #fbf7f0; --fg: #2b2724; --border: #ddd2c2; --accent: #8a4b2a;
