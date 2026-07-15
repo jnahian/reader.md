@@ -1,7 +1,7 @@
 # Dock-Style Tooltips — Design
 
 **Date:** 2026-07-15
-**Status:** Approved for planning
+**Status:** Superseded — the glass-view approach below was dropped during implementation. The shipped tooltip is a hand-drawn pill + pointer in a plain `NSView` (no `NSGlassEffectView`/`NSVisualEffectView`); see `Sources/ReaderMd/Views/DockTooltip.swift`.
 
 ## Goal
 

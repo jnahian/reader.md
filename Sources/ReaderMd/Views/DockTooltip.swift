@@ -54,10 +54,22 @@ final class TrackerNSView: NSView {
         TooltipController.shared.hide()
     }
 
+    // If the control is removed while its tooltip is showing (e.g. clicking a button
+    // that dismisses its popover), no mouseExited arrives — hide here so the bubble
+    // isn't stranded on screen.
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if window == nil {
+            timer?.invalidate()
+            timer = nil
+            TooltipController.shared.hideIfOwner(self)
+        }
+    }
+
     private func showTooltip() {
         guard let window, !text.isEmpty else { return }
         let screenFrame = window.convertToScreen(convert(bounds, to: nil))
-        TooltipController.shared.show(text: text, anchorScreenFrame: screenFrame)
+        TooltipController.shared.show(text: text, anchorScreenFrame: screenFrame, owner: self)
     }
 
     deinit { timer?.invalidate() }
@@ -77,6 +89,7 @@ final class TooltipController {
     private let container = NSView()
     private let pill = PillView()
     private let label: NSTextField
+    private weak var owner: TrackerNSView?   // control the currently-shown bubble belongs to
 
     private let hPad: CGFloat = 16    // capsule horizontal inset
     private let vPad: CGFloat = 6     // capsule vertical inset
@@ -120,7 +133,8 @@ final class TooltipController {
         panel.contentView = container
     }
 
-    func show(text: String, anchorScreenFrame anchor: NSRect) {
+    func show(text: String, anchorScreenFrame anchor: NSRect, owner: TrackerNSView) {
+        self.owner = owner
         label.stringValue = text
         label.sizeToFit()
         let labelSize = label.frame.size
@@ -158,12 +172,19 @@ final class TooltipController {
     }
 
     func hide() {
+        owner = nil
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 0.1
             panel.animator().alphaValue = 0
         } completionHandler: { [panel] in
             panel.orderOut(nil)
         }
+    }
+
+    /// Hide only if the bubble currently belongs to `view` — avoids a torn-down control
+    /// hiding a tooltip that has since moved to a different control.
+    func hideIfOwner(_ view: TrackerNSView) {
+        if owner === view { hide() }
     }
 
 

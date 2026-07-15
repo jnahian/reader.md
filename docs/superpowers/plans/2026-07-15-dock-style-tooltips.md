@@ -1,5 +1,7 @@
 # Dock-Style Tooltips Implementation Plan
 
+> **Status: superseded.** The glass-bubble design in this plan was dropped during implementation in favor of a hand-drawn pill + pointer (plain `NSView`, no `NSGlassEffectView`). This plan is kept for history; the source of truth is `Sources/ReaderMd/Views/DockTooltip.swift`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the standard macOS yellow tooltip (`.help()`) with a rounded Liquid Glass bubble shown on hover, matching the app's chrome, on every control that currently uses `.help()`.
