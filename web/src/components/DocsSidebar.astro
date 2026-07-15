@@ -1,0 +1,86 @@
+---
+// Sticky table of contents with scrollspy. `sections` must match the <section
+// id="…"> ids in the docs page.
+export const docsToc = [
+  { id: "overview", label: "Overview" },
+  { id: "install", label: "Install" },
+  { id: "features", label: "Features" },
+  { id: "shortcuts", label: "Keyboard shortcuts" },
+  { id: "cli", label: "Command line" },
+  { id: "architecture", label: "Architecture" },
+  { id: "build", label: "Build & run" },
+  { id: "requirements", label: "Requirements" },
+];
+---
+
+<aside class="toc">
+  <div class="toc__label">CONTENTS</div>
+  {docsToc.map((s) => <a href={`#${s.id}`} class="toc__link" data-spy={s.id}>{s.label}</a>)}
+</aside>
+
+<script>
+  const links = Array.from(document.querySelectorAll<HTMLAnchorElement>("[data-spy]"));
+  const setActive = (id: string) => {
+    links.forEach((a) => a.classList.toggle("is-active", a.dataset.spy === id));
+  };
+  const sections = document.querySelectorAll<HTMLElement>("main section[id]");
+  if (links.length && sections.length) {
+    const io = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]) setActive(visible[0].target.id);
+      },
+      { rootMargin: "-90px 0px -65% 0px", threshold: 0 }
+    );
+    sections.forEach((s) => io.observe(s));
+    setActive(sections[0].id);
+  }
+</script>
+
+<style>
+  .toc {
+    position: sticky;
+    top: 92px;
+    align-self: start;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 18px;
+    border-radius: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+    backdrop-filter: blur(14px);
+  }
+  .toc__label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--faint);
+    padding: 4px 10px 10px;
+  }
+  .toc__link {
+    padding: 8px 12px;
+    border-radius: 9px;
+    font-size: 14px;
+    color: var(--muted);
+    transition: color 0.2s ease, background 0.2s ease;
+  }
+  .toc__link:hover {
+    color: #fff;
+  }
+  .toc__link.is-active {
+    color: #fff;
+    font-weight: 600;
+    background: linear-gradient(90deg, oklch(0.72 0.16 260 / 0.28), oklch(0.72 0.16 260 / 0.08));
+  }
+  @media (max-width: 900px) {
+    .toc {
+      position: static;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+  }
+</style>

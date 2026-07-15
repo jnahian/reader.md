@@ -1,0 +1,58 @@
+---
+import { author, footerLinks } from "../data/site";
+interface Props {
+  wide?: boolean; // docs uses the wider max-width
+}
+const { wide = false } = Astro.props;
+---
+
+<footer class="footer">
+  <div class:list={["footer__inner", { "footer__inner--wide": wide }]}>
+    <div class="footer__brand">
+      <img src="/icon.png" alt="" width="28" height="28" class="footer__logo" />
+      <span>Reader.md · MIT © {author}</span>
+    </div>
+    <div class="footer__links">
+      {footerLinks.map((l) => <a href={l.href}>{l.label}</a>)}
+    </div>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    position: relative;
+    z-index: 2;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    padding: 44px var(--pad-x);
+  }
+  .footer__inner {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 22px;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .footer__brand {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+  }
+  .footer__logo {
+    border-radius: 8px;
+  }
+  .footer__links {
+    display: flex;
+    gap: 22px;
+    flex-wrap: wrap;
+  }
+  .footer__links a {
+    color: var(--muted);
+  }
+  .footer__links a:hover {
+    color: #fff;
+  }
+</style>

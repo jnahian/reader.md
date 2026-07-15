@@ -1,0 +1,460 @@
+---
+import { releasesLatest, brewInstall } from "../data/site";
+---
+
+<header class="hero">
+  <div class="hero__badge">
+    <span class="hero__dot"></span>
+    Built with SwiftUI &amp; Liquid Glass for macOS 26
+  </div>
+  <h1 class="hero__title">
+    A markdown viewer<br />that feels <span class="gradient-text">truly native.</span>
+  </h1>
+  <p class="hero__sub">
+    Reader.md renders your local and remote markdown with real Mermaid diagrams, LaTeX math, and
+    syntax highlighting — wrapped in a native Mac window that reads like it shipped with the OS.
+  </p>
+  <div class="hero__cta">
+    <a href={releasesLatest} class="btn btn--primary">
+      Download for macOS
+      <span class="hero__ext">.dmg</span>
+    </a>
+    <code class="hero__brew"><span class="accent-cyan">brew</span> {brewInstall.replace("brew ", "")}</code>
+  </div>
+
+  <!-- App window mockup -->
+  <div class="mock">
+    <div class="mock__glow" aria-hidden="true"></div>
+    <div class="mock__window">
+      <div class="mock__sweep" aria-hidden="true"></div>
+
+      <div class="mock__titlebar">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <div class="mock__tab">
+          <span class="mock__tabdot"></span>architecture.md
+        </div>
+        <div class="mock__keys">
+          <span>⇧⌘F</span><span>⌘E</span>
+        </div>
+      </div>
+
+      <div class="mock__progress"><div class="mock__progress-fill"></div></div>
+
+      <div class="mock__body">
+        <aside class="mock__sidebar">
+          <div class="mock__label">FOLDERS</div>
+          <div class="mock__tree">
+            <div class="mock__row"><span class="accent-purple">▸</span> docs</div>
+            <div class="mock__row mock__row--active"><span>▾</span> architecture.md</div>
+            <div class="mock__row mock__row--indent">setup.md</div>
+            <div class="mock__row mock__row--indent">api.md</div>
+            <div class="mock__row mock__row--remote"><span class="accent-cyan">☁</span> vps:/srv/docs</div>
+            <div class="mock__row mock__row--indent">deploy.md</div>
+          </div>
+        </aside>
+
+        <div class="mock__content">
+          <h2 class="mock__h2"><span data-typed></span><span class="mock__cursor"></span></h2>
+          <p class="mock__p">
+            The SwiftUI shell hosts a resizable sidebar, the content pane, and a collapsible
+            outline. The markdown itself renders in a bundled <code class="tok">WKWebView</code>.
+          </p>
+          <div class="mock__code">
+            <span class="mock__lang">swift</span>
+            <pre><span class="c-kw">class</span> <span class="c-ty">AppState</span>: <span class="c-cl">ObservableObject</span> {'{'}
+  <span class="c-kw">@Published</span> <span class="c-kw">var</span> roots: [<span class="c-cl">RootFolder</span>]
+{'}'}</pre>
+          </div>
+          <div class="mock__chips">
+            <span class="chip chip--purple">mermaid ✓</span>
+            <span class="chip chip--cyan">katex ✓</span>
+            <span class="chip chip--green">highlight.js ✓</span>
+          </div>
+        </div>
+
+        <div class="mock__outline">
+          <div class="mock__label">OUTLINE</div>
+          <div class="mock__rail" aria-hidden="true"></div>
+          <div class="mock__toc">
+            <div class="is-active">Architecture</div>
+            <div>SwiftUI shell</div>
+            <div>AppState</div>
+            <div>MarkdownWebView</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mock__status">
+        <span>4 markdown files</span>
+        <span class="mock__sep">·</span>
+        <span><span data-words>0</span> words</span>
+        <span class="mock__sep">·</span>
+        <span>6 min read</span>
+        <span class="mock__glass"><span class="mock__glassdot"></span>Liquid Glass</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<script>
+  // Typing + word-count animation for the mockup (respects reduced-motion).
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const typedEl = document.querySelector("[data-typed]");
+  const wordsEl = document.querySelector("[data-words]");
+  const TITLE = "The architecture";
+  const TARGET = 1284;
+
+  if (typedEl) {
+    if (reduce) {
+      typedEl.textContent = TITLE;
+    } else {
+      let i = 0;
+      const t = setInterval(() => {
+        typedEl.textContent = TITLE.slice(0, ++i);
+        if (i >= TITLE.length) clearInterval(t);
+      }, 70);
+    }
+  }
+  if (wordsEl) {
+    if (reduce) {
+      wordsEl.textContent = TARGET.toLocaleString();
+    } else {
+      let w = 0;
+      const t = setInterval(() => {
+        w += Math.ceil((TARGET - w) / 10);
+        if (w >= TARGET) {
+          w = TARGET;
+          clearInterval(t);
+        }
+        wordsEl.textContent = w.toLocaleString();
+      }, 55);
+    }
+  }
+</script>
+
+<style>
+  .hero {
+    position: relative;
+    z-index: 2;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 172px var(--pad-x) 80px;
+    text-align: center;
+  }
+  .hero__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 15px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.75);
+    animation: riseIn 0.7s ease both;
+  }
+  .hero__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 10px oklch(0.75 0.17 150);
+  }
+  .hero__title {
+    margin: 26px auto 0;
+    max-width: 16ch;
+    font-size: clamp(44px, 7vw, 86px);
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+    animation: riseIn 0.8s 0.06s ease both;
+  }
+  .hero__sub {
+    margin: 26px auto 0;
+    max-width: 56ch;
+    font-size: clamp(17px, 2vw, 21px);
+    line-height: 1.55;
+    color: var(--muted);
+    text-wrap: pretty;
+    animation: riseIn 0.8s 0.14s ease both;
+  }
+  .hero__cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    justify-content: center;
+    margin-top: 38px;
+    animation: riseIn 0.8s 0.22s ease both;
+  }
+  .hero__ext {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    opacity: 0.72;
+    font-weight: 500;
+  }
+  .hero__brew {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px 20px;
+    border-radius: 13px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.82);
+  }
+
+  /* ---- app window mockup ---- */
+  .mock {
+    position: relative;
+    margin: 76px auto 0;
+    max-width: 1000px;
+    animation: riseIn 1s 0.32s ease both;
+  }
+  .mock__glow {
+    position: absolute;
+    inset: -2px;
+    border-radius: 20px;
+    background: linear-gradient(140deg, oklch(0.72 0.16 260 / 0.6), oklch(0.72 0.16 205 / 0.35), transparent);
+    filter: blur(2px);
+  }
+  .mock__window {
+    position: relative;
+    border-radius: 18px;
+    overflow: hidden;
+    background: rgba(18, 19, 24, 0.9);
+    border: 1px solid var(--border);
+    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(20px);
+  }
+  .mock__sweep {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 80px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+    animation: sweep 6.5s ease-in-out 1.2s infinite;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .mock__titlebar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.045);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  }
+  .mock__tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 8px;
+    padding: 5px 12px;
+    border-radius: 8px;
+    background: var(--surface-3);
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .mock__tabdot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--cyan);
+  }
+  .mock__keys {
+    margin-left: auto;
+    display: flex;
+    gap: 6px;
+  }
+  .mock__keys span {
+    padding: 5px 9px;
+    border-radius: 7px;
+    background: var(--surface-3);
+    font-size: 11px;
+    color: var(--faint);
+  }
+  .mock__progress {
+    position: relative;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .mock__progress-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, var(--purple), var(--cyan));
+    animation: fillBar 7s ease-in-out infinite alternate;
+  }
+  .mock__body {
+    display: grid;
+    grid-template-columns: 196px 1fr 150px;
+    min-height: 392px;
+    text-align: left;
+  }
+  .mock__sidebar {
+    padding: 16px 12px;
+    background: rgba(255, 255, 255, 0.028);
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .mock__label {
+    padding: 0 8px;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.35);
+    margin-bottom: 10px;
+  }
+  .mock__tree {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .mock__row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+  }
+  .mock__row--active {
+    padding: 7px 10px;
+    border-radius: 8px;
+    background: linear-gradient(90deg, oklch(0.72 0.16 260 / 0.28), oklch(0.72 0.16 260 / 0.1));
+    color: #fff;
+    font-weight: 500;
+    box-shadow: inset 0 0 0 1px oklch(0.72 0.16 260 / 0.35);
+  }
+  .mock__row--indent {
+    padding-left: 22px;
+  }
+  .mock__row--remote {
+    margin-top: 6px;
+    color: var(--faint);
+  }
+  .mock__content {
+    padding: 26px 30px;
+    overflow: hidden;
+  }
+  .mock__h2 {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+  .mock__cursor {
+    display: inline-block;
+    width: 2px;
+    height: 24px;
+    margin-left: 2px;
+    transform: translateY(4px);
+    background: var(--link);
+    animation: blink 1s step-end infinite;
+  }
+  .mock__p {
+    margin: 16px 0 0;
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--muted);
+  }
+  .mock__code {
+    margin: 20px 0;
+    padding: 16px;
+    border-radius: 11px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    position: relative;
+  }
+  .mock__lang {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    color: rgba(255, 255, 255, 0.35);
+  }
+  .mock__code pre {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: rgba(255, 255, 255, 0.8);
+    white-space: pre-wrap;
+  }
+  .mock__chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+  .mock__outline {
+    position: relative;
+    padding: 16px 14px;
+    background: rgba(255, 255, 255, 0.02);
+    border-left: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .mock__rail {
+    position: absolute;
+    left: 6px;
+    width: 3px;
+    height: 16px;
+    border-radius: 2px;
+    background: linear-gradient(var(--purple), var(--cyan));
+    animation: railSlide 8s ease-in-out infinite;
+    box-shadow: 0 0 10px oklch(0.72 0.16 260 / 0.6);
+  }
+  .mock__toc {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--muted);
+    padding-left: 8px;
+  }
+  .mock__toc .is-active {
+    color: #fff;
+  }
+  .mock__status {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.04);
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    font-size: 11.5px;
+    color: var(--faint);
+  }
+  .mock__status [data-words] {
+    color: rgba(255, 255, 255, 0.8);
+    font-family: var(--font-mono);
+  }
+  .mock__sep {
+    color: rgba(255, 255, 255, 0.25);
+  }
+  .mock__glass {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .mock__glassdot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+  }
+
+  @media (max-width: 720px) {
+    .mock__body {
+      grid-template-columns: 1fr;
+    }
+    .mock__sidebar,
+    .mock__outline {
+      display: none;
+    }
+  }
+</style>

@@ -1,0 +1,473 @@
+---
+import Base from "../layouts/Base.astro";
+import DocsSidebar from "../components/DocsSidebar.astro";
+import { featureRows, shortcuts, cliCommands, archCards } from "../data/content";
+import { repo, releasesLatest, releases, website } from "../data/site";
+---
+
+<Base title="Docs — Reader.md" page="docs">
+  <div class="docs">
+    <DocsSidebar />
+
+    <main class="doc">
+      <section id="overview" class="doc__section doc__section--first">
+        <div class="eyebrow">DOCUMENTATION</div>
+        <h1 class="doc__h1">Reader.md</h1>
+        <p class="doc__lead">
+          A native macOS rebuild of the markdown viewer, built in SwiftUI and AppKit. The whole
+          shell — toolbar, sidebar, file search, outline, folder management, file watching, and SF
+          Symbol icons — is native. The markdown content pane is a <code class="tok">WKWebView</code>
+          that renders through bundled JS engines, because Mermaid diagrams and LaTeX math have no
+          native equivalent.
+        </p>
+        <div class="doc__links">
+          <a href={website} class="doc__linkbtn">reader-md.jnahian.me ↗</a>
+          <a href={repo} class="doc__linkbtn">GitHub ↗</a>
+        </div>
+      </section>
+
+      <hr class="doc__rule" />
+
+      <section id="install" class="doc__section">
+        <h2 class="doc__h2">Install</h2>
+
+        <h3 class="doc__h3">Direct download <span class="doc__chip doc__chip--purple">RECOMMENDED</span></h3>
+        <p class="doc__p">
+          Grab <code class="tok">Reader.md.dmg</code> from the{" "}
+          <a href={releasesLatest}>latest release</a>, open it, and drag
+          <strong> Reader.md </strong> to <strong>Applications</strong>. The app is ad-hoc signed
+          but not notarized, so the first launch needs one right-click → <strong>Open</strong>.
+        </p>
+        <div class="callout callout--amber">
+          <strong>First launch:</strong> macOS shows “Apple cannot check it for malicious software.”
+          Clear it once with right-click → <strong>Open</strong> → <strong>Open</strong>, or run
+          <code class="tok">xattr -dr com.apple.quarantine "/path/to/Reader.md.app"</code>.
+        </div>
+
+        <h3 class="doc__h3">Homebrew</h3>
+        <p class="doc__p">
+          Because the repo isn't named <code class="tok">homebrew-*</code>, tap it with its explicit
+          URL once, then install:
+        </p>
+        <pre class="pre"><span class="c-cm"># tap, then install</span>
+<span class="accent-cyan">brew</span> tap jnahian/reader.md https://github.com/jnahian/reader.md
+<span class="accent-cyan">brew</span> install --cask reader-md</pre>
+        <p class="doc__p">
+          Upgrades come from the app's own Sparkle updater, so <code class="tok">brew upgrade</code>
+          leaves the installed build alone. To uninstall, including preferences and caches:
+        </p>
+        <pre class="pre"><span class="accent-cyan">brew</span> uninstall --cask reader-md        <span class="c-cm"># remove the app</span>
+<span class="accent-cyan">brew</span> uninstall --zap --cask reader-md  <span class="c-cm"># also wipe ~/Library data</span></pre>
+      </section>
+
+      <hr class="doc__rule" />
+
+      <section id="features" class="doc__section">
+        <h2 class="doc__h2">Features</h2>
+        <div class="frows">
+          {
+            featureRows.map((f) => (
+              <div class="frow">
+                <div class="frow__name">{f.name}</div>
+                <div class="frow__body" set:html={f.body} />
+              </div>
+            ))
+          }
+        </div>
+      </section>
+
+      <hr class="doc__rule" />
+
+      <section id="shortcuts" class="doc__section">
+        <h2 class="doc__h2">Keyboard shortcuts</h2>
+        <div class="scut">
+          {
+            shortcuts.map((s) => (
+              <div class="scut__row">
+                <span class="scut__action">{s.action}</span>
+                <kbd class="scut__key">{s.keys}</kbd>
+              </div>
+            ))
+          }
+        </div>
+      </section>
+
+      <hr class="doc__rule" />
+
+      <section id="cli" class="doc__section">
+        <h2 class="doc__h2">Command line</h2>
+        <p class="doc__p">
+          Homebrew puts <code class="tok">reader</code> on your PATH automatically. From the DMG, use
+          <strong>File → Install <code class="tok">reader</code> Command Line Tool…</strong>.
+        </p>
+        <pre class="pre pre--cli">{
+          cliCommands.map((c) => (
+            <div class="cliline">
+              <span class="cliline__cmd" set:html={c.cmd.replace(/^(\S+)/, '<span class="accent-cyan">$1</span>')} />
+              <span class="cliline__note">{c.note}</span>
+            </div>
+          ))
+        }</pre>
+        <p class="doc__p doc__p--muted">
+          <code class="tok">reader</code> drives the app rather than replacing it: each command hands
+          a <code class="tok">readermd://</code> URL to Reader.md. It behaves in scripts — a bad path
+          or malformed command exits <strong>1</strong> with the reason on stderr; no arguments (or
+          <code class="tok">--help</code>) prints usage and exits 0.
+        </p>
+      </section>
+
+      <hr class="doc__rule" />
+
+      <section id="architecture" class="doc__section">
+        <h2 class="doc__h2">Architecture</h2>
+        <div class="arch">
+          {
+            archCards.map((a) => (
+              <div class="arch__card">
+                <div class:list={["arch__name", { "arch__name--neutral": a.hue === null }]} style={a.hue !== null ? `color:oklch(0.82 0.11 ${a.hue})` : ""}>
+                  {a.name}
+                </div>
+                <p class="arch__body" set:html={a.body} />
+              </div>
+            ))
+          }
+        </div>
+      </section>
+
+      <hr class="doc__rule" />
+
+      <section id="build" class="doc__section">
+        <h2 class="doc__h2">Build &amp; run</h2>
+        <h3 class="doc__h3">Quick, for development</h3>
+        <pre class="pre"><span class="accent-cyan">swift</span> run ReaderMd</pre>
+        <h3 class="doc__h3">Double-clickable app</h3>
+        <pre class="pre">./make-app.sh
+<span class="accent-cyan">open</span> "build/Reader.md.app"</pre>
+        <p class="doc__p doc__p--muted">
+          <code class="tok">make-app.sh</code> builds a release binary, assembles the bundle with
+          resources, converts the icon to <code class="tok">.icns</code>, writes
+          <code class="tok">Info.plist</code>, ad-hoc code-signs, and produces
+          <code class="tok">build/Reader.md.zip</code> for sharing. Or open the SwiftPM package in
+          Xcode, select the <code class="tok">ReaderMd</code> scheme, and Run.
+        </p>
+      </section>
+
+      <hr class="doc__rule" />
+
+      <section id="requirements" class="doc__section">
+        <h2 class="doc__h2">Requirements</h2>
+        <div class="req">
+          <div class="req__card">
+            <div class="req__label">RUNTIME</div>
+            <p>
+              macOS 13+. Liquid Glass appears on macOS 26 (Tahoe); earlier versions get the
+              <code class="tok">NSVisualEffectView</code> fallback automatically.
+            </p>
+          </div>
+          <div class="req__card">
+            <div class="req__label req__label--purple">BUILD</div>
+            <p>
+              Xcode 26 (or Swift 6.2+ with the macOS 26 SDK) to compile the
+              <code class="tok">glassEffect</code> symbols. The deployment target stays at macOS 13.
+            </p>
+          </div>
+        </div>
+        <div class="callout callout--green">
+          The app is <strong>not</strong> sandboxed, so it reads user-selected folders directly. All
+          rendering assets are local — the only network access is Sparkle's auto-update check and,
+          for remote folders, <code class="tok">rsync</code>/<code class="tok">ssh</code> to hosts you
+          add. Sync is read-only and pull-based; Reader.md never writes back to the remote.
+        </div>
+
+        <div class="doc__cta">
+          <a href={releasesLatest} class="btn btn--primary">Download Reader.md</a>
+          <a href="/changelog" class="btn btn--ghost">See what's new →</a>
+        </div>
+      </section>
+    </main>
+  </div>
+</Base>
+
+<style>
+  .docs {
+    position: relative;
+    z-index: 2;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 96px var(--pad-x) 80px;
+    display: grid;
+    grid-template-columns: 232px 1fr;
+    gap: 48px;
+    align-items: start;
+  }
+  .doc {
+    min-width: 0;
+    max-width: 760px;
+  }
+  .doc__section {
+    scroll-margin-top: 96px;
+  }
+  .doc__section--first {
+    animation: riseIn 0.6s ease both;
+  }
+  .doc__h1 {
+    margin: 0 0 18px;
+    font-size: clamp(34px, 5vw, 52px);
+    line-height: 1.05;
+    letter-spacing: -0.035em;
+  }
+  .doc__h2 {
+    margin: 0 0 24px;
+    font-size: 30px;
+    letter-spacing: -0.025em;
+  }
+  .doc__h3 {
+    margin: 32px 0 12px;
+    font-size: 19px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .doc__lead {
+    margin: 0 0 20px;
+    font-size: 18px;
+    line-height: 1.65;
+    color: rgba(255, 255, 255, 0.68);
+  }
+  .doc__p {
+    margin: 0 0 16px;
+    font-size: 16px;
+    line-height: 1.65;
+    color: rgba(255, 255, 255, 0.66);
+  }
+  .doc__p--muted {
+    color: var(--muted);
+    font-size: 15px;
+    margin-bottom: 0;
+  }
+  .doc__links {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 24px;
+  }
+  .doc__linkbtn {
+    padding: 10px 18px;
+    border-radius: 10px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .doc__linkbtn:hover {
+    color: #fff;
+    background: var(--surface-3);
+  }
+  .doc__chip {
+    padding: 3px 9px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    font-weight: 400;
+  }
+  .doc__chip--purple {
+    background: oklch(0.72 0.16 260 / 0.18);
+    color: var(--purple-text);
+    border: 1px solid oklch(0.72 0.16 260 / 0.3);
+  }
+  .doc__rule {
+    border: none;
+    border-top: 1px solid var(--border-soft);
+    margin: 56px 0;
+  }
+
+  .pre {
+    margin: 0 0 16px;
+    padding: 18px 20px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid var(--border);
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 13.5px;
+    line-height: 1.9;
+    color: rgba(255, 255, 255, 0.85);
+    white-space: pre;
+  }
+  .pre--cli {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    white-space: normal;
+  }
+  .cliline {
+    display: flex;
+    gap: 16px;
+  }
+  .cliline__cmd {
+    min-width: 250px;
+  }
+  .cliline__note {
+    color: var(--faint);
+  }
+
+  /* callouts */
+  .callout {
+    margin: 0 0 16px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.72);
+  }
+  .callout--amber {
+    background: oklch(0.72 0.16 60 / 0.1);
+    border: 1px solid oklch(0.72 0.16 60 / 0.25);
+  }
+  .callout--amber strong {
+    color: oklch(0.85 0.11 60);
+  }
+  .callout--green {
+    margin-top: 24px;
+    padding: 20px;
+    background: oklch(0.72 0.16 150 / 0.08);
+    border: 1px solid oklch(0.72 0.16 150 / 0.22);
+    font-size: 14px;
+  }
+
+  /* feature rows */
+  .frows {
+    display: flex;
+    flex-direction: column;
+  }
+  .frow {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 20px;
+    padding: 16px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .frow:last-child {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .frow__name {
+    font-weight: 600;
+    font-size: 15px;
+  }
+  .frow__body {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+
+  /* shortcuts */
+  .scut {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 10px;
+  }
+  .scut__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 11px;
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+  }
+  .scut__action {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+  }
+  .scut__key {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    padding: 4px 9px;
+    border-radius: 7px;
+    background: var(--surface-3);
+    border: 1px solid var(--border);
+  }
+
+  /* architecture */
+  .arch {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .arch__card {
+    padding: 18px 20px;
+    border-radius: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+  }
+  .arch__name {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+  .arch__name--neutral {
+    color: rgba(255, 255, 255, 0.75);
+  }
+  .arch__body {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+
+  /* requirements */
+  .req {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .req__card {
+    padding: 20px;
+    border-radius: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+  }
+  .req__card p {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.66);
+  }
+  .req__label {
+    font-size: 13px;
+    color: var(--cyan-text);
+    font-family: var(--font-mono);
+    margin-bottom: 8px;
+  }
+  .req__label--purple {
+    color: oklch(0.78 0.13 260);
+  }
+
+  .doc__cta {
+    margin-top: 40px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  @media (max-width: 900px) {
+    .docs {
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+    .frow {
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+    .req {
+      grid-template-columns: 1fr;
+    }
+    .cliline {
+      flex-direction: column;
+      gap: 2px;
+    }
+  }
+</style>

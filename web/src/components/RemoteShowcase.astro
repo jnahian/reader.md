@@ -1,0 +1,210 @@
+---
+// "Your server's docs, on your desktop" — remote SSH folders showcase.
+---
+
+<section class="showcase container reveal">
+  <div class="showcase__panel showcase__panel--cyan">
+    <div class="showcase__copy">
+      <div class="eyebrow">REMOTE FOLDERS</div>
+      <h2 class="showcase__title">Your server's docs, on your desktop.</h2>
+      <p class="showcase__lead">
+        Point Reader.md at <code class="tok">me@vps:/srv/docs</code> and it pulls a read-only mirror
+        into a stable cache — auto-syncing on launch, re-syncing on demand, and keeping a cloud
+        badge with live sync state. Pull-based and one-way: it never writes back.
+      </p>
+      <code class="showcase__cmd"><span class="accent-cyan">$</span> <span class="accent-cyan">reader</span> remote me@vps:/srv/docs</code>
+    </div>
+
+    <div class="sidemock">
+      <div class="sidemock__bar">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <span class="sidemock__title">Sidebar</span>
+      </div>
+      <div class="sidemock__body">
+        <div class="sidemock__filter">
+          <span>⌕</span><span>Filter files</span>
+        </div>
+        <div class="mock__label sidemock__label">FOLDERS</div>
+        <div class="sidemock__tree">
+          <div class="sidemock__row"><span class="dim">▾</span><span class="accent-purple">▣</span> docs</div>
+          <div class="sidemock__row sidemock__row--indent">architecture.md</div>
+          <div class="sidemock__row sidemock__row--indent">setup.md</div>
+          <div class="sidemock__row sidemock__row--remote">
+            <span class="sidemock__remote-name"><span>▾</span><span class="accent-cyan">☁</span> vps:/srv/docs</span>
+            <span class="sidemock__synced"><span class="sidemock__syncdot"></span>synced</span>
+          </div>
+          <div class="sidemock__row sidemock__row--indent">deploy.md</div>
+          <div class="sidemock__row sidemock__row--indent">runbook.md</div>
+          <div class="sidemock__meta">rsync · 2m ago · read-only</div>
+        </div>
+        <div class="sidemock__footer">
+          <span class="sidemock__btn">+ Add Folder</span>
+          <span class="sidemock__btn sidemock__btn--cyan">☁ Add Remote</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .showcase {
+    padding-block: 56px;
+  }
+  .showcase__panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 44px;
+    align-items: center;
+    border-radius: 24px;
+    padding: clamp(28px, 5vw, 56px);
+    border: 1px solid var(--border);
+  }
+  .showcase__panel--cyan {
+    background: linear-gradient(150deg, oklch(0.72 0.16 205 / 0.1), rgba(255, 255, 255, 0.02));
+  }
+  .showcase__title {
+    margin: 0 0 18px;
+    font-size: clamp(28px, 3.4vw, 42px);
+    line-height: 1.1;
+  }
+  .showcase__lead {
+    margin: 0 0 24px;
+    font-size: 16px;
+    line-height: 1.65;
+    color: var(--muted);
+  }
+  .showcase__cmd {
+    display: block;
+    padding: 16px 18px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 13.5px;
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .sidemock {
+    border-radius: 16px;
+    overflow: hidden;
+    background: rgba(15, 16, 21, 0.92);
+    border: 1px solid var(--border);
+    box-shadow: 0 26px 64px rgba(0, 0, 0, 0.5);
+  }
+  .sidemock__bar {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 11px 14px;
+    background: rgba(255, 255, 255, 0.045);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  }
+  .sidemock__bar .dots span {
+    width: 11px;
+    height: 11px;
+  }
+  .sidemock__title {
+    margin-left: 8px;
+    font-size: 11px;
+    color: var(--faint);
+  }
+  .sidemock__body {
+    padding: 16px 14px;
+  }
+  .sidemock__filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.055);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    margin-bottom: 16px;
+    font-size: 12.5px;
+    color: var(--faint);
+  }
+  .sidemock__label {
+    padding: 0 4px 10px;
+  }
+  .sidemock__tree {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .sidemock__row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+  }
+  .sidemock__row--indent {
+    padding-left: 26px;
+  }
+  .sidemock__row .dim {
+    color: var(--faint);
+  }
+  .sidemock__row--remote {
+    justify-content: space-between;
+    margin-top: 8px;
+    padding: 7px 10px;
+    border-radius: 9px;
+    background: linear-gradient(90deg, oklch(0.72 0.16 205 / 0.22), oklch(0.72 0.16 205 / 0.06));
+    box-shadow: inset 0 0 0 1px oklch(0.72 0.16 205 / 0.3);
+  }
+  .sidemock__remote-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #fff;
+  }
+  .sidemock__synced {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    color: oklch(0.82 0.11 150);
+  }
+  .sidemock__syncdot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+  }
+  .sidemock__meta {
+    padding: 2px 8px 6px 26px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: rgba(255, 255, 255, 0.35);
+  }
+  .sidemock__footer {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    gap: 8px;
+  }
+  .sidemock__btn {
+    flex: 1;
+    text-align: center;
+    padding: 8px;
+    border-radius: 9px;
+    background: var(--surface-2);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .sidemock__btn--cyan {
+    background: oklch(0.72 0.16 205 / 0.16);
+    border-color: oklch(0.72 0.16 205 / 0.3);
+    color: oklch(0.85 0.1 205);
+  }
+
+  @media (max-width: 820px) {
+    .showcase__panel {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

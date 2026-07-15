@@ -1,0 +1,110 @@
+---
+// Fixed top navigation. `page` picks the link set + optional badge;
+// `solid` forces the blurred background (home starts transparent, JS toggles).
+import { navLinksFor, releasesLatest, type Page } from "../data/site";
+interface Props {
+  page?: Page;
+  solid?: boolean;
+}
+const { page = "home", solid = false } = Astro.props;
+const links = navLinksFor(page);
+const badge = page === "docs" ? "Docs" : page === "changelog" ? "Changelog" : null;
+---
+
+<nav class:list={["nav", { "nav--solid": solid }]} data-nav>
+  <a href="/" class="nav__brand">
+    <img src="/icon.png" alt="Reader.md" width="31" height="31" class="nav__logo" />
+    <span class="nav__name">Reader.md</span>
+    {badge && <span class="nav__badge">{badge}</span>}
+  </a>
+  <div class="nav__links">
+    {links.map((l) => <a href={l.href} class="nav__link">{l.label}</a>)}
+    <a href={releasesLatest} class="nav__download">Download</a>
+  </div>
+</nav>
+
+<style>
+  .nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px var(--pad-x);
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    background: rgba(10, 11, 14, 0);
+    border-bottom: 1px solid rgba(255, 255, 255, 0);
+    transition: background 0.35s ease, border-color 0.35s ease;
+  }
+  .nav--solid,
+  .nav.is-scrolled {
+    background: rgba(10, 11, 14, 0.72);
+    border-bottom-color: var(--border-soft);
+  }
+  .nav__brand {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    color: inherit;
+  }
+  .nav__logo {
+    border-radius: 9px;
+    box-shadow: 0 4px 16px oklch(0.72 0.16 260 / 0.4);
+  }
+  .nav__name {
+    font-weight: 600;
+    font-size: 16px;
+    letter-spacing: -0.01em;
+  }
+  .nav__badge {
+    margin-left: 2px;
+    padding: 3px 9px;
+    border-radius: 7px;
+    background: var(--surface-3);
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .nav__links {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .nav__link {
+    padding: 8px 14px;
+    border-radius: 9px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .nav__link:hover {
+    color: #fff;
+    background: var(--surface-2);
+  }
+  .nav__download {
+    margin-left: 6px;
+    padding: 9px 18px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    color: #0a0b0e;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  }
+  .nav__download:hover {
+    color: #0a0b0e;
+    background: #fff;
+  }
+  @media (max-width: 640px) {
+    .nav__name,
+    .nav__link {
+      display: none;
+    }
+    .nav__badge {
+      display: inline-block;
+    }
+  }
+</style>

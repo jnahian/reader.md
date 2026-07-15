@@ -1,0 +1,95 @@
+---
+import "../styles/global.css";
+import Nav from "../components/Nav.astro";
+import Footer from "../components/Footer.astro";
+import BackgroundBlobs from "../components/BackgroundBlobs.astro";
+import type { Page } from "../data/site";
+
+interface Props {
+  title: string;
+  description?: string;
+  page?: Page;
+}
+
+const {
+  title,
+  description = "Reader.md is a native macOS markdown viewer with live reload, Mermaid diagrams, LaTeX math, and remote SSH folders — wrapped in Liquid Glass chrome.",
+  page = "home",
+} = Astro.props;
+
+// Home nav starts transparent and turns solid on scroll; inner pages are solid.
+const solidNav = page !== "home";
+const wideFooter = page === "docs";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" href="/icon.png" />
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={new URL("/icon.png", Astro.site)} />
+    <meta property="og:url" content={new URL(Astro.url.pathname, Astro.site)} />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <BackgroundBlobs variant={page} />
+    <Nav page={page} solid={solidNav} />
+    <main>
+      <slot />
+    </main>
+    <Footer wide={wideFooter} />
+
+    <!-- Shared behaviours: scroll-reveal, nav-on-scroll background, parallax blobs -->
+    <script is:inline>
+      (() => {
+        const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        // Scroll-reveal
+        if (!reduce) {
+          document.documentElement.classList.add("reveal-ready");
+          const io = new IntersectionObserver(
+            (entries) => {
+              for (const e of entries) {
+                if (e.isIntersecting) {
+                  e.target.classList.add("in");
+                  io.unobserve(e.target);
+                }
+              }
+            },
+            { threshold: 0.12, rootMargin: "0px 0px -8% 0px" }
+          );
+          document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
+        }
+
+        // Nav background + parallax blobs on scroll
+        const nav = document.querySelector("[data-nav]");
+        const blobs = reduce ? [] : document.querySelectorAll("[data-parallax]");
+        const solid = nav && nav.classList.contains("nav--solid");
+        const onScroll = () => {
+          const y = window.scrollY;
+          if (nav && !solid) nav.classList.toggle("is-scrolled", y > 20);
+          blobs.forEach((el) => {
+            const s = parseFloat(el.getAttribute("data-parallax")) || 0;
+            el.style.transform = "translate3d(0," + y * s + "px,0)";
+          });
+        };
+        onScroll();
+        window.addEventListener("scroll", onScroll, { passive: true });
+      })();
+    </script>
+  </body>
+</html>

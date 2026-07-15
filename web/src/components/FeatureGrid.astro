@@ -1,0 +1,78 @@
+---
+import { highlights } from "../data/content";
+---
+
+<section id="features" class="features container">
+  <div class="features__head reveal">
+    <div class="eyebrow">EVERYTHING NATIVE</div>
+    <h2 class="features__title">A real Mac app, not a wrapper.</h2>
+  </div>
+  <div class="features__grid">
+    {
+      highlights.map((c, i) => (
+        <article
+          class:list={["fcard", "reveal", { "fcard--tinted": c.hue !== null }]}
+          style={`--hue:${c.hue ?? 0};--reveal-delay:${(i % 3) * 0.08}s`}
+        >
+          <div class="fcard__icon">{c.glyph}</div>
+          <h3 class="fcard__title">{c.title}</h3>
+          <p class="fcard__body" set:html={c.body} />
+        </article>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  .features {
+    padding-block: 60px 40px;
+  }
+  .features__head {
+    text-align: center;
+    margin-bottom: 52px;
+  }
+  .features__title {
+    margin: 0;
+    font-size: clamp(30px, 4vw, 48px);
+  }
+  .features__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 18px;
+  }
+  .fcard {
+    padding: 28px;
+    border-radius: 18px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+  }
+  .fcard--tinted {
+    background: linear-gradient(160deg, oklch(0.72 0.16 var(--hue) / 0.12), rgba(255, 255, 255, 0.03));
+  }
+  .fcard__icon {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    font-size: 20px;
+    margin-bottom: 18px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .fcard--tinted .fcard__icon {
+    background: oklch(0.72 0.16 var(--hue) / 0.18);
+    border-color: oklch(0.72 0.16 var(--hue) / 0.3);
+  }
+  .fcard__title {
+    margin: 0 0 8px;
+    font-size: 20px;
+    letter-spacing: -0.01em;
+  }
+  .fcard__body {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+</style>

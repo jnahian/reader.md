@@ -1,0 +1,246 @@
+---
+// "Diagrams, math & code that render" — light-themed rendered-doc mock + copy.
+const tags = ["Code copy buttons", "Image lightbox", "Heading anchors"];
+---
+
+<section class="showcase container reveal">
+  <div class="showcase__panel showcase__panel--purple">
+    <div class="docmock">
+      <div class="docmock__bar">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <span class="docmock__title">pipeline.md</span>
+      </div>
+      <div class="docmock__body">
+        <div class="docmock__h">Rendering pipeline</div>
+        <div class="docmock__flow">
+          <span class="docmock__node">marked</span>
+          <span class="docmock__arrow">→</span>
+          <span class="docmock__node docmock__node--hl">Mermaid</span>
+          <span class="docmock__arrow">→</span>
+          <span class="docmock__node">WKWebView</span>
+        </div>
+        <div class="docmock__math">
+          <span>∮</span><span class="docmock__math-b">E · d</span><span>A</span>
+          <span class="docmock__eq">=</span>
+          <span class="docmock__frac">
+            <span class="docmock__num">Q</span>
+            <span class="docmock__den">ε<sub>0</sub></span>
+          </span>
+        </div>
+        <div class="docmock__code">
+          <div class="docmock__code-bar">
+            <span>js</span><span>⧉ copy</span>
+          </div>
+          <pre><span class="j-kw">const</span> html = marked.<span class="j-fn">parse</span>(md);
+mermaid.<span class="j-fn">run</span>();  <span class="j-cm">// diagrams</span>
+katex.<span class="j-fn">render</span>(tex, el);</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="showcase__copy">
+      <div class="eyebrow eyebrow--purple">RENDERING</div>
+      <h2 class="showcase__title">Diagrams, math &amp; code that render.</h2>
+      <p class="showcase__lead">
+        The content pane is a <code class="tok">WKWebView</code> driven by bundled marked, Mermaid,
+        KaTeX, and highlight.js — the exact things a native text view can't do. YAML frontmatter
+        renders as a clean key/value table, and everything works fully offline.
+      </p>
+      <div class="showcase__tags">
+        {tags.map((t) => <span class="showcase__tag">{t}</span>)}
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .showcase {
+    padding-block: 56px;
+  }
+  .showcase__panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 44px;
+    align-items: center;
+    border-radius: 24px;
+    padding: clamp(28px, 5vw, 56px);
+    border: 1px solid var(--border);
+  }
+  .showcase__panel--purple {
+    background: linear-gradient(150deg, oklch(0.72 0.16 260 / 0.1), rgba(255, 255, 255, 0.02));
+  }
+  .eyebrow--purple {
+    color: var(--purple-text);
+  }
+  .showcase__title {
+    margin: 0 0 18px;
+    font-size: clamp(28px, 3.4vw, 42px);
+    line-height: 1.1;
+  }
+  .showcase__lead {
+    margin: 0 0 24px;
+    font-size: 16px;
+    line-height: 1.65;
+    color: var(--muted);
+  }
+  .showcase__tags {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .showcase__tag {
+    padding: 8px 14px;
+    border-radius: 9px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    font-size: 13px;
+  }
+
+  /* light rendered-doc mock */
+  .docmock {
+    border-radius: 16px;
+    overflow: hidden;
+    background: #fbfbfd;
+    color: #1b1c22;
+    border: 1px solid var(--border);
+    box-shadow: 0 26px 64px rgba(0, 0, 0, 0.5);
+  }
+  .docmock__bar {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 11px 14px;
+    background: #eceef3;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+  }
+  .docmock__bar .dots span {
+    width: 11px;
+    height: 11px;
+  }
+  .docmock__title {
+    margin-left: 8px;
+    font-size: 11px;
+    color: #6b6c76;
+  }
+  .docmock__body {
+    padding: 22px 24px;
+  }
+  .docmock__h {
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+    color: #141419;
+  }
+  .docmock__flow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 16px 10px;
+    background: #eef0f6;
+    border-radius: 11px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    margin-bottom: 16px;
+  }
+  .docmock__node {
+    padding: 7px 12px;
+    border-radius: 8px;
+    background: #fff;
+    border: 1px solid #d3d7e0;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: #2b2c33;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  }
+  .docmock__node--hl {
+    background: oklch(0.72 0.16 260 / 0.14);
+    border-color: oklch(0.6 0.15 260 / 0.4);
+    color: oklch(0.42 0.16 260);
+  }
+  .docmock__arrow {
+    color: #9aa0ad;
+    font-size: 14px;
+  }
+  .docmock__math {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 16px;
+    background: #fff;
+    border: 1px solid #e6e8ee;
+    border-radius: 11px;
+    margin-bottom: 16px;
+    font-family: "Times New Roman", Georgia, serif;
+    font-style: italic;
+    font-size: 20px;
+    color: #1b1c22;
+  }
+  .docmock__math-b {
+    font-weight: 500;
+  }
+  .docmock__eq {
+    margin: 0 6px;
+  }
+  .docmock__frac {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1;
+  }
+  .docmock__num {
+    padding: 0 5px 3px;
+  }
+  .docmock__den {
+    border-top: 1.5px solid #1b1c22;
+    padding: 3px 5px 0;
+  }
+  .docmock__den sub {
+    font-size: 12px;
+    font-style: normal;
+  }
+  .docmock__code {
+    border-radius: 11px;
+    overflow: hidden;
+    background: #1a1b22;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+  .docmock__code-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: #22232c;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    color: #8b8d99;
+  }
+  .docmock__code pre {
+    margin: 0;
+    padding: 14px 16px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.7;
+    color: #d7d9e3;
+    white-space: pre-wrap;
+  }
+  .j-kw {
+    color: #c792ea;
+  }
+  .j-fn {
+    color: #82aaff;
+  }
+  .j-cm {
+    color: #5c6370;
+  }
+
+  @media (max-width: 820px) {
+    .showcase__panel {
+      grid-template-columns: 1fr;
+    }
+    .docmock {
+      order: 2;
+    }
+  }
+</style>
