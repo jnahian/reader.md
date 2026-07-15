@@ -43,13 +43,18 @@ Owns a **single reused** borderless, non-activating `NSPanel`.
   `isFloatingPanel = true`, `level = .popUpMenu` (above toolbar/content),
   `hasShadow = true`, `backgroundColor = .clear`, `isOpaque = false`,
   `ignoresMouseEvents = true` (tooltip never intercepts clicks).
-- Content view (built once, text updated per show):
-  - `NSVisualEffectView`, `material = .toolTip`, `blendingMode = .behindWindow`,
-    layer-backed with `cornerRadius = 8` and full corner mask.
-    *(macOS 26 upgrade path: `NSGlassEffectView` — deferred; `.toolTip`
-    material already reads as glass and keeps the diff small.)*
-  - `NSTextField` label (non-editable, non-bezeled, clear background), inset
-    with ~10pt horizontal / ~5pt vertical padding.
+- Content view (built once, text updated per show) — Liquid Glass with a
+  pre-26 fallback, mirroring `GlassPanel` but in AppKit since the panel
+  content is not SwiftUI:
+  - **macOS 26+:** `NSGlassEffectView` with `cornerRadius = 8`; the
+    `NSTextField` label is its `contentView`.
+  - **macOS 13–15:** `NSVisualEffectView`, `material = .toolTip`,
+    `blendingMode = .behindWindow`, layer-backed with `cornerRadius = 8` and
+    full corner mask; the label is added as a subview.
+  - Wrapped behind an availability guard (`if #available(macOS 26.0, *)`),
+    the same pattern `GlassPanel` uses. Deployment target stays macOS 13.
+  - `NSTextField` label in both cases: non-editable, non-bezeled, clear
+    background, inset ~10pt horizontal / ~5pt vertical.
 - API:
   - `show(text:, anchorScreenFrame:)` — set text, size to fit, position, fade
     the panel in (`NSAnimationContext`, ~0.1s).
@@ -113,7 +118,6 @@ No other behavior changes.
   omitting it is the accurate match, not a shortcut).
 - Spring/scale entrance animation (fade only for v1).
 - Per-tooltip delay configuration (fixed ~0.4s).
-- `NSGlassEffectView` on macOS 26 (the `.toolTip` material suffices).
 
 ## Verification
 
