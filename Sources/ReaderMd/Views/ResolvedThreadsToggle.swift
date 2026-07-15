@@ -21,7 +21,7 @@ struct ResolvedThreadsToggle: View {
             .buttonStyle(.plain)
             .foregroundStyle(state.showResolvedThreads ? Color.secondary : Color.accentColor)
             .font(.system(size: 11))
-            .help(state.showResolvedThreads ? "Hide resolved threads" : "Show resolved threads")
+            .dockTooltip(state.showResolvedThreads ? "Hide resolved threads" : "Show resolved threads")
         }
     }
 }

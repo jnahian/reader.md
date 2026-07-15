@@ -46,7 +46,7 @@ struct SidebarView: View {
                                 .font(.system(size: 11))
                                 .foregroundStyle(.tertiary)
                                 .padding(.trailing, 12)
-                                .help("Clear recent files")
+                                .dockTooltip("Clear recent files")
                         }
                         ForEach(state.recentFiles.prefix(6), id: \.self) { path in
                             RecentRow(path: path)
@@ -97,7 +97,7 @@ struct SidebarView: View {
                         .padding(.vertical, 8)
                         .contentShape(Rectangle())
                     }
-                    .help("Add a local folder")
+                    .dockTooltip("Add a local folder")
 
                     Divider().frame(height: 20)
 
@@ -114,7 +114,7 @@ struct SidebarView: View {
                         .padding(.vertical, 8)
                         .contentShape(Rectangle())
                     }
-                    .help("Add a remote (SSH) folder")
+                    .dockTooltip("Add a remote (SSH) folder")
                 }
                 .buttonStyle(ToolbarIconButtonStyle(width: nil, height: nil, glass: false))
                 .fixedSize()
@@ -181,7 +181,7 @@ struct RecentRow: View {
                 }
                 .buttonStyle(.borderless)
                 .foregroundStyle(isSelected ? Color.white : Color.secondary)
-                .help("Remove from Recents")
+                .dockTooltip("Remove from Recents")
             }
         }
         .padding(.vertical, 4)
@@ -241,7 +241,7 @@ struct RootSectionView: View {
                     Image(systemName: "cloud")
                         .font(.system(size: 10))
                         .foregroundStyle(.secondary)
-                        .help("Remote folder")
+                        .dockTooltip("Remote folder")
                     switch root.syncStatus {
                     case .syncing:
                         ProgressView().controlSize(.small).scaleEffect(0.7)
@@ -249,7 +249,7 @@ struct RootSectionView: View {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.system(size: 10))
                             .foregroundStyle(.orange)
-                            .help(msg)
+                            .dockTooltip(msg)
                     case .idle:
                         EmptyView()
                     }
@@ -262,7 +262,7 @@ struct RootSectionView: View {
                         }
                         .buttonStyle(.borderless)
                         .foregroundStyle(.secondary)
-                        .help("Edit connection")
+                        .dockTooltip("Edit connection")
                         Button {
                             Task { await state.syncRemote(spec, surfaceErrors: true) }
                         } label: {
@@ -270,14 +270,14 @@ struct RootSectionView: View {
                         }
                         .buttonStyle(.borderless)
                         .foregroundStyle(.secondary)
-                        .help("Re-sync")
+                        .dockTooltip("Re-sync")
                     }
                     Button { state.removeRoot(root) } label: {
                         Image(systemName: "xmark").font(.system(size: 10))
                     }
                     .buttonStyle(.borderless)
                     .foregroundStyle(.secondary)
-                    .help("Remove folder")
+                    .dockTooltip("Remove folder")
                 }
             }
             .padding(.vertical, 5)

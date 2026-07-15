@@ -20,17 +20,17 @@ private struct ReaderToolbar: ViewModifier {
                     Button { state.toggleSidebar() } label: {
                         Image(systemName: "sidebar.left")
                     }
-                    .help("Toggle sidebar (⌘B)")
+                    .dockTooltip("Toggle sidebar (⌘B)")
                 }
 
                 // Back / forward, kept together like Finder.
                 ToolbarItemGroup(placement: .navigation) {
                     Button { state.goBack() } label: { Image(systemName: "chevron.left") }
                         .disabled(!state.canGoBack)
-                        .help("Back (⌘[)")
+                        .dockTooltip("Back (⌘[)")
                     Button { state.goForward() } label: { Image(systemName: "chevron.right") }
                         .disabled(!state.canGoForward)
-                        .help("Forward (⌘])")
+                        .dockTooltip("Forward (⌘])")
                 }
 
                 // Both hide themselves when they have nothing to report.
@@ -47,7 +47,7 @@ private struct ReaderToolbar: ViewModifier {
                         Button { state.setShowTOC(!state.showTOC) } label: {
                             Image(systemName: "list.bullet")
                         }
-                        .help("Toggle outline (⇧⌘B)")
+                        .dockTooltip("Toggle outline (⇧⌘B)")
                     }
                 }
 
@@ -57,18 +57,18 @@ private struct ReaderToolbar: ViewModifier {
                         Image(systemName: "arrow.clockwise")
                     }
                     .disabled(state.selectedFile == nil)
-                    .help("Reload (⌘R)")
+                    .dockTooltip("Reload (⌘R)")
 
                     Button { state.triggerExport() } label: {
                         Image(systemName: "square.and.arrow.up")
                     }
                     .disabled(state.selectedFile == nil)
-                    .help("Export as PDF (⌘E)")
+                    .dockTooltip("Export as PDF (⌘E)")
 
                     Button { state.toggleTheme() } label: {
                         Image(systemName: state.theme.symbol)
                     }
-                    .help(state.theme == .dark ? "Switch to light mode" : "Switch to dark mode")
+                    .dockTooltip(state.theme == .dark ? "Switch to light mode" : "Switch to dark mode")
                 }
 
                 ToolbarItem(placement: .primaryAction) { findField }
@@ -114,7 +114,7 @@ private struct ReaderToolbar: ViewModifier {
             Image(systemName: "textformat.size")
         }
         .menuIndicator(.hidden)
-        .help("Text size & width")
+        .dockTooltip("Text size & width")
     }
 
     /// Search stays inline in the toolbar, like Preview. Enter finds the next
@@ -146,7 +146,7 @@ private struct ReaderToolbar: ViewModifier {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .help("Clear search")
+                .dockTooltip("Clear search")
             }
         }
         .padding(.horizontal, 10)

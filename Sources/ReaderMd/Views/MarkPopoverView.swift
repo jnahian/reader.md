@@ -70,7 +70,7 @@ struct MarkPopoverView: View {
                         .contentShape(Circle())
                     }
                     .buttonStyle(.plain)
-                    .help("Remove highlight")
+                    .dockTooltip("Remove highlight")
                 }
 
                 Divider().frame(height: 18)
@@ -83,7 +83,7 @@ struct MarkPopoverView: View {
                         .foregroundStyle(comments.isEmpty ? Color.secondary : Color.accentColor)
                 }
                 .buttonStyle(.plain)
-                .help(comments.isEmpty ? "Add a note" : "Show comments")
+                .dockTooltip(comments.isEmpty ? "Add a note" : "Show comments")
             }
 
             if showThread {
