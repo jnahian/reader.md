@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.11.0 — 2026-07-15
+
+- **Softer tooltips.** Hovering a button now shows a small rounded bubble that
+  matches the app's chrome, in place of the yellow system tooltip.
+- **The Standard theme now matches GitHub.** Standard adopts GitHub's exact
+  colours for text, borders, and code, so it reads like github.com in both light
+  and dark. The separate "GitHub" theme added in 1.10.0 is gone — Standard
+  replaces it. If you had GitHub selected, you're moved to Standard automatically.
+
 ## 1.10.0 — 2026-07-14
 
 - **Documents remember where you stopped.** Reopening a long file returns you to
