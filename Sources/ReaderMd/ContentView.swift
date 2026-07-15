@@ -136,7 +136,7 @@ struct CloseDocButton: View {
         .buttonStyle(.plain)
         .opacity(hovering ? 1 : 0.45)
         .onHover { hovering = $0 }
-        .help("Close file (⌘W)")
+        .dockTooltip("Close file (⌘W)")
     }
 }
 
