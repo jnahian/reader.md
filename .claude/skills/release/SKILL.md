@@ -56,7 +56,19 @@ grep -rn "NEW_DISPLAY" make-app.sh Sources/ReaderMd/ReaderMdApp.swift Sources/Re
 
 All three files should show `NEW_DISPLAY`. Confirm the build number increased.
 
-## 6. Commit and push the bump — before releasing
+## 6. Run the tests
+
+```
+swift test
+```
+
+All tests must pass before you commit the bump. `swift test` covers more than
+`fuzzyScore` — the `ReadingTheme` resolver, URL routing, stdin temp handling,
+etc. — so `swift build` succeeding is **not** enough. In particular, changing an
+enum (e.g. removing a reading theme) breaks the assertions that pin its
+`allCases` and name resolution; fix those tests here, not after the release.
+
+## 7. Commit and push the bump — before releasing
 
 `gh release create` tags the latest **pushed** commit. If the bump isn't
 committed and pushed, the tag and the DMG's source won't match.
@@ -67,7 +79,7 @@ git commit -m "chore: release vNEW_DISPLAY (build NEW_BUILD)"
 git push
 ```
 
-## 7. Build the app
+## 8. Build the app
 
 ```
 ./make-app.sh
@@ -83,7 +95,7 @@ Sanity-check the versions baked into the bundle:
 Optional smoke test: `open build/Reader.md.app`, confirm About shows the new
 version and **Help → Release Notes** shows the new changelog entry.
 
-## 8. Publish
+## 9. Publish
 
 ```
 ./release.sh
@@ -97,7 +109,7 @@ the uploaded DMG's sha256 and commits that (`chore: update Homebrew cask …`), 
 the `brew install --cask` tap tracks the release automatically — nothing to bump
 by hand.
 
-## 9. Confirm
+## 10. Confirm
 
 ```
 gh release view "vNEW_DISPLAY" --repo jnahian/reader.md
@@ -111,6 +123,7 @@ The release must be the newest non-prerelease (so
 
 | Skipped | Symptom |
 | --- | --- |
+| `swift test` not run (only `swift build`) | Red tests land on `main`; a stale enum assertion (e.g. removed theme) slips through |
 | About fallback not synced | `swift run` shows the old version |
 | Changelog `Unreleased` not renamed | Release Notes still say "Unreleased" |
 | Bump not committed/pushed before release | Tag points at old source; DMG ≠ tag |
