@@ -28,12 +28,11 @@ enum AppearanceMode: String, CaseIterable {
 /// stylesheet pair. Orthogonal to `AppearanceMode` (light/dark) — a theme
 /// defines *both* of its modes. The set is fixed; not user-editable.
 enum ReadingTheme: String, CaseIterable {
-    case standard, github, editorial, terminal
+    case standard, editorial, terminal
 
     var displayName: String {
         switch self {
         case .standard:  return "Standard"
-        case .github:    return "GitHub"
         case .editorial: return "Editorial"
         case .terminal:  return "Terminal"
         }

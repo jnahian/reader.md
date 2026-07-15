@@ -10,7 +10,6 @@ let currentDir = '';
 // already correct when the mode toggles — no flash of unstyled code.
 const HLJS = {
   standard:  ['styles/github.min.css',             'styles/github-dark.min.css'],
-  github:    ['styles/github.min.css',             'styles/github-dark.min.css'],
   editorial: ['styles/atom-one-light.min.css',     'styles/atom-one-dark.min.css'],
   terminal:  ['styles/stackoverflow-light.min.css', 'styles/stackoverflow-dark.min.css'],
 };

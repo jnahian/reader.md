@@ -6,25 +6,16 @@
   <link rel="stylesheet" href="styles/github-dark.min.css" id="hljs-dark" disabled />
   <link rel="stylesheet" href="katex/katex.min.css" />
   <style>
+    /* Standard — GitHub Primer palette verbatim (canvas/default, fg/default,
+       border/default). Takes the system accent via setAccent (see bridge.js). */
     :root {
-      --bg: #ffffff; --fg: #1f2328; --border: #d8dee4; --accent: #0969da;
-      --code-bg: #f6f8fa; --blockquote: #656d76;
+      --bg: #ffffff; --fg: #1f2328; --border: #d1d9e0; --accent: #0969da;
+      --code-bg: #f6f8fa; --blockquote: #59636e;
       --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
       --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
       --content-width: 760px; --content-size: 16px;
     }
     html.dark {
-      --bg: #1e2228; --fg: #e6edf3; --border: #30363d; --accent: #4493f8;
-      --code-bg: #161b22; --blockquote: #8b949e;
-    }
-
-    /* GitHub — Primer palette verbatim (canvas/default, fg/default, border/default,
-       accent/fg). Unlike standard, it ignores the system accent so it stays GitHub blue. */
-    html[data-theme="github"] {
-      --bg: #ffffff; --fg: #1f2328; --border: #d1d9e0; --accent: #0969da;
-      --code-bg: #f6f8fa; --blockquote: #59636e;
-    }
-    html[data-theme="github"].dark {
       --bg: #0d1117; --fg: #f0f6fc; --border: #3d444d; --accent: #4493f8;
       --code-bg: #151b23; --blockquote: #9198a1;
     }
