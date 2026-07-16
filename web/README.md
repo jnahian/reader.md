@@ -15,6 +15,14 @@ npm run build    # static output → dist/
 npm run preview  # serve the build
 ```
 
+## Deploy
+
+Static site hosted on **Cloudflare Pages**. See [DEPLOYMENT.md](./DEPLOYMENT.md).
+
+```bash
+npm run build && npx wrangler pages deploy dist --project-name=reader-md-web
+```
+
 ## Structure
 
 ```
