@@ -119,6 +119,19 @@ The release must be the newest non-prerelease (so
 `releases/latest/download/appcast.xml` resolves) and carry both the `.dmg` and
 `appcast.xml` assets. Updates reach Apple-silicon Macs only (arm64 binary).
 
+## 11. Sync the web changelog
+
+The marketing site keeps its own hand-maintained copy of the release notes in
+`web/src/data/changelog.ts` — nothing in `release.sh` touches it. Mirror the new
+`## NEW_DISPLAY` section from `CHANGELOG.md` into it:
+
+- Add a `Release` entry at the top with `version`, `date` ("Mon D, YYYY"), and
+  the items grouped into `ADDED` / `IMPROVED` / `FIXED` (items are HTML strings
+  with a bold `<strong>` lead-in).
+- Move the `badge: "LATEST"` from the previous release onto the new one.
+- Deploying the site is a separate step — see `web/DEPLOYMENT.md` (`wrangler
+  pages deploy`); it is not part of the app release.
+
 ## What goes missing if you skip a step
 
 | Skipped | Symptom |
@@ -128,3 +141,4 @@ The release must be the newest non-prerelease (so
 | Changelog `Unreleased` not renamed | Release Notes still say "Unreleased" |
 | Bump not committed/pushed before release | Tag points at old source; DMG ≠ tag |
 | `release.sh` cask commit not pushed | `brew install --cask` serves the previous version |
+| `web/src/data/changelog.ts` not synced | The marketing site's changelog lags the release |
