@@ -55,6 +55,19 @@ body {
   overflow-x: hidden;
 }
 
+/* Fixed dot grid, faded toward the edges so it never reads as flat tiling. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.22) 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
+  -webkit-mask-image: radial-gradient(ellipse 95% 75% at 50% 32%, #000 0%, transparent 85%);
+  mask-image: radial-gradient(ellipse 95% 75% at 50% 32%, #000 0%, transparent 85%);
+}
+
 a {
   color: var(--link);
   text-decoration: none;
@@ -127,6 +140,21 @@ pre {
   border-radius: 18px;
   background: var(--surface);
   border: 1px solid var(--border);
+}
+
+/* Frost every card-like surface so text stays readable over the dot grid. */
+.card,
+.fcard,
+.entry__card,
+.arch__card,
+.req__card,
+.showcase__panel,
+.cta__code,
+.scut__row,
+.btn,
+.pill {
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
 }
 
 /* Pills / badges */
