@@ -19,9 +19,22 @@ export interface Release {
 
 export const releasesLog: Release[] = [
   {
+    version: "1.11.0",
+    date: "Jul 15, 2026",
+    badge: "LATEST",
+    groups: [
+      {
+        tag: "IMPROVED",
+        items: [
+          "<strong>Softer tooltips</strong> — hovering a button now shows a small rounded bubble that matches the app's chrome, in place of the yellow system tooltip.",
+          "<strong>The Standard theme now matches GitHub</strong> — Standard adopts GitHub's exact colours for text, borders, and code, so it reads like github.com in both light and dark. The separate \"GitHub\" theme added in 1.10.0 is gone — Standard replaces it, and anyone who had GitHub selected is moved to Standard automatically.",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.10.0",
     date: "Jul 14, 2026",
-    badge: "LATEST",
     groups: [
       {
         tag: "ADDED",
