@@ -1,0 +1,81 @@
+---
+import { shortcutsHighlight } from "../data/content";
+---
+
+<section class="kbd">
+  <div class="kbd__inner">
+    <div class="reveal">
+      <div class="eyebrow">KEYBOARD &amp; CLI</div>
+      <h2 class="kbd__title">Driven entirely from the shell.</h2>
+    </div>
+
+    <div class="kbd__grid reveal" style="--reveal-delay:.1s">
+      {
+        shortcutsHighlight.map((s) => (
+          <div class="kbd__key">
+            <div class="kbd__combo">{s.keys}</div>
+            <div class="kbd__action">{s.action}</div>
+          </div>
+        ))
+      }
+    </div>
+
+    <code class="kbd__cli reveal" style="--reveal-delay:.18s">
+      <span class="c-cm"># open a file, a folder, or piped markdown</span><br />
+      <span class="c-cm">$</span> <span class="accent-cyan">reader</span> README.md<br />
+      <span class="c-cm">$</span> <span class="accent-cyan">reader</span> remote me@vps:/srv/docs<br />
+      <span class="c-cm">$</span> git diff | <span class="accent-cyan">reader</span> -
+    </code>
+  </div>
+</section>
+
+<style>
+  .kbd {
+    position: relative;
+    z-index: 2;
+  }
+  .kbd__inner {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 80px var(--pad-x);
+    text-align: center;
+  }
+  .kbd__title {
+    margin: 0 0 40px;
+    font-size: clamp(28px, 3.6vw, 44px);
+  }
+  .kbd__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .kbd__key {
+    padding: 16px 12px;
+    border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+  }
+  .kbd__combo {
+    font-family: var(--font-mono);
+    font-size: 16px;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+  .kbd__action {
+    font-size: 12px;
+    color: var(--faint);
+  }
+  .kbd__cli {
+    display: block;
+    text-align: left;
+    padding: 22px 24px;
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 13.5px;
+    line-height: 2;
+    color: rgba(255, 255, 255, 0.82);
+  }
+</style>

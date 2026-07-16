@@ -1,0 +1,115 @@
+---
+import Base from "../layouts/Base.astro";
+import ChangelogEntry from "../components/ChangelogEntry.astro";
+import { releasesLog } from "../data/changelog";
+import { releasesLatest, releases, currentVersion } from "../data/site";
+---
+
+<Base title="Changelog — Reader.md" page="changelog">
+  <header class="chead container container--prose">
+    <div class="eyebrow">CHANGELOG</div>
+    <h1 class="chead__title">What's new in Reader.md</h1>
+    <p class="chead__sub">
+      Every release ships through the app's own Sparkle updater — so you're always one relaunch from
+      the latest. Notable changes, newest first.
+    </p>
+    <div class="chead__pills">
+      <span class="pill chead__latest">
+        <span class="chead__dot"></span>v{currentVersion} · latest
+      </span>
+      <a href={releases} class="pill">All releases on GitHub ↗</a>
+    </div>
+  </header>
+
+  <main class="container container--prose clog">
+    <div class="clog__timeline">
+      <div class="clog__rail" aria-hidden="true"></div>
+      {releasesLog.map((release, i) => <ChangelogEntry release={release} index={i} />)}
+    </div>
+
+    <div class="clog__cta reveal">
+      <h3>Update from within the app</h3>
+      <p>
+        Sparkle checks for and installs new releases automatically — or grab the latest build
+        yourself.
+      </p>
+      <a href={releasesLatest} class="btn btn--light">Download the latest .dmg</a>
+    </div>
+  </main>
+</Base>
+
+<style>
+  .chead {
+    padding: 120px 0 48px;
+    animation: riseIn 0.6s ease both;
+  }
+  .chead__title {
+    margin: 0 0 16px;
+    font-size: clamp(36px, 5.5vw, 58px);
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+  }
+  .chead__sub {
+    margin: 0;
+    font-size: 18px;
+    line-height: 1.6;
+    color: var(--muted);
+    text-wrap: pretty;
+  }
+  .chead__pills {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 24px;
+  }
+  .chead__latest {
+    background: oklch(0.75 0.17 150 / 0.12);
+    border-color: oklch(0.75 0.17 150 / 0.3);
+    color: var(--green-text);
+  }
+  .chead__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: dotPulse 2s ease-in-out infinite;
+  }
+
+  .clog {
+    padding-bottom: 90px;
+  }
+  .clog__timeline {
+    position: relative;
+    padding-left: 34px;
+  }
+  .clog__rail {
+    position: absolute;
+    left: 6px;
+    top: 6px;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(
+      oklch(0.72 0.16 260 / 0.6),
+      oklch(0.72 0.16 205 / 0.3),
+      rgba(255, 255, 255, 0.04)
+    );
+  }
+  .clog__cta {
+    margin-top: 40px;
+    text-align: center;
+    padding: 36px;
+    border-radius: 20px;
+    background: linear-gradient(150deg, oklch(0.72 0.16 260 / 0.12), oklch(0.72 0.16 205 / 0.08));
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .clog__cta h3 {
+    margin: 0 0 10px;
+    font-size: 22px;
+  }
+  .clog__cta p {
+    margin: 0 0 22px;
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--muted);
+  }
+</style>

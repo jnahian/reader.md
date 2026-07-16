@@ -1,0 +1,400 @@
+/* ==========================================================================
+   Reader.md — design tokens, base styles, shared utilities & keyframes.
+   Single source of truth for the dark "Liquid Glass" landing/docs/changelog.
+   ========================================================================== */
+
+:root {
+  /* Surfaces & text */
+  --bg: #08090c;
+  --fg: rgba(255, 255, 255, 0.9);
+  --muted: rgba(255, 255, 255, 0.62);
+  --faint: rgba(255, 255, 255, 0.45);
+
+  --surface: rgba(255, 255, 255, 0.035);
+  --surface-2: rgba(255, 255, 255, 0.05);
+  --surface-3: rgba(255, 255, 255, 0.07);
+  --border: rgba(255, 255, 255, 0.1);
+  --border-soft: rgba(255, 255, 255, 0.08);
+
+  /* Accents (oklch) */
+  --link: oklch(0.78 0.13 255);
+  --link-hover: oklch(0.85 0.1 220);
+  --purple: oklch(0.72 0.16 260);
+  --cyan: oklch(0.72 0.16 205);
+  --green: oklch(0.75 0.17 150);
+
+  --purple-text: oklch(0.85 0.1 260);
+  --cyan-text: oklch(0.82 0.11 205);
+  --green-text: oklch(0.85 0.11 150);
+
+  /* Type */
+  --font-sans: -apple-system, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+
+  /* Layout */
+  --nav-h: 60px;
+  --maxw: 1180px;
+  --maxw-prose: 820px;
+  --pad-x: clamp(20px, 5vw, 40px);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Fixed dot grid, faded toward the edges so it never reads as flat tiling. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.22) 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
+  -webkit-mask-image: radial-gradient(ellipse 95% 75% at 50% 32%, #000 0%, transparent 85%);
+  mask-image: radial-gradient(ellipse 95% 75% at 50% 32%, #000 0%, transparent 85%);
+}
+
+a {
+  color: var(--link);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--link-hover);
+}
+
+::selection {
+  background: oklch(0.72 0.16 260 / 0.35);
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.03em;
+  font-weight: 600;
+  text-wrap: balance;
+}
+
+code,
+kbd,
+pre {
+  font-family: var(--font-mono);
+}
+
+/* --------------------------------------------------------------------------
+   Shared utilities
+   -------------------------------------------------------------------------- */
+
+.container {
+  position: relative;
+  z-index: 2;
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding-inline: var(--pad-x);
+}
+.container--prose {
+  max-width: var(--maxw-prose);
+}
+
+/* Mono eyebrow label above section headings */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  color: var(--cyan-text);
+  margin-bottom: 14px;
+}
+
+/* Inline monospace token */
+.tok {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: var(--surface-3);
+  color: var(--cyan-text);
+}
+
+.gradient-text {
+  background: linear-gradient(120deg, oklch(0.82 0.13 260), oklch(0.85 0.12 205));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Glass card */
+.card {
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+/* Frost every card-like surface so text stays readable over the dot grid. */
+.card,
+.fcard,
+.entry__card,
+.arch__card,
+.req__card,
+.showcase__panel,
+.cta__code,
+.scut__row,
+.btn,
+.pill {
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+/* Pills / badges */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 24px;
+  border-radius: 13px;
+  font-size: 15px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  transition: transform 0.15s ease, background 0.2s ease;
+}
+.btn:hover {
+  transform: translateY(-1px);
+}
+.btn--primary {
+  background: linear-gradient(140deg, oklch(0.72 0.16 260), oklch(0.7 0.16 218));
+  color: #fff;
+  box-shadow: 0 10px 30px oklch(0.72 0.16 260 / 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.btn--primary:hover {
+  color: #fff;
+}
+.btn--light {
+  background: rgba(255, 255, 255, 0.96);
+  color: #0a0b0e;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.btn--light:hover {
+  color: #0a0b0e;
+}
+.btn--ghost {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: #fff;
+}
+.btn--ghost:hover {
+  color: #fff;
+}
+
+/* Accent text helpers */
+.accent-cyan {
+  color: var(--cyan);
+}
+.accent-purple {
+  color: var(--purple);
+}
+.accent-green {
+  color: var(--green);
+}
+
+/* Feature/status chips (mono) */
+.chip {
+  padding: 5px 10px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+}
+.chip--purple {
+  background: oklch(0.72 0.16 260 / 0.14);
+  color: var(--purple-text);
+  border-color: oklch(0.72 0.16 260 / 0.25);
+}
+.chip--cyan {
+  background: oklch(0.72 0.16 205 / 0.14);
+  color: oklch(0.85 0.1 205);
+  border-color: oklch(0.72 0.16 205 / 0.25);
+}
+.chip--green {
+  background: oklch(0.72 0.16 150 / 0.14);
+  color: oklch(0.85 0.1 150);
+  border-color: oklch(0.72 0.16 150 / 0.25);
+}
+
+/* Minimal syntax-highlight tokens (used in decorative code snippets) */
+.c-kw {
+  color: oklch(0.78 0.15 320);
+}
+.c-ty {
+  color: var(--cyan-text);
+}
+.c-cl {
+  color: oklch(0.82 0.12 150);
+}
+.c-fn {
+  color: oklch(0.78 0.13 240);
+}
+.c-cm {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* macOS window "traffic lights" */
+.dots {
+  display: flex;
+  gap: 8px;
+}
+.dots span {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+.dots span:nth-child(1) {
+  background: #ff5f57;
+}
+.dots span:nth-child(2) {
+  background: #febc2e;
+}
+.dots span:nth-child(3) {
+  background: #28c840;
+}
+
+/* --------------------------------------------------------------------------
+   Scroll-reveal (progressive; content is visible if JS/motion is off)
+   -------------------------------------------------------------------------- */
+.reveal-ready .reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+  transition-delay: var(--reveal-delay, 0s);
+}
+.reveal-ready .reveal.in {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .reveal-ready .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Keyframes (shared across pages)
+   -------------------------------------------------------------------------- */
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes floatY {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-24px);
+  }
+}
+@keyframes hueDrift {
+  0%,
+  100% {
+    filter: hue-rotate(0deg);
+  }
+  50% {
+    filter: hue-rotate(24deg);
+  }
+}
+@keyframes sweep {
+  0% {
+    transform: translateX(-120%) skewX(-18deg);
+  }
+  60%,
+  100% {
+    transform: translateX(320%) skewX(-18deg);
+  }
+}
+@keyframes blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes railSlide {
+  0%,
+  12% {
+    top: 8px;
+  }
+  30%,
+  42% {
+    top: 44px;
+  }
+  60%,
+  72% {
+    top: 96px;
+  }
+  88%,
+  100% {
+    top: 8px;
+  }
+}
+@keyframes fillBar {
+  from {
+    width: 8%;
+  }
+  to {
+    width: 64%;
+  }
+}
+@keyframes dotPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 oklch(0.75 0.17 150 / 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 8px oklch(0.75 0.17 150 / 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+  }
+}

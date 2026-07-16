@@ -1,0 +1,40 @@
+---
+import Base from "../layouts/Base.astro";
+import { releasesLatest } from "../data/site";
+---
+
+<Base title="Not found — Reader.md">
+  <section class="nf container">
+    <div class="eyebrow">404</div>
+    <h1 class="nf__title">This page wandered off.</h1>
+    <p class="nf__sub">The link may be broken, or the page may have moved.</p>
+    <div class="nf__actions">
+      <a href="/" class="btn btn--primary">Back home</a>
+      <a href={releasesLatest} class="btn btn--ghost">Download</a>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .nf {
+    max-width: 720px;
+    text-align: center;
+    padding: 200px var(--pad-x) 140px;
+  }
+  .nf__title {
+    margin: 6px 0 16px;
+    font-size: clamp(34px, 6vw, 60px);
+    letter-spacing: -0.035em;
+  }
+  .nf__sub {
+    margin: 0 0 32px;
+    font-size: 18px;
+    color: var(--muted);
+  }
+  .nf__actions {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+</style>

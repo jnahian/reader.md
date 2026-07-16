@@ -1,0 +1,152 @@
+---
+import type { Release } from "../data/changelog";
+interface Props {
+  release: Release;
+  index: number;
+}
+const { release, index } = Astro.props;
+const featured = release.badge === "LATEST";
+// Timeline dot accent: latest green, then purple, cyan, then faint.
+const dots = ["var(--green)", "var(--purple)", "var(--cyan)"];
+const dot = featured ? "var(--green)" : dots[index] ?? "rgba(255,255,255,0.4)";
+---
+
+<article
+  class:list={["entry", "reveal", { "entry--featured": featured }]}
+  style={`--dot:${dot};--reveal-delay:${Math.min(index, 4) * 0.05}s`}
+>
+  <span class="entry__dot"></span>
+  <div class="entry__card">
+    <div class="entry__head">
+      <h2 class="entry__version">{release.version}</h2>
+      {release.badge && <span class:list={["entry__tag", `entry__tag--${release.badge.toLowerCase()}`]}>{release.badge}</span>}
+      <span class="entry__date">{release.date}</span>
+    </div>
+    {release.intro && <p class="entry__intro" set:html={release.intro} />}
+    <div class="entry__groups">
+      {
+        release.groups.map((g) => (
+          <div class="entry__group">
+            <span class:list={["gtag", `gtag--${g.tag.toLowerCase()}`]}>{g.tag}</span>
+            <ul class="entry__list">
+              {g.items.map((it) => <li set:html={it} />)}
+            </ul>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</article>
+
+<style>
+  .entry {
+    position: relative;
+    margin-bottom: 26px;
+  }
+  .entry__dot {
+    position: absolute;
+    left: -34px;
+    top: 24px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--dot);
+    border: 3px solid var(--bg);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--dot) 25%, transparent);
+  }
+  .entry__card {
+    padding: 26px 28px;
+    border-radius: 18px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+  }
+  .entry--featured .entry__card {
+    background: linear-gradient(150deg, oklch(0.72 0.16 260 / 0.12), rgba(255, 255, 255, 0.03));
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+  .entry__head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+  .entry__version {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    font-family: var(--font-mono);
+  }
+  .entry--featured .entry__version {
+    font-size: 26px;
+  }
+  .entry__tag {
+    padding: 3px 10px;
+    border-radius: 7px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+  }
+  .entry__tag--latest {
+    background: oklch(0.75 0.17 150 / 0.15);
+    color: var(--green-text);
+    border: 1px solid oklch(0.75 0.17 150 / 0.3);
+  }
+  .entry__tag--initial {
+    background: var(--surface-3);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .entry__date {
+    margin-left: auto;
+    font-size: 13px;
+    color: var(--faint);
+    font-family: var(--font-mono);
+  }
+  .entry__intro {
+    margin: 0 0 8px;
+    font-size: 15px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.66);
+  }
+  .entry__groups {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .gtag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    margin-bottom: 10px;
+  }
+  .gtag--added {
+    background: oklch(0.72 0.16 150 / 0.15);
+    color: oklch(0.85 0.1 150);
+  }
+  .gtag--improved {
+    background: oklch(0.72 0.16 260 / 0.15);
+    color: oklch(0.85 0.1 260);
+  }
+  .gtag--fixed {
+    background: oklch(0.72 0.16 30 / 0.15);
+    color: oklch(0.85 0.11 40);
+  }
+  .entry__list {
+    margin: 0;
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 15px;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.72);
+  }
+  .entry__list :global(strong) {
+    color: rgba(255, 255, 255, 0.92);
+    font-weight: 600;
+  }
+</style>
