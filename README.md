@@ -86,10 +86,12 @@ no arguments (or `--help`) prints usage to stdout and exits 0.
 ### Homebrew (recommended)
 
 Reader.md ships a [Homebrew Cask](Casks/reader-md.rb) in this repo. Because the
-repo isn't named `homebrew-*`, tap it with its explicit URL once, then install:
+repo isn't named `homebrew-*`, tap it with its explicit URL once, trust the cask,
+then install:
 
 ```bash
 brew tap jnahian/reader.md https://github.com/jnahian/reader.md
+brew trust --cask jnahian/reader.md/reader.md
 brew install --cask reader-md
 ```
 

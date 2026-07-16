@@ -1,17 +1,30 @@
 ---
-import { releasesLatest } from "../data/site";
+import { releasesLatest, brewTap, brewTrust, brewInstall } from "../data/site";
+import Icon from "./Icon.astro";
 ---
 
-<section class="cta container reveal">
+<section id="install" class="cta container reveal">
   <div class="cta__panel">
     <div class="cta__sweep" aria-hidden="true"></div>
     <h2 class="cta__title">Free, open source,<br />and unmistakably Mac.</h2>
     <p class="cta__sub">
       MIT-licensed. Requires macOS 13+. Liquid Glass lights up on macOS 26 (Tahoe).
     </p>
+    <div class="cta__brew">
+      <pre class="cta__code"><span class="c-cm"># tap, trust, then install</span>
+<span class="accent-cyan">{brewTap}</span>
+<span class="accent-cyan">{brewTrust}</span>
+<span class="accent-cyan">{brewInstall}</span>
+
+<span class="c-cm"># already installed and Gatekeeper still complains?</span>
+<span class="accent-cyan">xattr</span> -dr com.apple.quarantine "/Applications/Reader.md.app"</pre>
+      <p class="cta__note">
+        The <code>brew trust</code> step is required before installing from this tap.
+      </p>
+    </div>
     <div class="cta__actions">
-      <a href={releasesLatest} class="btn btn--light">Download the .dmg</a>
-      <a href="/docs" class="btn btn--ghost">Read the docs</a>
+      <a href={releasesLatest} class="btn btn--light"><Icon name="download" size={17} />Download the .dmg</a>
+      <a href="/docs" class="btn btn--ghost"><Icon name="book" size={17} />Read the docs</a>
     </div>
   </div>
 </section>
@@ -50,6 +63,30 @@ import { releasesLatest } from "../data/site";
     font-size: 17px;
     line-height: 1.55;
     color: rgba(255, 255, 255, 0.68);
+  }
+  .cta__brew {
+    max-width: 640px;
+    margin: 0 auto 34px;
+  }
+  .cta__code {
+    margin: 0;
+    padding: 18px 20px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid var(--border);
+    overflow-x: auto;
+    text-align: left;
+    font-family: var(--font-mono);
+    font-size: 13.5px;
+    line-height: 1.9;
+    color: rgba(255, 255, 255, 0.85);
+    white-space: pre;
+  }
+  .cta__note {
+    margin: 12px 4px 0;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.55);
   }
   .cta__actions {
     display: flex;

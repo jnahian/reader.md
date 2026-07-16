@@ -47,11 +47,16 @@ import { repo, releasesLatest, releases, website } from "../data/site";
         <h3 class="doc__h3">Homebrew</h3>
         <p class="doc__p">
           Because the repo isn't named <code class="tok">homebrew-*</code>, tap it with its explicit
-          URL once, then install:
+          URL once, trust the cask, then install:
         </p>
-        <pre class="pre"><span class="c-cm"># tap, then install</span>
+        <pre class="pre"><span class="c-cm"># tap, trust, then install</span>
 <span class="accent-cyan">brew</span> tap jnahian/reader.md https://github.com/jnahian/reader.md
+<span class="accent-cyan">brew</span> trust --cask jnahian/reader.md/reader.md
 <span class="accent-cyan">brew</span> install --cask reader-md</pre>
+        <p class="doc__p">
+          Already installed and Gatekeeper still complains? Clear the quarantine attribute:
+        </p>
+        <pre class="pre"><span class="accent-cyan">xattr</span> -dr com.apple.quarantine "/Applications/Reader.md.app"</pre>
         <p class="doc__p">
           Upgrades come from the app's own Sparkle updater, so <code class="tok">brew upgrade</code>
           leaves the installed build alone. To uninstall, including preferences and caches:
