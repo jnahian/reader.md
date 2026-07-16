@@ -1,5 +1,6 @@
 ---
-import { releasesLatest, brewInstall } from "../data/site";
+import { repo } from "../data/site";
+import Icon from "./Icon.astro";
 ---
 
 <header class="hero">
@@ -15,11 +16,8 @@ import { releasesLatest, brewInstall } from "../data/site";
     syntax highlighting — wrapped in a native Mac window that reads like it shipped with the OS.
   </p>
   <div class="hero__cta">
-    <a href={releasesLatest} class="btn btn--primary">
-      Download for macOS
-      <span class="hero__ext">.dmg</span>
-    </a>
-    <code class="hero__brew"><span class="accent-cyan">brew</span> {brewInstall.replace("brew ", "")}</code>
+    <a href="#install" class="btn btn--primary"><Icon name="download" size={17} />Download on Mac</a>
+    <a href={repo} class="btn btn--ghost" target="_blank" rel="noopener"><Icon name="star" size={17} />Star on GitHub</a>
   </div>
 
   <!-- App window mockup -->
@@ -184,24 +182,6 @@ import { releasesLatest, brewInstall } from "../data/site";
     justify-content: center;
     margin-top: 38px;
     animation: riseIn 0.8s 0.22s ease both;
-  }
-  .hero__ext {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    opacity: 0.72;
-    font-weight: 500;
-  }
-  .hero__brew {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 15px 20px;
-    border-radius: 13px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    font-family: var(--font-mono);
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.82);
   }
 
   /* ---- app window mockup ---- */

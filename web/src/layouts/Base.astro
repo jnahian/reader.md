@@ -2,7 +2,6 @@
 import "../styles/global.css";
 import Nav from "../components/Nav.astro";
 import Footer from "../components/Footer.astro";
-import BackgroundBlobs from "../components/BackgroundBlobs.astro";
 import type { Page } from "../data/site";
 
 interface Props {
@@ -48,14 +47,13 @@ const wideFooter = page === "docs";
     />
   </head>
   <body>
-    <BackgroundBlobs variant={page} />
     <Nav page={page} solid={solidNav} />
     <main>
       <slot />
     </main>
     <Footer wide={wideFooter} />
 
-    <!-- Shared behaviours: scroll-reveal, nav-on-scroll background, parallax blobs -->
+    <!-- Shared behaviours: scroll-reveal, nav-on-scroll background -->
     <script is:inline>
       (() => {
         const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -77,17 +75,12 @@ const wideFooter = page === "docs";
           document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
         }
 
-        // Nav background + parallax blobs on scroll
+        // Nav background on scroll
         const nav = document.querySelector("[data-nav]");
-        const blobs = reduce ? [] : document.querySelectorAll("[data-parallax]");
         const solid = nav && nav.classList.contains("nav--solid");
         const onScroll = () => {
           const y = window.scrollY;
           if (nav && !solid) nav.classList.toggle("is-scrolled", y > 20);
-          blobs.forEach((el) => {
-            const s = parseFloat(el.getAttribute("data-parallax")) || 0;
-            el.style.transform = "translate3d(0," + y * s + "px,0)";
-          });
         };
         onScroll();
         window.addEventListener("scroll", onScroll, { passive: true });
