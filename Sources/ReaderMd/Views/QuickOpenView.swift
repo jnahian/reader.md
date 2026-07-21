@@ -5,14 +5,20 @@ import AppKit
 struct QuickOpenView: View {
     @EnvironmentObject var state: AppState
     @State private var query = ""
+    @State private var debouncedQuery = ""
     @State private var selection = 0
     @State private var keyMonitor: Any?
     @FocusState private var focused: Bool
 
-    private var matches: [QuickMatch] {
+    /// Re-ranking walks every indexed file, so the list follows the debounced
+    /// query rather than each keystroke. Enter still uses the live query (see
+    /// `openSelected`) so a fast type-then-return can't open a stale row.
+    private var matches: [QuickMatch] { matches(for: debouncedQuery) }
+
+    private func matches(for text: String) -> [QuickMatch] {
         let files = state.allFilesIndexed()
-        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
-        let rootOrder = state.roots.map { $0.name }
+        let q = text.trimmingCharacters(in: .whitespaces).lowercased()
+        let rootOrder = state.roots.map { $0.id }
         let ordered = q.isEmpty
             ? quickOpenBrowseOrder(files, rootOrder: rootOrder, recentRank: { state.recentRank($0) })
             : quickOpenRankedMatches(files, query: q, recentRank: { state.recentRank($0) })
@@ -34,6 +40,13 @@ struct QuickOpenView: View {
                         .focused($focused)
                         .onSubmit { openSelected() }
                         .onChange(of: query) { _ in selection = 0 }
+                        // 120ms idle before re-ranking; the task is cancelled and
+                        // restarted on every keystroke.
+                        .task(id: query) {
+                            try? await Task.sleep(nanoseconds: 120_000_000)
+                            guard !Task.isCancelled else { return }
+                            debouncedQuery = query
+                        }
                 }
                 .padding(.horizontal, 17)
                 .padding(.vertical, 14)
@@ -101,7 +114,7 @@ struct QuickOpenView: View {
     }
 
     private func openSelected() {
-        let items = matches
+        let items = matches(for: query)
         guard selection < items.count else { return }
         open(items[selection].file.node)
     }
@@ -175,25 +188,29 @@ func quickOpenBrowseOrder(
     let recentPaths = Set(recents.map { $0.node.url.path })
 
     // Bucket the remaining files by owning root, each bucket sorted by path.
+    // Keyed by root *id*, not display name — two added folders can share a name
+    // ("docs" and "docs"), and merging them would both starve one of its slots
+    // and emit each file once per same-named root.
     var byRoot: [String: [IndexedFile]] = [:]
     for file in files where !recentPaths.contains(file.node.url.path) {
-        byRoot[file.rootName, default: []].append(file)
+        byRoot[file.rootID, default: []].append(file)
     }
-    for name in byRoot.keys {
-        byRoot[name]?.sort { $0.searchText.localizedCaseInsensitiveCompare($1.searchText) == .orderedAscending }
+    for id in byRoot.keys {
+        byRoot[id]?.sort { $0.searchText.localizedCaseInsensitiveCompare($1.searchText) == .orderedAscending }
     }
 
     // Visit roots in sidebar order first, then any bucket not covered by rootOrder.
-    var orderedNames = rootOrder.filter { byRoot[$0] != nil }
-    for name in byRoot.keys where !orderedNames.contains(name) { orderedNames.append(name) }
+    var seen = Set<String>()
+    var orderedIDs = rootOrder.filter { byRoot[$0] != nil && seen.insert($0).inserted }
+    orderedIDs += byRoot.keys.filter { !seen.contains($0) }.sorted()
 
     var interleaved: [IndexedFile] = []
     var depth = 0
     var addedAny = true
     while addedAny {
         addedAny = false
-        for name in orderedNames {
-            if let bucket = byRoot[name], depth < bucket.count {
+        for id in orderedIDs {
+            if let bucket = byRoot[id], depth < bucket.count {
                 interleaved.append(bucket[depth])
                 addedAny = true
             }
