@@ -41,12 +41,44 @@ Leave `build ... ?? "dev"` alone — "dev" is intentional for `swift run`.
 
 ## 4. Update `Sources/ReaderMd/Resources/docs/CHANGELOG.md`
 
-- Rename `## Unreleased` to `## NEW_DISPLAY — YYYY-MM-DD` (today's date).
+The changelog follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
+with semver versions. It is read by users, not machines: Sparkle shows the
+section in its update prompt and the app opens it as What's New after updating.
+
+- Rename `## [Unreleased]` to `## [NEW_DISPLAY] - YYYY-MM-DD` — bracketed
+  version, ISO date, today's.
+- Group the entries under the standard headings, in this order, omitting any
+  that are empty:
+
+  ```markdown
+  ## [Unreleased]
+
+  ## [1.12.0] - 2026-07-21
+
+  ### Added
+  - **A lead-in in bold** — then what it does, in a sentence a user recognizes.
+
+  ### Changed
+  - **Quick Open matches like the sidebar** — typing finds the same files the
+    sidebar filter finds, instead of a looser fuzzy match.
+
+  ### Fixed
+  - **Quick Open's arrow keys** — up and down now move through the results
+    you're looking at. They previously walked a stale list.
+  ```
+
+  `Added` / `Changed` / `Deprecated` / `Removed` / `Fixed` / `Security` — those
+  six, spelled that way. Anything that isn't new and isn't a bug fix is
+  `Changed`.
+- Write for the person who installed the app, not the person who wrote the
+  patch: name the behavior they'll notice, not the type or function. Keep the
+  bold lead-in — the app renders these as markdown.
 - **If the Unreleased section is empty, stop** and ask the user what changed —
   a release with no notes means changelog entries were never written during
   development. Fill them before continuing.
-- Do not leave an empty `## Unreleased` behind; add it again when the next
-  change lands.
+- Leave a bare `## [Unreleased]` heading at the top for the next change.
+- Entries older than the switch to this format are prose bullets under a
+  `## X.Y.Z — date` heading. Leave them; `release.sh` parses both heading styles.
 
 ## 5. Verify versions agree (before building)
 
@@ -127,7 +159,9 @@ The marketing site keeps its own hand-maintained copy of the release notes in
 
 - Add a `Release` entry at the top with `version`, `date` ("Mon D, YYYY"), and
   the items grouped into `ADDED` / `IMPROVED` / `FIXED` (items are HTML strings
-  with a bold `<strong>` lead-in).
+  with a bold `<strong>` lead-in). The site's buckets are narrower than Keep a
+  Changelog's headings: `Added` → `ADDED`, `Fixed` → `FIXED`, everything else
+  (`Changed`, `Removed`, `Deprecated`, `Security`) → `IMPROVED`.
 - Move the `badge: "LATEST"` from the previous release onto the new one.
 - Deploying the site is a separate step — see `web/DEPLOYMENT.md` (`wrangler
   pages deploy`); it is not part of the app release.

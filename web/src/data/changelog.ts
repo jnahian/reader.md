@@ -19,9 +19,29 @@ export interface Release {
 
 export const releasesLog: Release[] = [
   {
+    version: "1.12.0",
+    date: "Jul 21, 2026",
+    badge: "LATEST",
+    groups: [
+      {
+        tag: "IMPROVED",
+        items: [
+          "<strong>Quick Open searches every folder, and it's instant</strong> \u2014 \u2318P used to sort the whole index by folder name and cut the list short, so a large first folder hid every other folder and server you'd added. It now searches all of them, and builds its index once when it opens instead of re-scanning your folders on every keystroke.",
+          "<strong>Quick Open matches like the sidebar</strong> \u2014 typing finds the same files the sidebar filter finds \u2014 any part of a filename, upper or lower case \u2014 instead of a looser fuzzy match that surfaced files you didn't mean.",
+          "<strong>An empty Quick Open lists your recent files</strong> \u2014 the files you opened most recently, ten rows, the same cap search results use.",
+        ],
+      },
+      {
+        tag: "FIXED",
+        items: [
+          "<strong>Quick Open's arrow keys</strong> \u2014 up and down now move through the results you're actually looking at, and Return opens the highlighted one. They previously walked the list as it was before you started typing.",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.11.0",
     date: "Jul 15, 2026",
-    badge: "LATEST",
     groups: [
       {
         tag: "IMPROVED",
