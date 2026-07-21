@@ -78,7 +78,6 @@ struct TOCEntry: Identifiable, Equatable {
 /// A markdown file paired with the root folder it lives under, for quick-open.
 struct IndexedFile: Identifiable {
     let node: FileNode
-    let rootID: String        // identity of the owning root; names can collide
     let rootName: String      // display name of the owning root folder
     let relativePath: String  // path from the root, e.g. "guides/setup.md"
     var id: String { node.id }
@@ -579,7 +578,7 @@ final class AppState: ObservableObject {
                         if rel.hasPrefix(rootPath + "/") {
                             rel = String(rel.dropFirst(rootPath.count + 1))
                         }
-                        result.append(IndexedFile(node: n, rootID: root.id, rootName: root.name, relativePath: rel))
+                        result.append(IndexedFile(node: n, rootName: root.name, relativePath: rel))
                     }
                 }
             }

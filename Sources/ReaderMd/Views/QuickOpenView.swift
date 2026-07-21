@@ -1,29 +1,13 @@
 import SwiftUI
 import AppKit
 
-/// ⌘P command palette — fuzzy file switcher across all roots.
+/// ⌘P command palette — file switcher across all roots. Matching is the same
+/// rule the sidebar filter uses (`FileNode.matches`), so the two searches agree.
 struct QuickOpenView: View {
     @EnvironmentObject var state: AppState
-    @State private var query = ""
-    @State private var debouncedQuery = ""
-    @State private var selection = 0
+    @StateObject private var model = QuickOpenModel()
     @State private var keyMonitor: Any?
     @FocusState private var focused: Bool
-
-    /// Re-ranking walks every indexed file, so the list follows the debounced
-    /// query rather than each keystroke. Enter still uses the live query (see
-    /// `openSelected`) so a fast type-then-return can't open a stale row.
-    private var matches: [IndexedFile] { matches(for: debouncedQuery) }
-
-    private func matches(for text: String) -> [IndexedFile] {
-        let files = state.allFilesIndexed()
-        let q = text.trimmingCharacters(in: .whitespaces).lowercased()
-        let rootOrder = state.roots.map { $0.id }
-        let ordered = q.isEmpty
-            ? quickOpenBrowseOrder(files, rootOrder: rootOrder, recentRank: { state.recentRank($0) })
-            : quickOpenRankedMatches(files, query: q, recentRank: { state.recentRank($0) })
-        return Array(ordered.prefix(quickOpenResultLimit))
-    }
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -34,28 +18,20 @@ struct QuickOpenView: View {
             VStack(spacing: 0) {
                 HStack(spacing: 10) {
                     Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                    TextField("Search files and folders…", text: $query)
+                    TextField("Search files and folders…", text: $model.query)
                         .textFieldStyle(.plain)
                         .font(.system(size: 15))
                         .focused($focused)
                         .onSubmit { openSelected() }
-                        .onChange(of: query) { _ in selection = 0 }
-                        // 120ms idle before re-ranking; the task is cancelled and
-                        // restarted on every keystroke.
-                        .task(id: query) {
-                            try? await Task.sleep(nanoseconds: 120_000_000)
-                            guard !Task.isCancelled else { return }
-                            debouncedQuery = query
-                        }
                 }
                 .padding(.horizontal, 17)
                 .padding(.vertical, 14)
 
                 Divider()
 
-                let items = matches
+                let items = model.matches
                 if items.isEmpty {
-                    Text("No files")
+                    Text(model.query.isEmpty ? "Type to search files" : "No files")
                         .foregroundStyle(.tertiary)
                         .font(.system(size: 13))
                         .frame(maxWidth: .infinity)
@@ -65,7 +41,7 @@ struct QuickOpenView: View {
                         ScrollView {
                             LazyVStack(spacing: 1) {
                                 ForEach(Array(items.enumerated()), id: \.element.node.id) { idx, file in
-                                    QuickOpenRow(file: file, selected: idx == selection)
+                                    QuickOpenRow(file: file, selected: idx == model.selection)
                                         .id(idx)
                                         .onTapGesture { open(file.node) }
                                 }
@@ -73,7 +49,7 @@ struct QuickOpenView: View {
                             .padding(6)
                         }
                         .frame(maxHeight: 340)
-                        .onChange(of: selection) { newValue in
+                        .onChange(of: model.selection) { newValue in
                             withAnimation(.linear(duration: 0.08)) { proxy.scrollTo(newValue, anchor: .center) }
                         }
                     }
@@ -89,22 +65,21 @@ struct QuickOpenView: View {
         // The focused TextField swallows arrow keys before .onMoveCommand can see
         // them, so intercept up/down with a local monitor while the palette is open.
         .onAppear {
+            model.load(state)
             // Async, not direct: ⌘P arrives as a menu command, and AppKit restores the
             // window's first responder *after* the menu dismisses — clobbering a focus
             // set synchronously here. One runloop turn later, the restore has happened
             // and the field keeps focus.
             DispatchQueue.main.async { focused = true }
-            keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-                let count = matches.count
+            // The monitor captures `model` (a reference), never the view's own
+            // @State: an escaping closure holding @State keeps reading the query
+            // and list as they were when the palette opened, so the arrows walked
+            // a stale list and Enter opened the wrong row.
+            keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [model] event in
                 switch event.keyCode {
-                case 125: // down arrow
-                    if count > 0 { selection = min(selection + 1, count - 1) }
-                    return nil
-                case 126: // up arrow
-                    if count > 0 { selection = max(selection - 1, 0) }
-                    return nil
-                default:
-                    return event
+                case 125: model.move(1);  return nil   // down arrow
+                case 126: model.move(-1); return nil   // up arrow
+                default:  return event
                 }
             }
         }
@@ -114,9 +89,8 @@ struct QuickOpenView: View {
     }
 
     private func openSelected() {
-        let items = matches(for: query)
-        guard selection < items.count else { return }
-        open(items[selection].node)
+        guard let file = model.selected else { return }
+        open(file.node)
     }
 
     private func open(_ node: FileNode) {
@@ -126,6 +100,47 @@ struct QuickOpenView: View {
 
     private func close() {
         state.showQuickOpen = false
+    }
+}
+
+/// Palette state. A class, not view `@State`, so the key-event monitor reads the
+/// live query and selection instead of a snapshot taken when it was installed.
+@MainActor
+final class QuickOpenModel: ObservableObject {
+    @Published var query = "" { didSet { selection = 0 } }
+    @Published private(set) var selection = 0
+
+    private var files: [IndexedFile] = []
+    private var recents: [String] = []
+
+    /// Index the roots once per open. Walking every root's tree on each
+    /// keystroke is what made ⌘P feel slower than the sidebar filter; the
+    /// palette is transient, so a file that appears while it's up can wait.
+    func load(_ state: AppState) {
+        files = state.allFilesIndexed()
+        recents = state.recentFiles
+        query = ""
+        selection = 0
+    }
+
+    var matches: [IndexedFile] {
+        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
+        let rank: (String) -> Int? = { [recents] path in recents.firstIndex(of: path) }
+        let ordered = q.isEmpty
+            ? quickOpenRecents(files, recentRank: rank)
+            : quickOpenMatches(files, query: q, recentRank: rank)
+        return Array(ordered.prefix(quickOpenResultLimit))
+    }
+
+    /// The selected row, clamped — the list shrinks as you type.
+    var selected: IndexedFile? {
+        let items = matches
+        return items.indices.contains(selection) ? items[selection] : items.first
+    }
+
+    func move(_ delta: Int) {
+        let count = matches.count
+        selection = count > 0 ? min(max(0, selection + delta), count - 1) : 0
     }
 }
 
@@ -161,105 +176,36 @@ private struct QuickOpenRow: View {
     }
 }
 
-/// Max rows the palette shows. A cap keeps the list snappy; the ordering below
-/// makes sure that within it every added folder/server is represented rather than
-/// the first root monopolizing all the slots.
-let quickOpenResultLimit = 100
+/// Max rows the palette shows — recents when the query is empty, matches
+/// otherwise. Small on purpose: past ten rows you type instead of scrolling.
+let quickOpenResultLimit = 10
 
-/// Ordering for an empty query (browse mode): recently opened files first (in
-/// recency order), then every other file interleaved across roots round-robin.
-///
-/// The interleave is the fix for "⌘P can't find files from all added
-/// folders/servers": a flat alphabetical sort front-loads whichever root sorts
-/// first, so once one folder has more files than the visible cap, no other
-/// folder's files ever appear. Round-robin guarantees each root gets slots.
-func quickOpenBrowseOrder(
-    _ files: [IndexedFile],
-    rootOrder: [String],
-    limit: Int = quickOpenResultLimit,
-    recentRank: (String) -> Int?
-) -> [IndexedFile] {
-    let recents = files
-        .filter { recentRank($0.node.url.path) != nil }
-        .sorted { (recentRank($0.node.url.path) ?? 0) < (recentRank($1.node.url.path) ?? 0) }
-    let recentPaths = Set(recents.map { $0.node.url.path })
-
-    // Bucket the remaining files by owning root, each bucket sorted by path.
-    // Keyed by root *id*, not display name — two added folders can share a name
-    // ("docs" and "docs"), and merging them would both starve one of its slots
-    // and emit each file once per same-named root.
-    var byRoot: [String: [IndexedFile]] = [:]
-    for file in files where !recentPaths.contains(file.node.url.path) {
-        byRoot[file.rootID, default: []].append(file)
-    }
-    for id in byRoot.keys {
-        byRoot[id]?.sort { $0.searchText.localizedCaseInsensitiveCompare($1.searchText) == .orderedAscending }
-    }
-
-    // Visit roots in sidebar order first, then any bucket not covered by rootOrder.
-    var seen = Set<String>()
-    var orderedIDs = rootOrder.filter { byRoot[$0] != nil && seen.insert($0).inserted }
-    orderedIDs += byRoot.keys.filter { !seen.contains($0) }.sorted()
-
-    // Stop at the visible cap: with lopsided roots the round-robin would otherwise
-    // walk roots × largest-bucket passes to build rows nobody sees.
-    var interleaved: [IndexedFile] = []
-    var depth = 0
-    var addedAny = true
-    while addedAny && recents.count + interleaved.count < limit {
-        addedAny = false
-        for id in orderedIDs {
-            if let bucket = byRoot[id], depth < bucket.count {
-                interleaved.append(bucket[depth])
-                addedAny = true
-            }
-        }
-        depth += 1
-    }
-    return recents + interleaved
+/// Ordering for an empty query: the most recently opened files, newest first.
+/// Browsing the whole corpus isn't useful in a 10-row list — type to search.
+func quickOpenRecents(_ files: [IndexedFile], recentRank: (String) -> Int?) -> [IndexedFile] {
+    files
+        .compactMap { file in recentRank(file.node.url.path).map { (file, $0) } }
+        .sorted { $0.1 < $1.1 }
+        .map { $0.0 }
 }
 
-/// Ranking for a non-empty query: fuzzy match against both the filename and the
-/// whole "root/folder/file" path. Filename hits outrank folder-only hits, and
-/// recently opened files break ties. Score is global (across every root), so a
-/// good match in any added folder/server survives the visible cap.
-func quickOpenRankedMatches(
+/// Matching for a typed query: the sidebar's own filter (`FileNode.matches` — a
+/// case-insensitive substring of the filename), applied across every root.
+/// Recently opened files float to the top, the rest sort by path.
+func quickOpenMatches(
     _ files: [IndexedFile],
     query q: String,
     recentRank: (String) -> Int?
 ) -> [IndexedFile] {
     files
-        .compactMap { file -> (file: IndexedFile, score: Int)? in
-            let nameScore = fuzzyScore(q, file.node.name.lowercased())
-            let pathScore = fuzzyScore(q, file.searchText.lowercased())
-            guard nameScore != nil || pathScore != nil else { return nil }
-            var score = max(nameScore ?? Int.min, pathScore ?? Int.min)
-            if nameScore != nil { score += 40 }   // prefer filename matches
-            if let rank = recentRank(file.node.url.path) {
-                score += max(0, 30 - rank * 2)     // gentle recency nudge
+        .filter { $0.node.matches(q) }
+        .sorted { a, b in
+            switch (recentRank(a.node.url.path), recentRank(b.node.url.path)) {
+            case let (.some(x), .some(y)): return x < y
+            case (.some, .none): return true
+            case (.none, .some): return false
+            case (.none, .none):
+                return a.searchText.localizedCaseInsensitiveCompare(b.searchText) == .orderedAscending
             }
-            return (file, score)
         }
-        .sorted { $0.score > $1.score }
-        .map { $0.file }
-}
-
-/// Simple fuzzy subsequence scorer. Returns nil if `query` isn't a subsequence of `text`.
-func fuzzyScore(_ query: String, _ text: String) -> Int? {
-    let q = Array(query), t = Array(text)
-    guard !q.isEmpty else { return 0 }
-    var qi = 0, score = 0, streak = 0
-    for (ti, ch) in t.enumerated() {
-        if qi < q.count && ch == q[qi] {
-            streak += 1
-            score += 5 + streak * 3          // reward contiguous runs
-            if ti == 0 { score += 15 }       // prefix bonus
-            qi += 1
-        } else {
-            streak = 0
-        }
-    }
-    guard qi == q.count else { return nil }
-    score -= (t.count - q.count)             // prefer shorter, tighter names
-    return score
 }

@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `swift run ReaderMd` — build and launch the app (unsandboxed executable; reads any folder you add).
 - `swift build` / `swift build -c release` — compile only.
 - `./make-app.sh` then `open "build/Reader.md.app"` — assemble a double-clickable `.app` (release binary + SwiftPM resource bundle + icns + Info.plist).
-- `swift test` — runs the `ReaderMdTests` target (currently just `fuzzyScore`, the ⌘P ranker). Most of the app is UI/WKWebView/FSEvents; verify those by running the app.
+- `swift test` — runs the `ReaderMdTests` target (pure logic only: ⌘P matching/recents, CLI routing, marks, stdin docs). Most of the app is UI/WKWebView/FSEvents; verify those by running the app.
 
 **Build toolchain:** Requires Xcode 26 / Swift 6.2+ with the macOS 26 SDK, because the `glassEffect` (Liquid Glass) symbols only exist there. Deployment target stays macOS 13, so runtime code must guard 26-only APIs with availability checks and fall back to `NSVisualEffectView`.
 
