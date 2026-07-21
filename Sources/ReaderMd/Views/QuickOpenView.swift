@@ -12,40 +12,11 @@ struct QuickOpenView: View {
     private var matches: [QuickMatch] {
         let files = state.allFilesIndexed()
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
-
-        // Empty query → recents first (in recency order), then everything else.
-        if q.isEmpty {
-            let ordered = files.sorted { a, b in
-                let ra = state.recentRank(a.node.url.path)
-                let rb = state.recentRank(b.node.url.path)
-                switch (ra, rb) {
-                case let (.some(x), .some(y)): return x < y
-                case (.some, .none): return true
-                case (.none, .some): return false
-                case (.none, .none):
-                    return a.searchText.localizedCaseInsensitiveCompare(b.searchText) == .orderedAscending
-                }
-            }
-            return Array(ordered.prefix(60)).map { QuickMatch(file: $0, score: 0) }
-        }
-
-        // Non-empty query → fuzzy match against the whole "root/folder/file" path.
-        // Filename hits outrank folder-only hits, and recently opened files break ties.
-        return files
-            .compactMap { file -> QuickMatch? in
-                let nameScore = fuzzyScore(q, file.node.name.lowercased())
-                let pathScore = fuzzyScore(q, file.searchText.lowercased())
-                guard nameScore != nil || pathScore != nil else { return nil }
-                var score = max(nameScore ?? Int.min, (pathScore ?? Int.min))
-                if nameScore != nil { score += 40 }   // prefer filename matches
-                if let rank = state.recentRank(file.node.url.path) {
-                    score += max(0, 30 - rank * 2)     // gentle recency nudge
-                }
-                return QuickMatch(file: file, score: score)
-            }
-            .sorted { $0.score > $1.score }
-            .prefix(60)
-            .map { $0 }
+        let rootOrder = state.roots.map { $0.name }
+        let ordered = q.isEmpty
+            ? quickOpenBrowseOrder(files, rootOrder: rootOrder, recentRank: { state.recentRank($0) })
+            : quickOpenRankedMatches(files, query: q, recentRank: { state.recentRank($0) })
+        return Array(ordered.prefix(quickOpenResultLimit)).map { QuickMatch(file: $0) }
     }
 
     var body: some View {
@@ -147,7 +118,6 @@ struct QuickOpenView: View {
 
 private struct QuickMatch {
     let file: IndexedFile
-    let score: Int
 }
 
 private struct QuickOpenRow: View {
@@ -180,6 +150,82 @@ private struct QuickOpenRow: View {
         .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(selected ? Color.accentColor : Color.clear))
         .contentShape(Rectangle())
     }
+}
+
+/// Max rows the palette shows. A cap keeps the list snappy; the ordering below
+/// makes sure that within it every added folder/server is represented rather than
+/// the first root monopolizing all the slots.
+let quickOpenResultLimit = 100
+
+/// Ordering for an empty query (browse mode): recently opened files first (in
+/// recency order), then every other file interleaved across roots round-robin.
+///
+/// The interleave is the fix for "⌘P can't find files from all added
+/// folders/servers": a flat alphabetical sort front-loads whichever root sorts
+/// first, so once one folder has more files than the visible cap, no other
+/// folder's files ever appear. Round-robin guarantees each root gets slots.
+func quickOpenBrowseOrder(
+    _ files: [IndexedFile],
+    rootOrder: [String],
+    recentRank: (String) -> Int?
+) -> [IndexedFile] {
+    let recents = files
+        .filter { recentRank($0.node.url.path) != nil }
+        .sorted { (recentRank($0.node.url.path) ?? 0) < (recentRank($1.node.url.path) ?? 0) }
+    let recentPaths = Set(recents.map { $0.node.url.path })
+
+    // Bucket the remaining files by owning root, each bucket sorted by path.
+    var byRoot: [String: [IndexedFile]] = [:]
+    for file in files where !recentPaths.contains(file.node.url.path) {
+        byRoot[file.rootName, default: []].append(file)
+    }
+    for name in byRoot.keys {
+        byRoot[name]?.sort { $0.searchText.localizedCaseInsensitiveCompare($1.searchText) == .orderedAscending }
+    }
+
+    // Visit roots in sidebar order first, then any bucket not covered by rootOrder.
+    var orderedNames = rootOrder.filter { byRoot[$0] != nil }
+    for name in byRoot.keys where !orderedNames.contains(name) { orderedNames.append(name) }
+
+    var interleaved: [IndexedFile] = []
+    var depth = 0
+    var addedAny = true
+    while addedAny {
+        addedAny = false
+        for name in orderedNames {
+            if let bucket = byRoot[name], depth < bucket.count {
+                interleaved.append(bucket[depth])
+                addedAny = true
+            }
+        }
+        depth += 1
+    }
+    return recents + interleaved
+}
+
+/// Ranking for a non-empty query: fuzzy match against both the filename and the
+/// whole "root/folder/file" path. Filename hits outrank folder-only hits, and
+/// recently opened files break ties. Score is global (across every root), so a
+/// good match in any added folder/server survives the visible cap.
+func quickOpenRankedMatches(
+    _ files: [IndexedFile],
+    query q: String,
+    recentRank: (String) -> Int?
+) -> [IndexedFile] {
+    files
+        .compactMap { file -> (file: IndexedFile, score: Int)? in
+            let nameScore = fuzzyScore(q, file.node.name.lowercased())
+            let pathScore = fuzzyScore(q, file.searchText.lowercased())
+            guard nameScore != nil || pathScore != nil else { return nil }
+            var score = max(nameScore ?? Int.min, pathScore ?? Int.min)
+            if nameScore != nil { score += 40 }   // prefer filename matches
+            if let rank = recentRank(file.node.url.path) {
+                score += max(0, 30 - rank * 2)     // gentle recency nudge
+            }
+            return (file, score)
+        }
+        .sorted { $0.score > $1.score }
+        .map { $0.file }
 }
 
 /// Simple fuzzy subsequence scorer. Returns nil if `query` isn't a subsequence of `text`.
