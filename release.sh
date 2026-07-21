@@ -38,9 +38,11 @@ fi
 # no changelog entry is a mistake, not a release — refuse it, the same way we refuse a
 # CFBundleVersion that didn't increase.
 CHANGELOG="Sources/ReaderMd/Resources/docs/CHANGELOG.md"
+# The heading is Keep a Changelog's "## [1.2.0] - 2026-07-21"; entries written
+# before that format was adopted read "## 1.2.0 — 2026-07-21", so accept both.
 NOTES="$(awk -v v="${VERSION}" '
-  $0 ~ "^## " v "( |$|—)" { found = 1; next }   # skip the heading itself
-  found && /^## / { exit }                       # stop at the next version
+  $0 ~ "^## \\[?" v "\\]?( |$|—|-)" { found = 1; next }   # skip the heading itself
+  found && /^## / { exit }                                 # stop at the next version
   found { print }
 ' "${CHANGELOG}")"
 if [ -z "$(printf '%s' "${NOTES}" | tr -d '[:space:]')" ]; then
