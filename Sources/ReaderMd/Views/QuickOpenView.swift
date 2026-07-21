@@ -13,16 +13,16 @@ struct QuickOpenView: View {
     /// Re-ranking walks every indexed file, so the list follows the debounced
     /// query rather than each keystroke. Enter still uses the live query (see
     /// `openSelected`) so a fast type-then-return can't open a stale row.
-    private var matches: [QuickMatch] { matches(for: debouncedQuery) }
+    private var matches: [IndexedFile] { matches(for: debouncedQuery) }
 
-    private func matches(for text: String) -> [QuickMatch] {
+    private func matches(for text: String) -> [IndexedFile] {
         let files = state.allFilesIndexed()
         let q = text.trimmingCharacters(in: .whitespaces).lowercased()
         let rootOrder = state.roots.map { $0.id }
         let ordered = q.isEmpty
             ? quickOpenBrowseOrder(files, rootOrder: rootOrder, recentRank: { state.recentRank($0) })
             : quickOpenRankedMatches(files, query: q, recentRank: { state.recentRank($0) })
-        return Array(ordered.prefix(quickOpenResultLimit)).map { QuickMatch(file: $0) }
+        return Array(ordered.prefix(quickOpenResultLimit))
     }
 
     var body: some View {
@@ -64,10 +64,10 @@ struct QuickOpenView: View {
                     ScrollViewReader { proxy in
                         ScrollView {
                             LazyVStack(spacing: 1) {
-                                ForEach(Array(items.enumerated()), id: \.element.file.node.id) { idx, match in
-                                    QuickOpenRow(match: match, selected: idx == selection)
+                                ForEach(Array(items.enumerated()), id: \.element.node.id) { idx, file in
+                                    QuickOpenRow(file: file, selected: idx == selection)
                                         .id(idx)
-                                        .onTapGesture { open(match.file.node) }
+                                        .onTapGesture { open(file.node) }
                                 }
                             }
                             .padding(6)
@@ -116,7 +116,7 @@ struct QuickOpenView: View {
     private func openSelected() {
         let items = matches(for: query)
         guard selection < items.count else { return }
-        open(items[selection].file.node)
+        open(items[selection].node)
     }
 
     private func open(_ node: FileNode) {
@@ -129,12 +129,8 @@ struct QuickOpenView: View {
     }
 }
 
-private struct QuickMatch {
-    let file: IndexedFile
-}
-
 private struct QuickOpenRow: View {
-    let match: QuickMatch
+    let file: IndexedFile
     let selected: Bool
 
     var body: some View {
@@ -143,13 +139,13 @@ private struct QuickOpenRow: View {
                 .font(.system(size: 12))
                 .foregroundStyle(selected ? Color.white : Color.secondary)
             VStack(alignment: .leading, spacing: 1) {
-                Text(match.file.node.name)
+                Text(file.node.name)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(selected ? Color.white : Color.primary)
                 HStack(spacing: 5) {
                     Image(systemName: "folder")
                         .font(.system(size: 9))
-                    Text(match.file.locationLabel)
+                    Text(file.locationLabel)
                         .font(.system(size: 11))
                         .lineLimit(1)
                         .truncationMode(.head)
@@ -180,6 +176,7 @@ let quickOpenResultLimit = 100
 func quickOpenBrowseOrder(
     _ files: [IndexedFile],
     rootOrder: [String],
+    limit: Int = quickOpenResultLimit,
     recentRank: (String) -> Int?
 ) -> [IndexedFile] {
     let recents = files
@@ -204,10 +201,12 @@ func quickOpenBrowseOrder(
     var orderedIDs = rootOrder.filter { byRoot[$0] != nil && seen.insert($0).inserted }
     orderedIDs += byRoot.keys.filter { !seen.contains($0) }.sorted()
 
+    // Stop at the visible cap: with lopsided roots the round-robin would otherwise
+    // walk roots × largest-bucket passes to build rows nobody sees.
     var interleaved: [IndexedFile] = []
     var depth = 0
     var addedAny = true
-    while addedAny {
+    while addedAny && recents.count + interleaved.count < limit {
         addedAny = false
         for id in orderedIDs {
             if let bucket = byRoot[id], depth < bucket.count {

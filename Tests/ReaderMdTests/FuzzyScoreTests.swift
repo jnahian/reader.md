@@ -91,7 +91,7 @@ final class QuickOpenOrderingTests: XCTestCase {
         for i in 0..<50 { files.append(file(root: "docs", path: "a\(i).md", id: "/x/docs")) }
 
         let ordered = quickOpenBrowseOrder(files, rootOrder: ["/x/docs", "/y/docs"],
-                                           recentRank: { _ in nil })
+                                           limit: files.count, recentRank: { _ in nil })
 
         XCTAssertEqual(ordered.count, files.count)
         XCTAssertEqual(Set(ordered.map { $0.node.url.path }).count, files.count)   // no duplicates
