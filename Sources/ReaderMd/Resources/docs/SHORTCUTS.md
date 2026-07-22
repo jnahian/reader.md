@@ -7,7 +7,7 @@
 | ⌘O | Open File… |
 | ⇧⌘A | Add Folder… |
 | ⌥⌘A | Add Remote Folder… |
-| ⌘P | Quick Open (fuzzy file search) |
+| ⌘P | Quick Open (files, `>` commands, `#` headings) |
 | ⌘E | Export as PDF… |
 | ⌘R | Reload |
 
@@ -35,8 +35,13 @@
 | Shortcut | Action |
 | --- | --- |
 | ↑ ↓ | Move through results |
-| ⏎ | Open the selected file |
+| ⏎ | Open / run the selected result |
+| ⌘1–⌘9 | Open the first nine results directly |
 | ⎋ | Dismiss |
+
+Type to fuzzy-search files across every folder (matches the folder path too).
+Start the query with `>` to run a command, or `#` to jump to a heading in the
+document you're reading.
 
 ## View
 

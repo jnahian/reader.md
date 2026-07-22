@@ -1,10 +1,12 @@
 import SwiftUI
 import AppKit
 
-/// ⌘P command palette — file switcher across all roots. A typed query is
-/// fuzzy-matched against each file's full "root/folder/file.md" path, so both
-/// filename and folder narrow the list; matched characters are highlighted in
-/// the row and the result count/hints show in the footer.
+/// ⌘P command palette. Three modes, chosen by a leading character in the query:
+///   • (default) fuzzy-match files against their full "root/folder/file.md" path
+///   • `>`       run an app command (toggle theme, export, add folder, …)
+///   • `#`       jump to a heading in the current document
+/// Matched characters are highlighted in each row; the footer shows hints and a
+/// result count, and ⌘1–9 activates one of the first nine rows directly.
 struct QuickOpenView: View {
     @EnvironmentObject var state: AppState
     @StateObject private var model = QuickOpenModel()
@@ -20,11 +22,11 @@ struct QuickOpenView: View {
             VStack(spacing: 0) {
                 HStack(spacing: 10) {
                     Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                    TextField("Search files and folders…", text: $model.query)
+                    TextField("Search files —  > commands  ·  # headings", text: $model.query)
                         .textFieldStyle(.plain)
                         .font(.system(size: 15))
                         .focused($focused)
-                        .onSubmit { openSelected() }
+                        .onSubmit { activateSelected() }
                 }
                 .padding(.horizontal, 17)
                 .padding(.vertical, 14)
@@ -33,7 +35,7 @@ struct QuickOpenView: View {
 
                 let items = model.matches
                 if items.isEmpty {
-                    Text(model.query.isEmpty ? "Type to search files" : "No files")
+                    Text(emptyStateText)
                         .foregroundStyle(.tertiary)
                         .font(.system(size: 13))
                         .frame(maxWidth: .infinity)
@@ -42,10 +44,10 @@ struct QuickOpenView: View {
                     ScrollViewReader { proxy in
                         ScrollView {
                             LazyVStack(spacing: 1) {
-                                ForEach(Array(items.enumerated()), id: \.element.id) { idx, result in
-                                    QuickOpenRow(result: result, index: idx, selected: idx == model.selection)
+                                ForEach(Array(items.enumerated()), id: \.element.id) { idx, item in
+                                    QuickOpenRow(content: item.rowContent, index: idx, selected: idx == model.selection)
                                         .id(idx)
-                                        .onTapGesture { open(result.file.node) }
+                                        .onTapGesture { activatePaletteItem(item, in: state) }
                                 }
                             }
                             .padding(6)
@@ -81,14 +83,13 @@ struct QuickOpenView: View {
             // query and list as they were when the palette opened, so the arrows
             // walked a stale list and Enter opened the wrong row.
             keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [model, state] event in
-                // ⌘1–9 opens the Nth visible row directly.
+                // ⌘1–9 activates the Nth visible row directly.
                 if event.modifierFlags.contains(.command),
                    let chars = event.charactersIgnoringModifiers,
                    let n = Int(chars), (1...9).contains(n) {
                     let items = model.matches
                     guard items.indices.contains(n - 1) else { return event }
-                    state.open(items[n - 1].file.node)
-                    state.showQuickOpen = false
+                    activatePaletteItem(items[n - 1], in: state)
                     return nil
                 }
                 switch event.keyCode {
@@ -103,11 +104,20 @@ struct QuickOpenView: View {
         }
     }
 
+    /// Placeholder shown when the current mode has no results.
+    private var emptyStateText: String {
+        switch model.mode {
+        case .commands: return "No matching commands"
+        case .headings: return model.hasHeadings ? "No matching headings" : "No headings in this document"
+        case .files:    return model.effectiveQuery.isEmpty ? "Type to search files" : "No files"
+        }
+    }
+
     /// Bottom bar: key hints on the left, result count on the right.
     private func footer(shown: Int, total: Int) -> some View {
         HStack(spacing: 12) {
             hint("↑↓", "navigate")
-            hint("↩", "open")
+            hint("↩", "select")
             hint("⌘1–9", "jump")
             Spacer(minLength: 0)
             if shown > 0 {
@@ -130,19 +140,105 @@ struct QuickOpenView: View {
         }
     }
 
-    private func openSelected() {
-        guard let result = model.selected else { return }
-        open(result.file.node)
-    }
-
-    private func open(_ node: FileNode) {
-        state.open(node)
-        close()
+    private func activateSelected() {
+        guard let item = model.selected else { return }
+        activatePaletteItem(item, in: state)
     }
 
     private func close() {
         state.showQuickOpen = false
     }
+}
+
+/// Which list the palette is showing, decided by the query's leading character.
+enum PaletteMode { case files, commands, headings }
+
+/// A single row in the palette — a file, a command, or a heading — each carrying
+/// the character indices in its title that the query matched (for highlighting).
+enum PaletteItem: Identifiable {
+    case file(QuickOpenResult)
+    case command(PaletteCommand, titleMatches: [Int])
+    case heading(TOCEntry, titleMatches: [Int])
+
+    var id: String {
+        switch self {
+        case .file(let r):       return "file:\(r.id)"
+        case .command(let c, _): return "cmd:\(c.id)"
+        case .heading(let h, _): return "head:\(h.id)"
+        }
+    }
+
+    var rowContent: RowContent {
+        switch self {
+        case .file(let r):
+            return RowContent(systemImage: "doc.text", title: r.file.node.name,
+                              titleMatches: r.nameMatches, subtitle: r.file.locationLabel,
+                              subtitleImage: "folder")
+        case .command(let c, let m):
+            return RowContent(systemImage: c.systemImage, title: c.title,
+                              titleMatches: m, subtitle: c.subtitle, subtitleImage: nil)
+        case .heading(let h, let m):
+            return RowContent(systemImage: "number", title: h.text,
+                              titleMatches: m, subtitle: nil, subtitleImage: nil)
+        }
+    }
+}
+
+/// Perform a palette row's action, then dismiss the palette. Shared by the
+/// Enter key, mouse click, and ⌘1–9 paths so they can't drift apart.
+@MainActor
+func activatePaletteItem(_ item: PaletteItem, in state: AppState) {
+    switch item {
+    case .file(let r):       state.open(r.file.node)
+    case .command(let c, _): c.run(state)
+    case .heading(let h, _): state.requestScroll(to: h.id)
+    }
+    state.showQuickOpen = false
+}
+
+/// An app action reachable from `>` command mode. `run` is `@MainActor` so its
+/// body can call `AppState`'s main-actor methods directly.
+struct PaletteCommand: Identifiable {
+    let id: String
+    let title: String
+    let subtitle: String
+    let systemImage: String
+    let run: @MainActor (AppState) -> Void
+}
+
+/// The commands offered in `>` mode, in display order. Document-scoped commands
+/// (export, copy path) appear only when a file is open, so they can't no-op.
+@MainActor
+func paletteCommands(_ state: AppState) -> [PaletteCommand] {
+    var cmds: [PaletteCommand] = [
+        PaletteCommand(id: "theme",
+                       title: state.theme == .dark ? "Switch to Light Appearance" : "Switch to Dark Appearance",
+                       subtitle: "Appearance",
+                       systemImage: state.theme == .dark ? "sun.max" : "moon") { $0.toggleTheme() },
+        PaletteCommand(id: "sidebar", title: "Toggle Sidebar", subtitle: "Layout",
+                       systemImage: "sidebar.left") { $0.toggleSidebar() },
+        PaletteCommand(id: "outline", title: "Toggle Outline", subtitle: "Layout",
+                       systemImage: "list.bullet.indent") { $0.setShowTOC(!$0.showTOC) },
+        PaletteCommand(id: "width", title: "Cycle Content Width", subtitle: "Layout",
+                       systemImage: "arrow.left.and.right") { $0.cycleContentWidth() },
+        PaletteCommand(id: "addFolder", title: "Add Folder…", subtitle: "Files",
+                       systemImage: "folder.badge.plus") { $0.pickFolders() },
+        PaletteCommand(id: "openFile", title: "Open File…", subtitle: "Files",
+                       systemImage: "doc.badge.plus") { $0.pickFile() },
+        PaletteCommand(id: "addRemote", title: "Add Remote Folder…", subtitle: "Files",
+                       systemImage: "network") { $0.showAddRemote = true },
+    ]
+    if state.selectedFile != nil {
+        cmds.append(PaletteCommand(id: "export", title: "Export as PDF…", subtitle: "Document",
+                                   systemImage: "arrow.down.doc") { $0.exportToken += 1 })
+        cmds.append(PaletteCommand(id: "copyPath", title: "Copy File Path", subtitle: "Document",
+                                   systemImage: "doc.on.clipboard") { s in
+            guard let file = s.selectedFile else { return }
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(file.url.path, forType: .string)
+        })
+    }
+    return cmds
 }
 
 /// Palette state. A class, not view `@State`, so the key-event monitor reads the
@@ -154,34 +250,64 @@ final class QuickOpenModel: ObservableObject {
 
     private var files: [IndexedFile] = []
     private var recents: [String] = []
+    private var commands: [PaletteCommand] = []
+    private var headings: [TOCEntry] = []
 
-    /// Index the roots once per open. Walking every root's tree on each
-    /// keystroke is what made ⌘P feel slower than the sidebar filter; the
-    /// palette is transient, so a file that appears while it's up can wait.
+    var hasHeadings: Bool { !headings.isEmpty }
+
+    /// Index the roots (and snapshot commands + headings) once per open. Walking
+    /// every root's tree on each keystroke is what made ⌘P feel slower than the
+    /// sidebar filter; the palette is transient, so state that shifts while it's
+    /// up can wait for the next open.
     func load(_ state: AppState) {
         files = state.allFilesIndexed()
         recents = state.recentFiles
+        commands = paletteCommands(state)
+        headings = state.toc
         query = ""
         selection = 0
     }
 
+    /// Mode is chosen by the query's leading character: `>` commands, `#` headings.
+    var mode: PaletteMode {
+        let trimmed = query.trimmingCharacters(in: .whitespaces)
+        if trimmed.hasPrefix(">") { return .commands }
+        if trimmed.hasPrefix("#") { return .headings }
+        return .files
+    }
+
+    /// The query with any mode prefix stripped.
+    var effectiveQuery: String {
+        var trimmed = query.trimmingCharacters(in: .whitespaces)
+        if mode != .files { trimmed.removeFirst() }
+        return trimmed.trimmingCharacters(in: .whitespaces)
+    }
+
     /// The full ordered result list, before the visible cap.
-    private var ordered: [QuickOpenResult] {
-        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
-        let rank: (String) -> Int? = { [recents] path in recents.firstIndex(of: path) }
-        return q.isEmpty
-            ? quickOpenRecents(files, recentRank: rank)
-            : quickOpenMatches(files, query: q, recentRank: rank)
+    private var ordered: [PaletteItem] {
+        switch mode {
+        case .commands:
+            return quickOpenCommandItems(commands, query: effectiveQuery)
+        case .headings:
+            return quickOpenHeadingItems(headings, query: effectiveQuery)
+        case .files:
+            let q = effectiveQuery.lowercased()
+            let rank: (String) -> Int? = { [recents] path in recents.firstIndex(of: path) }
+            let results = q.isEmpty
+                ? quickOpenRecents(files, recentRank: rank)
+                : quickOpenMatches(files, query: q, recentRank: rank)
+            return results.map { PaletteItem.file($0) }
+        }
     }
 
     /// Rows actually shown — the ordered list clamped to `quickOpenResultLimit`.
-    var matches: [QuickOpenResult] { Array(ordered.prefix(quickOpenResultLimit)) }
+    var matches: [PaletteItem] { Array(ordered.prefix(quickOpenResultLimit)) }
 
     /// Total matches found (may exceed what the capped list shows).
     var totalCount: Int { ordered.count }
 
     /// The selected row, clamped — the list shrinks as you type.
-    var selected: QuickOpenResult? {
+    var selected: PaletteItem? {
         let items = matches
         return items.indices.contains(selection) ? items[selection] : items.first
     }
@@ -192,28 +318,42 @@ final class QuickOpenModel: ObservableObject {
     }
 }
 
+/// The pieces a palette row draws: an icon, a title with matched runs to bold,
+/// and an optional subtitle (with its own optional leading icon).
+struct RowContent {
+    let systemImage: String
+    let title: String
+    let titleMatches: [Int]
+    let subtitle: String?
+    let subtitleImage: String?
+}
+
 private struct QuickOpenRow: View {
-    let result: QuickOpenResult
+    let content: RowContent
     let index: Int
     let selected: Bool
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: "doc.text")
+            Image(systemName: content.systemImage)
                 .font(.system(size: 12))
+                .frame(width: 16)
                 .foregroundStyle(selected ? Color.white : Color.secondary)
             VStack(alignment: .leading, spacing: 1) {
-                highlightedName
+                highlightedText(content.title, matches: content.titleMatches)
                     .foregroundStyle(selected ? Color.white : Color.primary)
-                HStack(spacing: 5) {
-                    Image(systemName: "folder")
-                        .font(.system(size: 9))
-                    Text(result.file.locationLabel)
-                        .font(.system(size: 11))
-                        .lineLimit(1)
-                        .truncationMode(.head)
+                if let subtitle = content.subtitle {
+                    HStack(spacing: 5) {
+                        if let image = content.subtitleImage {
+                            Image(systemName: image).font(.system(size: 9))
+                        }
+                        Text(subtitle)
+                            .font(.system(size: 11))
+                            .lineLimit(1)
+                            .truncationMode(.head)
+                    }
+                    .foregroundStyle(selected ? Color.white.opacity(0.8) : Color.secondary)
                 }
-                .foregroundStyle(selected ? Color.white.opacity(0.8) : Color.secondary)
             }
             Spacer(minLength: 0)
             if index < 9 {
@@ -227,23 +367,21 @@ private struct QuickOpenRow: View {
         .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(selected ? Color.accentColor : Color.clear))
         .contentShape(Rectangle())
     }
+}
 
-    /// Filename with the fuzzy-matched characters drawn bold; everything else
-    /// keeps the row's medium weight.
-    private var highlightedName: Text {
-        let name = result.file.node.name
-        guard !result.nameMatches.isEmpty else {
-            return Text(name).font(.system(size: 13, weight: .medium))
-        }
-        // Bake size + weight into each run so an outer .font can't reset the
-        // per-character bold back to a uniform weight.
-        let matched = Set(result.nameMatches)
-        var text = Text("")
-        for (i, char) in name.enumerated() {
-            text = text + Text(String(char)).font(.system(size: 13, weight: matched.contains(i) ? .bold : .medium))
-        }
-        return text
+/// A title with the fuzzy-matched characters drawn bold; the rest keeps the
+/// row's medium weight. Size + weight are baked per run so an outer `.font`
+/// can't reset the per-character bold back to a uniform weight.
+func highlightedText(_ string: String, matches: [Int]) -> Text {
+    guard !matches.isEmpty else {
+        return Text(string).font(.system(size: 13, weight: .medium))
     }
+    let matched = Set(matches)
+    var text = Text("")
+    for (i, char) in string.enumerated() {
+        text = text + Text(String(char)).font(.system(size: 13, weight: matched.contains(i) ? .bold : .medium))
+    }
+    return text
 }
 
 /// Max rows the palette shows — recents when the query is empty, matches
@@ -309,6 +447,38 @@ func quickOpenMatches(
             return a.result.file.searchText.localizedCaseInsensitiveCompare(b.result.file.searchText) == .orderedAscending
         }
     }.map { $0.result }
+}
+
+/// Commands filtered by a `>`-mode query. An empty query lists every command in
+/// display order; otherwise fuzzy-match the title and sort by match quality.
+func quickOpenCommandItems(_ commands: [PaletteCommand], query: String) -> [PaletteItem] {
+    let pattern = query.lowercased().filter { !$0.isWhitespace }
+    guard !pattern.isEmpty else { return commands.map { .command($0, titleMatches: []) } }
+
+    return commands
+        .compactMap { cmd -> (command: PaletteCommand, match: FuzzyMatch)? in
+            fuzzyMatch(pattern, in: cmd.title).map { (cmd, $0) }
+        }
+        .sorted { a, b in
+            a.match.score != b.match.score ? a.match.score > b.match.score : a.command.title < b.command.title
+        }
+        .map { .command($0.command, titleMatches: $0.match.indices) }
+}
+
+/// Headings filtered by a `#`-mode query. An empty query lists every heading in
+/// document order; otherwise fuzzy-match the heading text by match quality.
+func quickOpenHeadingItems(_ headings: [TOCEntry], query: String) -> [PaletteItem] {
+    let pattern = query.lowercased().filter { !$0.isWhitespace }
+    guard !pattern.isEmpty else { return headings.map { .heading($0, titleMatches: []) } }
+
+    return headings
+        .compactMap { entry -> (entry: TOCEntry, match: FuzzyMatch)? in
+            fuzzyMatch(pattern, in: entry.text).map { (entry, $0) }
+        }
+        .sorted { a, b in
+            a.match.score != b.match.score ? a.match.score > b.match.score : a.entry.text < b.entry.text
+        }
+        .map { .heading($0.entry, titleMatches: $0.match.indices) }
 }
 
 /// A scored fuzzy match: the character positions in the candidate that the

@@ -21,7 +21,9 @@ choose Reader.md → **Change All…**.
 ## Reading
 
 **How do I jump between files quickly?**
-**Quick Open** (⌘P) — fuzzy-search every file across all your folders.
+**Quick Open** (⌘P) — fuzzy-search every file across all your folders (it matches
+the folder path too). Start the query with `>` to run a command, or `#` to jump
+to a heading in the document you're reading.
 
 **Where's the document outline?**
 Toggle it with ⇧⌘B. It tracks your scroll position and clicking a heading jumps
