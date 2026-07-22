@@ -19,9 +19,35 @@ export interface Release {
 
 export const releasesLog: Release[] = [
   {
+    version: "1.13.0",
+    date: "Jul 22, 2026",
+    badge: "LATEST",
+    groups: [
+      {
+        tag: "ADDED",
+        items: [
+          "<strong>Quick Open is now a command palette</strong> — start your query with <code>&gt;</code> to run an app command: toggle the theme, sidebar, or outline, cycle the content width, add a folder, open a file, add a remote, or export/copy-path for the open document — without hunting through menus.",
+          "<strong>Jump to a heading with <code>#</code></strong> — start your query with <code>#</code> to fuzzy-search the headings in the document you're reading and jump straight to one.",
+          "<strong>Keyboard hints and a result count</strong> — Quick Open gained a footer, and ⌘1–⌘9 opens one of the first nine results directly.",
+        ],
+      },
+      {
+        tag: "IMPROVED",
+        items: [
+          "<strong>Quick Open matches across the whole path, and shows why</strong> — ⌘P now fuzzy-matches your query against each file's full folder path, so <code>docsintro</code> finds <code>docs/intro.md</code> and typing a folder name scopes to the files under it. Results rank by match quality — a whole-filename hit beats the same letters scattered across a path — and the characters that matched are drawn bold in each row.",
+        ],
+      },
+      {
+        tag: "FIXED",
+        items: [
+          "<strong>Quick Open showed the previous query's files</strong> — changing your search updated the result count but could leave the earlier query's rows on screen.",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.12.0",
     date: "Jul 21, 2026",
-    badge: "LATEST",
     groups: [
       {
         tag: "IMPROVED",
