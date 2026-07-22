@@ -6,6 +6,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Quick Open matches across the whole path, and shows why.** ⌘P now fuzzy-matches
+  your query against each file's full folder path, so `docsintro` finds
+  `docs/intro.md` and typing a folder name scopes to the files under it. Results
+  rank by match quality — a whole-filename hit beats the same letters scattered
+  across a path — and the characters that matched are drawn bold in each row.
+- Quick Open gained a footer with keyboard hints and a result count, and you can
+  press ⌘1–⌘9 to open one of the first nine results directly.
+- **Quick Open is now a command palette.** Start your query with `>` to run an
+  app command — toggle the theme, sidebar, or outline, cycle the content width,
+  add a folder, open a file, add a remote, or export/copy-path for the open
+  document — without hunting through menus.
+- **Jump to a heading with `#`.** Start your query with `#` to fuzzy-search the
+  headings in the document you're reading and jump straight to one.
+
 ## [1.12.0] - 2026-07-21
 
 ### Changed
