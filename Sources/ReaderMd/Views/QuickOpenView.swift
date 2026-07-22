@@ -188,12 +188,14 @@ enum PaletteItem: Identifiable {
 /// Enter key, mouse click, and ⌘1–9 paths so they can't drift apart.
 @MainActor
 func activatePaletteItem(_ item: PaletteItem, in state: AppState) {
+    // Dismiss first: some commands (Add Folder, Open File) run a modal panel that
+    // blocks synchronously, and we don't want the palette dimming behind it.
+    state.showQuickOpen = false
     switch item {
     case .file(let r):       state.open(r.file.node)
     case .command(let c, _): c.run(state)
     case .heading(let h, _): state.requestScroll(to: h.id)
     }
-    state.showQuickOpen = false
 }
 
 /// An app action reachable from `>` command mode. `run` is `@MainActor` so its
@@ -457,7 +459,7 @@ func quickOpenCommandItems(_ commands: [PaletteCommand], query: String) -> [Pale
 
     return commands
         .compactMap { cmd -> (command: PaletteCommand, match: FuzzyMatch)? in
-            fuzzyMatch(pattern, in: cmd.title).map { (cmd, $0) }
+            fuzzyMatch(pattern, in: cmd.title).map { (command: cmd, match: $0) }
         }
         .sorted { a, b in
             a.match.score != b.match.score ? a.match.score > b.match.score : a.command.title < b.command.title
@@ -473,7 +475,7 @@ func quickOpenHeadingItems(_ headings: [TOCEntry], query: String) -> [PaletteIte
 
     return headings
         .compactMap { entry -> (entry: TOCEntry, match: FuzzyMatch)? in
-            fuzzyMatch(pattern, in: entry.text).map { (entry, $0) }
+            fuzzyMatch(pattern, in: entry.text).map { (entry: entry, match: $0) }
         }
         .sorted { a, b in
             a.match.score != b.match.score ? a.match.score > b.match.score : a.entry.text < b.entry.text
