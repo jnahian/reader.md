@@ -44,7 +44,10 @@ struct QuickOpenView: View {
                     ScrollViewReader { proxy in
                         ScrollView {
                             LazyVStack(spacing: 1) {
-                                ForEach(Array(items.enumerated()), id: \.element.id) { idx, item in
+                                // Identity is the row's position, matching the `.id(idx)` the
+                                // ScrollViewReader scrolls to — two different identities on one
+                                // row let a LazyVStack keep the previous query's content.
+                                ForEach(Array(items.enumerated()), id: \.offset) { idx, item in
                                     QuickOpenRow(content: item.rowContent, index: idx, selected: idx == model.selection)
                                         .id(idx)
                                         .onTapGesture { activatePaletteItem(item, in: state) }
