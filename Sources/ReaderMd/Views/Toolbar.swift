@@ -51,6 +51,38 @@ private struct ReaderToolbar: ViewModifier {
                     }
                 }
 
+                // Diff: hidden entirely outside a git repo, and gated on nothing
+                // else. It deliberately does NOT also disable on "file has no
+                // changes": that answer comes from `gitStatuses`, which is only
+                // built for files under a root folder, so a file opened on its
+                // own (File ▸ Open, `reader open`, Finder) would read as
+                // unchanged and disable the button while ⇧⌘D and the palette —
+                // both gated on diffAvailable alone — still worked. The pane
+                // already says "No changes…" for itself.
+                ToolbarItemGroup(placement: .primaryAction) {
+                    if state.diffAvailable {
+                        Button { state.toggleDiffMode() } label: {
+                            Image(systemName: state.diffMode
+                                  ? "plusminus.circle.fill" : "plusminus.circle")
+                        }
+                        .dockTooltip(state.diffMode
+                                     ? "Show rendered view (⇧⌘D)" : "Show diff (⇧⌘D)")
+
+                        if state.canShowDiff {
+                            Picker("", selection: Binding(
+                                get: { state.diffScope },
+                                set: { state.setDiffScope($0) }
+                            )) {
+                                ForEach(DiffScope.allCases, id: \.self) { scope in
+                                    Text(scope.displayName).tag(scope)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                            .frame(width: 210)
+                        }
+                    }
+                }
+
                 // Document actions.
                 ToolbarItemGroup(placement: .primaryAction) {
                     Button { state.triggerReload() } label: {
@@ -62,7 +94,7 @@ private struct ReaderToolbar: ViewModifier {
                     Button { state.triggerExport() } label: {
                         Image(systemName: "square.and.arrow.up")
                     }
-                    .disabled(state.selectedFile == nil)
+                    .disabled(state.selectedFile == nil || state.canShowDiff)
                     .dockTooltip("Export as PDF (⌘E)")
 
                     Button { state.toggleTheme() } label: {
@@ -158,7 +190,7 @@ private struct ReaderToolbar: ViewModifier {
 
     /// The old status bar's summary, now the window title's second line.
     private var subtitle: String {
-        if state.selectedFile != nil, state.wordCount > 0 {
+        if state.selectedFile != nil, state.wordCount > 0, !state.canShowDiff {
             return "\(state.wordCount) words · \(state.readingMinutes) min read"
         }
         if state.selectedFile != nil { return "" }

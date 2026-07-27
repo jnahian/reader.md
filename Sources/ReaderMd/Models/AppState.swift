@@ -68,11 +68,14 @@ enum ContentWidth: String, CaseIterable {
     }
 }
 
-/// A heading in the currently open document, used for the outline.
+/// A heading in the currently open document, used for the outline. In diff mode
+/// the same type carries one entry per hunk instead, with `detail` holding the
+/// hunk's counts.
 struct TOCEntry: Identifiable, Equatable {
-    let id: String   // heading element id
+    let id: String   // heading element id, or "hunk-N" in diff mode
     let text: String
     let level: Int   // 1...4
+    var detail: String?   // "+3 −1" in diff mode, nil otherwise
 }
 
 /// A markdown file paired with the root folder it lives under, for quick-open.
@@ -110,7 +113,17 @@ final class AppState: ObservableObject {
     @Published var focusSearch: Bool = false   // toggled to request focus
 
     // Outline state, populated by the web view.
-    @Published var toc: [TOCEntry] = []
+    // didSet defaults every assignment to "document outline"; refreshDiff() flips
+    // it back to true right after assigning the hunk outline. This lets the flag
+    // stay correct even though the 'toc' web-view message assigns `state.toc`
+    // directly (see MarkdownWebView.swift) rather than through a setter method.
+    @Published var toc: [TOCEntry] = [] {
+        didSet { tocIsDiffOutline = false }
+    }
+    /// True when `toc` currently holds hunk rows (diff mode) rather than document
+    /// headings. TOCView compares this against `canShowDiff` to suppress rows left
+    /// over from the mode just exited, until the fresh outline for the new mode arrives.
+    @Published private(set) var tocIsDiffOutline: Bool = false
     @Published var activeHeadingID: String?
     @Published var pendingScroll: String?   // heading id the TOC asked to scroll to
     @Published var reloadToken: Int = 0      // bumped to force a re-read of the open file
@@ -147,6 +160,31 @@ final class AppState: ObservableObject {
     @Published var findNextToken: Int = 0
     @Published var findPrevToken: Int = 0
     @Published var exportToken: Int = 0
+
+    // Diff mode — a sticky VIEW MODE, not a one-shot, so it is persisted state
+    // rather than a bump token. `diffToken` is the one-shot: it's bumped after
+    // each recompute so the web view knows to push the new model.
+    @Published var diffMode: Bool = false
+    @Published var diffScope: DiffScope = .all
+    @Published var diffFile: DiffFile?
+    @Published var diffAvailable: Bool = false          // open file is inside a repo
+    @Published var gitStatuses: [String: GitFileStatus] = [:]
+    @Published var diffToken: Int = 0
+
+    /// Probed once, off the main actor, because /usr/bin/git is an xcode-select
+    /// shim: on a Mac with no Command Line Tools that call can raise Apple's
+    /// install dialog, and it must not run on the launch path.
+    @Published private(set) var gitAvailable = false
+
+    /// Repo root per root folder. Roots may be different repos, or not repos.
+    private var repoRootCache: [String: URL] = [:]
+
+    /// Generation counters guarding against out-of-order async completions:
+    /// bumped at dispatch, captured by the in-flight task, checked back before
+    /// the result is applied — a stale completion (an older refresh landing
+    /// after a newer one) is dropped rather than overwriting fresher state.
+    private var diffRequest = 0
+    private var statusRequest = 0
 
     // Highlights/annotations/comments (#1/#2/#3) for the current document.
     @Published var marks: [Mark] = []
@@ -188,6 +226,130 @@ final class AppState: ObservableObject {
         positions = Settings.loadPositions().filter { FileManager.default.fileExists(atPath: $0.key) }
         loadSavedRoots()
         loadSavedRemotes()
+        diffMode = Settings.loadDiffMode()
+        diffScope = Settings.loadDiffScope()
+        // Probe git off the launch path, then do the first refresh once the
+        // answer is in — every git call in this class is gated on it.
+        // The first git status refresh (below) only runs after gitAvailable is set,
+        // so it can't run during loadSavedRoots() in the init body above.
+        Task.detached(priority: .utility) {
+            guard GitDiff.isAvailable() else { return }
+            await MainActor.run { [weak self] in
+                guard let self else { return }
+                self.gitAvailable = true
+                self.refreshDiff()
+                self.refreshGitStatus()
+            }
+        }
+    }
+
+    // MARK: - Diff mode
+
+    /// True when the diff pane should be showing instead of rendered markdown.
+    /// A file with no repo renders normally even while `diffMode` is on, so
+    /// opening a remote folder mid-session isn't a dead end.
+    var canShowDiff: Bool { diffMode && diffAvailable }
+
+    func toggleDiffMode() {
+        diffMode.toggle()
+        Settings.saveDiffMode(diffMode)
+        refreshDiff()
+    }
+
+    func setDiffScope(_ scope: DiffScope) {
+        guard scope != diffScope else { return }
+        diffScope = scope
+        Settings.saveDiffScope(scope)
+        refreshDiff()
+    }
+
+    func gitStatus(for path: String) -> GitFileStatus? { gitStatuses[path] }
+
+    /// The outline in diff mode: one row per hunk, labelled by its enclosing
+    /// heading. `id` must be the hunk's element id — TOCView taps route through
+    /// `requestScroll(to:)`, and bridge.js resolves that with getElementById.
+    ///
+    /// nonisolated static so it can be unit-tested without the main actor.
+    nonisolated static func diffOutline(for file: DiffFile) -> [TOCEntry] {
+        file.hunks.map { hunk in
+            TOCEntry(id: hunk.id,
+                     text: hunk.heading.isEmpty ? "Top of file" : hunk.heading,
+                     level: hunk.headingLevel,
+                     detail: "+\(hunk.additions) −\(hunk.deletions)")
+        }
+    }
+
+    /// Recomputes the open file's diff and its repo membership. Safe to call
+    /// when diff mode is off — it still refreshes `diffAvailable` so the
+    /// toolbar button knows whether to appear.
+    func refreshDiff() {
+        guard gitAvailable, let file = selectedFile else {
+            diffAvailable = false
+            diffFile = nil
+            diffToken += 1
+            return
+        }
+        let url = file.url
+        let scope = diffScope
+        let wantDiff = diffMode
+        let cached = repoRootCache[url.deletingLastPathComponent().path]
+        diffRequest += 1
+        let generation = diffRequest
+
+        Task.detached(priority: .userInitiated) {
+            let root = cached ?? GitDiff.repoRoot(for: url)
+            let computed: DiffFile?
+            if wantDiff, let root {
+                computed = GitDiff.diff(file: url, scope: scope, repoRoot: root)
+            } else {
+                computed = nil
+            }
+            await MainActor.run { [weak self] in
+                // Both checks matter: the URL check catches navigation to a
+                // different file, the generation check catches two in-flight
+                // refreshes for the SAME file completing out of order.
+                guard let self, self.diffRequest == generation, self.selectedFile?.url == url else { return }
+                if let root { self.repoRootCache[url.deletingLastPathComponent().path] = root }
+                self.diffAvailable = root != nil
+                self.diffFile = computed
+                self.diffToken += 1
+                if wantDiff {
+                    // A conflicted file renders the "unresolved merge conflicts" notice
+                    // (see MarkdownWebView) instead of hunk rows — and `git diff` on an
+                    // unmerged path emits combined-diff format GitDiff.parse() doesn't
+                    // understand, so any hunks here would likely be garbled anyway. Keep
+                    // the outline empty rather than listing rows absent from the rendered DOM.
+                    if let computed, self.gitStatus(for: url.path) != .conflicted {
+                        self.toc = Self.diffOutline(for: computed)
+                        self.tocIsDiffOutline = true
+                    } else {
+                        self.toc = []
+                    }
+                    self.wordCount = 0        // meaningless for a diff
+                }
+            }
+        }
+    }
+
+    /// Refreshes the badge map for every root that is a git repo.
+    func refreshGitStatus() {
+        guard gitAvailable else { return }
+        let urls = roots.map(\.url)
+        statusRequest += 1
+        let generation = statusRequest
+        Task.detached(priority: .utility) {
+            let merged: [String: GitFileStatus] = urls.reduce(into: [:]) { acc, url in
+                guard let root = GitDiff.repoRoot(for: url) else { return }
+                // `url` is the folder the user added; `root` is git's resolved
+                // top-level. Keys must come back in the former's namespace or
+                // they match no FileNode path.
+                acc.merge(GitDiff.status(root: root, displayedAs: url)) { current, _ in current }
+            }
+            await MainActor.run { [weak self] in
+                guard let self, self.statusRequest == generation else { return }
+                self.gitStatuses = merged
+            }
+        }
     }
 
     // MARK: - Folder management
@@ -249,6 +411,7 @@ final class AppState: ObservableObject {
         }
         watchers.append(watcher)
         if persist { persistRoots() }
+        refreshGitStatus()
     }
 
     /// Reorder roots by drag-and-drop in the sidebar.
@@ -265,6 +428,7 @@ final class AppState: ObservableObject {
             selectedFile = nil
             toc = []
             loadMarksForCurrentFile()
+            refreshDiff()
         }
         roots.removeAll { $0.id == root.id }
         rebuildWatchers()
@@ -309,12 +473,15 @@ final class AppState: ObservableObject {
             if FileManager.default.fileExists(atPath: file.url.path) {
                 // Open file may have been edited on disk → force a re-read.
                 reloadToken += 1
+                refreshDiff()
             } else {
                 selectedFile = nil
                 toc = []
                 loadMarksForCurrentFile()
+                refreshDiff()
             }
         }
+        refreshGitStatus()
     }
 
     private func persistRoots() {
@@ -469,6 +636,7 @@ final class AppState: ObservableObject {
         activeHeadingID = nil
         scrollProgress = 0
         loadMarksForCurrentFile()
+        refreshDiff()
     }
 
     func openPath(_ path: String) {
@@ -509,6 +677,7 @@ final class AppState: ObservableObject {
         activeHeadingID = nil
         scrollProgress = 0
         loadMarksForCurrentFile()
+        refreshDiff()
     }
 
     // MARK: - Reading position
@@ -517,6 +686,10 @@ final class AppState: ObservableObject {
     /// long document resumes where you left off. The web view posts on every
     /// scroll event, so only meaningful moves are written back.
     func recordProgress(_ fraction: Double) {
+        // The diff pane posts its own scroll fraction through this same message —
+        // on render (renderDiff → reportProgress) and on every subsequent scroll
+        // event. Never let that overwrite the document's saved reading position.
+        guard !canShowDiff else { return }
         scrollProgress = fraction
         guard let url = selectedFile?.url,
               !Self.isBundledDoc(url), !Self.isStdinTemp(url) else { return }

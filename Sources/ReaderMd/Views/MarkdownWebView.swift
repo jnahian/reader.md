@@ -67,6 +67,11 @@ final class DropWebView: WKWebView {
     }
 }
 
+/// Shown in place of the diff for a file with unresolved merge conflicts — `git diff`
+/// on an unmerged path emits combined-diff format the hunk renderer doesn't understand.
+/// Shared by updateNSView and the coordinator's "ready" handler so the two can't drift.
+private let conflictNoticeMessage = "This file has unresolved merge conflicts"
+
 /// Wraps a WKWebView that renders markdown via bundled JS (marked, highlight.js, KaTeX, Mermaid).
 struct MarkdownWebView: NSViewRepresentable {
     @EnvironmentObject var state: AppState
@@ -112,7 +117,27 @@ struct MarkdownWebView: NSViewRepresentable {
         coord.applyReadingTheme(state.readingTheme.rawValue)
         coord.applyTypography(scale: state.fontScale, width: state.contentWidth)
 
-        if let file = state.selectedFile, file.url.path != coord.loadedPath {
+        if state.canShowDiff {
+            let pathChanged = coord.loadedPath != state.selectedFile?.url.path
+            let tokenChanged = state.diffToken != coord.lastDiffToken
+            if pathChanged {
+                coord.loadedPath = state.selectedFile?.url.path
+            }
+            if pathChanged || tokenChanged {
+                if let path = state.selectedFile?.url.path, state.gitStatus(for: path) == .conflicted {
+                    coord.pushDiff(nil, empty: conflictNoticeMessage)
+                } else if pathChanged && !tokenChanged {
+                    // AppState.refreshDiff() recomputes the diff on a detached Task, so
+                    // right after a file switch state.diffFile still holds the PREVIOUS
+                    // file's hunks for a frame. Push a neutral placeholder instead of
+                    // those stale hunks under the new file's name; the real diff follows
+                    // once diffToken lands and tokenChanged fires on its own.
+                    coord.pushDiff(nil, empty: "Loading diff…")
+                } else {
+                    coord.pushDiff(state.diffFile, empty: state.diffScope.emptyMessage)
+                }
+            }
+        } else if let file = state.selectedFile, file.url.path != coord.loadedPath || coord.showingDiff {
             coord.load(file: file, resume: state.savedProgress(for: file.url.path))
         } else if state.selectedFile == nil {
             coord.clear()
@@ -120,6 +145,7 @@ struct MarkdownWebView: NSViewRepresentable {
             coord.reloadCurrent()
         }
         coord.lastReloadToken = state.reloadToken
+        coord.lastDiffToken = state.diffToken
 
         // Native TOC scroll request.
         if let target = state.pendingScroll {
@@ -163,6 +189,10 @@ struct MarkdownWebView: NSViewRepresentable {
         var loadedPath: String?
         var pendingResume: Double = 0
         var lastReloadToken: Int = 0
+        var lastDiffToken = 0
+        /// True while the web view is showing a diff, so leaving diff mode
+        /// forces a re-render even though the path didn't change.
+        var showingDiff = false
         var lastFindNext: Int = 0
         var lastFindPrev: Int = 0
         var lastExport: Int = 0
@@ -269,7 +299,18 @@ struct MarkdownWebView: NSViewRepresentable {
             pushCurrentFile(keepScroll: true)
         }
 
+        func pushDiff(_ file: DiffFile?, empty: String) {
+            guard isReady else { return }
+            showingDiff = true
+            let json = file?.jsonPayload() ?? "{\"hunks\":[],\"empty\":\(Self.encode(empty))}"
+            webView?.evaluateJavaScript("window.ReaderMd.loadDiff(\(Self.encode(json)));")
+        }
+
         private func pushCurrentFile(keepScroll: Bool) {
+            if showingDiff {
+                showingDiff = false
+                webView?.evaluateJavaScript("window.ReaderMd.clearDiff();")
+            }
             guard let path = loadedPath else { return }
             let dir = (path as NSString).deletingLastPathComponent
             let text = (try? String(contentsOfFile: path, encoding: .utf8)) ?? ""
@@ -287,6 +328,7 @@ struct MarkdownWebView: NSViewRepresentable {
         // MARK: Highlights (#1)
 
         func applyMarks(json: String) {
+            guard !showingDiff else { return }
             webView?.evaluateJavaScript("window.ReaderMd.applyMarks(\(Self.encode(json)));")
             // Re-apply find AFTER marks so find wraps nest inside highlight wraps
             // (deterministic nesting). Both eval calls hit the same JS API in order.
@@ -475,7 +517,19 @@ struct MarkdownWebView: NSViewRepresentable {
                 if let name = lastReadingTheme {
                     webView?.evaluateJavaScript("window.ReaderMd.setReadingTheme('\(name)');")
                 }
-                if loadedPath != nil { pushCurrentFile(keepScroll: false) }
+                // Cold launch: updateNSView already ran once with isReady false, so
+                // pushDiff/pushCurrentFile were both no-ops (see their `guard isReady`).
+                // Restore whichever mode is actually current — diff mode must not
+                // silently fall back to plain markdown just because it renders first.
+                if state.canShowDiff {
+                    if let path = state.selectedFile?.url.path, state.gitStatus(for: path) == .conflicted {
+                        pushDiff(nil, empty: conflictNoticeMessage)
+                    } else {
+                        pushDiff(state.diffFile, empty: state.diffScope.emptyMessage)
+                    }
+                } else if loadedPath != nil {
+                    pushCurrentFile(keepScroll: false)
+                }
 
             case "toc":
                 guard let arr = message.body as? [[String: Any]] else { return }

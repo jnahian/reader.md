@@ -45,6 +45,14 @@ struct ReaderMdApp: App {
                     appDelegate.state = state
                     state.checkWhatsNew()
                 }
+                .onReceive(NotificationCenter.default.publisher(
+                    for: NSApplication.didBecomeActiveNotification)) { _ in
+                    // Staging a file doesn't touch the working tree, and .git is
+                    // in ignoredDirs — so FSEvents never fires for it. Coming back
+                    // to the window is the signal that the index may have moved.
+                    state.refreshDiff()
+                    state.refreshGitStatus()
+                }
                 // Without this, SwiftUI answers every incoming readermd:// URL by
                 // opening a *second* window instead of routing it to the existing one.
                 .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
@@ -74,7 +82,7 @@ struct ReaderMdApp: App {
                 Divider()
                 Button("Export as PDF…") { state.triggerExport() }
                     .keyboardShortcut("e", modifiers: .command)
-                    .disabled(state.selectedFile == nil)
+                    .disabled(state.selectedFile == nil || state.canShowDiff)
                 Button("Reload") { state.triggerReload() }
                     .keyboardShortcut("r", modifiers: .command)
                     .disabled(state.selectedFile == nil)
@@ -102,6 +110,9 @@ struct ReaderMdApp: App {
                     .keyboardShortcut("b", modifiers: .command)
                 Button("Toggle Outline") { state.setShowTOC(!state.showTOC) }
                     .keyboardShortcut("b", modifiers: [.command, .shift])
+                Button("Toggle Diff") { state.toggleDiffMode() }
+                    .keyboardShortcut("d", modifiers: [.command, .shift])
+                    .disabled(!state.diffAvailable)
                 Divider()
                 Button("Increase Text") { state.adjustFontScale(0.1) }
                     .keyboardShortcut("+", modifiers: .command)
