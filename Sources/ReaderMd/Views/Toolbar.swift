@@ -51,16 +51,22 @@ private struct ReaderToolbar: ViewModifier {
                     }
                 }
 
-                // Diff: hidden entirely outside a git repo, disabled when the
-                // file is tracked but unchanged.
+                // Diff: hidden entirely outside a git repo, and gated on nothing
+                // else. It deliberately does NOT also disable on "file has no
+                // changes": that answer comes from `gitStatuses`, which is only
+                // built for files under a root folder, so a file opened on its
+                // own (File ▸ Open, `reader open`, Finder) would read as
+                // unchanged and disable the button while ⇧⌘D and the palette —
+                // both gated on diffAvailable alone — still worked. The pane
+                // already says "No changes…" for itself.
                 ToolbarItemGroup(placement: .primaryAction) {
                     if state.diffAvailable {
                         Button { state.toggleDiffMode() } label: {
                             Image(systemName: state.diffMode
                                   ? "plusminus.circle.fill" : "plusminus.circle")
                         }
-                        .disabled(!state.diffMode && unchanged)
-                        .dockTooltip(diffTooltip)
+                        .dockTooltip(state.diffMode
+                                     ? "Show rendered view (⇧⌘D)" : "Show diff (⇧⌘D)")
 
                         if state.canShowDiff {
                             Picker("", selection: Binding(
@@ -180,17 +186,6 @@ private struct ReaderToolbar: ViewModifier {
         .modifier(FindFieldSurface())
         .disabled(state.selectedFile == nil)
         .opacity(state.selectedFile == nil ? 0.5 : 1)
-    }
-
-    /// Tracked but with no uncommitted changes — nothing to diff.
-    private var unchanged: Bool {
-        guard let path = state.selectedFile?.url.path else { return true }
-        return state.gitStatus(for: path) == nil
-    }
-
-    private var diffTooltip: String {
-        if unchanged && !state.diffMode { return "No changes to show" }
-        return state.diffMode ? "Show rendered view (⇧⌘D)" : "Show diff (⇧⌘D)"
     }
 
     /// The old status bar's summary, now the window title's second line.
