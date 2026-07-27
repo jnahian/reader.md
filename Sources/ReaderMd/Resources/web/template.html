@@ -115,9 +115,25 @@
        fitted height — transforms don't affect layout, so zooming never moves the
        prose below. overflow: hidden clips the zoomed svg; it does NOT clip the
        fullscreen overlay, because a position: fixed descendant escapes ancestor
-       overflow unless that ancestor has a transform (none here). */
-    .mermaid { display: flex; justify-content: center; margin: 1em 0; position: relative; overflow: hidden; }
-    .mm-view { display: flex; justify-content: center; width: 100%; position: relative; }
+       overflow unless that ancestor has a transform (none here).
+
+       min-height keeps room for the controls: they need 30px (top 8 + 22 tall) and
+       live inside this clipping box, whose height is the *fitted* diagram height.
+       A one-row flowchart fits in 8px, which hid all but 3% of them — worst on
+       exactly the wide diagrams that need zooming most.
+
+       .mm-view must STRETCH to that floor, because the controls are positioned
+       against it — centring the view instead leaves them anchored inside a box the
+       height of the diagram, still overflowing. The svg is centred one level down,
+       inside the view, which also keeps it from being stretched out of shape. */
+    .mermaid {
+      display: flex; justify-content: center; margin: 1em 0;
+      position: relative; overflow: hidden; min-height: 38px;
+    }
+    .mm-view {
+      display: flex; justify-content: center; align-items: center;
+      width: 100%; position: relative;
+    }
     .mm-view.pannable { cursor: grab; }
     .mm-view.panning { cursor: grabbing; }
     .mm-controls {
