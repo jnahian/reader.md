@@ -1870,9 +1870,12 @@ function diffCellHTML(cell, side) {
          `<td class="diff-text ${side}">${spannedText(cell.text, cell.spans)}</td>`;
 }
 
-// Wraps the changed character ranges in <span class="w">. Offsets count
-// Characters (Swift side), so split into code points, not UTF-16 units —
-// otherwise an emoji or accented name shifts every span after it.
+// Wraps the changed ranges in <span class="w">. Offsets count UNICODE SCALARS,
+// which is exactly what the spread operator below iterates — [...text] yields
+// code points, not UTF-16 units and not grapheme clusters. Swift emits scalar
+// offsets for this reason (see WordSpan). Do not switch either side to
+// Characters/graphemes alone: "👨‍👩‍👧" is 1 Swift Character but 5 elements here,
+// and every span after such a cluster would land on the wrong text.
 function spannedText(text, spans) {
   if (!spans || !spans.length) return esc(text);
   const chars = [...text];
