@@ -456,25 +456,22 @@ struct MarkdownWebView: NSViewRepresentable {
 
         func exportPDF() {
             guard let webView else { return }
-            // Find highlights would bake into the PDF. Clear them, wait for that JS
-            // to finish (completion handler), snapshot, then re-apply.
-            if lastFindQuery.isEmpty {
-                generatePDF(restore: false)
-            } else {
-                webView.evaluateJavaScript("window.ReaderMd.clearFind();") { [weak self] _, _ in
-                    self?.generatePDF(restore: true)
-                }
+            // Find highlights and diagram zoom would both bake into the PDF.
+            // beforeExport() resets them; wait for that JS to finish (completion
+            // handler), snapshot, then afterExport() puts them back. Both halves
+            // no-op when nothing is active, so there is no state to branch on here.
+            webView.evaluateJavaScript("window.ReaderMd.beforeExport();") { [weak self] _, _ in
+                self?.generatePDF()
             }
         }
 
-        private func generatePDF(restore: Bool) {
+        private func generatePDF() {
             guard let webView else { return }
             webView.createPDF(configuration: WKPDFConfiguration()) { [weak self] result in
-                if restore, let self {
-                    // refind() restores the exact match the user was on; find() would
-                    // scroll them back to match 1 as a side effect of exporting.
-                    self.webView?.evaluateJavaScript("window.ReaderMd.refind();")
-                }
+                // afterExport() restores the exact find match the user was on;
+                // find() would scroll them back to match 1 as a side effect of
+                // exporting.
+                self?.webView?.evaluateJavaScript("window.ReaderMd.afterExport();")
                 guard case let .success(data) = result else { return }
                 Task { @MainActor in self?.savePDF(data) }
             }

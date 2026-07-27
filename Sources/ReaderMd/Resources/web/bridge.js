@@ -132,6 +132,33 @@ window.ReaderMd = {
   clearFind() {
     clearFind();
   },
+
+  // ⌘E: find highlights and any diagram zoom would both bake into the PDF.
+  // Reset them, snapshot, then put them back. One hook rather than two, because
+  // Swift can't see which of the two is currently active — and both halves
+  // no-op when nothing is, so the caller needs no state to branch on.
+  beforeExport() {
+    clearFind();
+    const open = document.querySelector('.mm-view.fs');
+    if (open) exitFullscreen(open);
+    document.querySelectorAll('.mm-view').forEach((view) => {
+      view._exportZoom = view._zoom;
+      resetZoom(view);
+    });
+  },
+
+  afterExport() {
+    document.querySelectorAll('.mm-view').forEach((view) => {
+      if (view._exportZoom) {
+        view._zoom = view._exportZoom;
+        applyZoom(view);
+      }
+      view._exportZoom = null;
+    });
+    // The method, not a bare function — refind() only exists on this object, and
+    // it already guards on there being a live query.
+    this.refind();
+  },
 };
 
 // ---- Rendering ----
