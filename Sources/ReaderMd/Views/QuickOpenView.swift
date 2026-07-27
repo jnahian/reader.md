@@ -242,6 +242,12 @@ func paletteCommands(_ state: AppState) -> [PaletteCommand] {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(file.url.path, forType: .string)
         })
+        if state.diffAvailable {
+            cmds.append(PaletteCommand(id: "diff",
+                                       title: state.diffMode ? "Show Rendered View" : "Show Diff",
+                                       subtitle: "Document",
+                                       systemImage: "plusminus.circle") { $0.toggleDiffMode() })
+        }
     }
     return cmds
 }

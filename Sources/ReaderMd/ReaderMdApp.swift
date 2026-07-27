@@ -82,7 +82,7 @@ struct ReaderMdApp: App {
                 Divider()
                 Button("Export as PDF…") { state.triggerExport() }
                     .keyboardShortcut("e", modifiers: .command)
-                    .disabled(state.selectedFile == nil)
+                    .disabled(state.selectedFile == nil || state.canShowDiff)
                 Button("Reload") { state.triggerReload() }
                     .keyboardShortcut("r", modifiers: .command)
                     .disabled(state.selectedFile == nil)
@@ -110,6 +110,9 @@ struct ReaderMdApp: App {
                     .keyboardShortcut("b", modifiers: .command)
                 Button("Toggle Outline") { state.setShowTOC(!state.showTOC) }
                     .keyboardShortcut("b", modifiers: [.command, .shift])
+                Button("Toggle Diff") { state.toggleDiffMode() }
+                    .keyboardShortcut("d", modifiers: [.command, .shift])
+                    .disabled(!state.diffAvailable)
                 Divider()
                 Button("Increase Text") { state.adjustFontScale(0.1) }
                     .keyboardShortcut("+", modifiers: .command)

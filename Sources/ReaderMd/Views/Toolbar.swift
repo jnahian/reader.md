@@ -51,6 +51,32 @@ private struct ReaderToolbar: ViewModifier {
                     }
                 }
 
+                // Diff: hidden entirely outside a git repo, disabled when the
+                // file is tracked but unchanged.
+                ToolbarItemGroup(placement: .primaryAction) {
+                    if state.diffAvailable {
+                        Button { state.toggleDiffMode() } label: {
+                            Image(systemName: state.diffMode
+                                  ? "plusminus.circle.fill" : "plusminus.circle")
+                        }
+                        .disabled(!state.diffMode && unchanged)
+                        .dockTooltip(diffTooltip)
+
+                        if state.canShowDiff {
+                            Picker("", selection: Binding(
+                                get: { state.diffScope },
+                                set: { state.setDiffScope($0) }
+                            )) {
+                                ForEach(DiffScope.allCases, id: \.self) { scope in
+                                    Text(scope.displayName).tag(scope)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                            .frame(width: 210)
+                        }
+                    }
+                }
+
                 // Document actions.
                 ToolbarItemGroup(placement: .primaryAction) {
                     Button { state.triggerReload() } label: {
@@ -62,7 +88,7 @@ private struct ReaderToolbar: ViewModifier {
                     Button { state.triggerExport() } label: {
                         Image(systemName: "square.and.arrow.up")
                     }
-                    .disabled(state.selectedFile == nil)
+                    .disabled(state.selectedFile == nil || state.canShowDiff)
                     .dockTooltip("Export as PDF (⌘E)")
 
                     Button { state.toggleTheme() } label: {
@@ -156,9 +182,20 @@ private struct ReaderToolbar: ViewModifier {
         .opacity(state.selectedFile == nil ? 0.5 : 1)
     }
 
+    /// Tracked but with no uncommitted changes — nothing to diff.
+    private var unchanged: Bool {
+        guard let path = state.selectedFile?.url.path else { return true }
+        return state.gitStatus(for: path) == nil
+    }
+
+    private var diffTooltip: String {
+        if unchanged && !state.diffMode { return "No changes to show" }
+        return state.diffMode ? "Show rendered view (⇧⌘D)" : "Show diff (⇧⌘D)"
+    }
+
     /// The old status bar's summary, now the window title's second line.
     private var subtitle: String {
-        if state.selectedFile != nil, state.wordCount > 0 {
+        if state.selectedFile != nil, state.wordCount > 0, !state.canShowDiff {
             return "\(state.wordCount) words · \(state.readingMinutes) min read"
         }
         if state.selectedFile != nil { return "" }
