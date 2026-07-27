@@ -708,7 +708,7 @@ Expected: no JS output; Swift builds with no errors and no new warnings.
 - [ ] **Step 4: Run the Swift suite**
 
 Run: `swift test`
-Expected: PASS, 172 tests, 0 failures (the pre-existing count — nothing here adds a Swift test).
+Expected: PASS, 178 tests, 0 failures (the pre-existing count — nothing here adds a Swift test).
 
 - [ ] **Step 5: Run the node test**
 
