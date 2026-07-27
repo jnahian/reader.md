@@ -122,7 +122,7 @@ test('clampScale bounds both ends and passes the middle through', () => {
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: `node --test Tests/web/`
+Run: `node --test "Tests/web/*.test.js"`
 Expected: FAIL — `Cannot find module '../../Sources/ReaderMd/Resources/web/zoom.js'`
 
 - [ ] **Step 3: Write the implementation**
@@ -166,7 +166,7 @@ if (typeof module !== 'undefined') {
 
 - [ ] **Step 4: Run the test to verify it passes**
 
-Run: `node --test Tests/web/`
+Run: `node --test "Tests/web/*.test.js"`
 Expected: PASS — `# pass 7`, `# fail 0`
 
 - [ ] **Step 5: Load the file in the web view**
@@ -712,7 +712,7 @@ Expected: PASS, 172 tests, 0 failures (the pre-existing count — nothing here a
 
 - [ ] **Step 5: Run the node test**
 
-Run: `node --test Tests/web/`
+Run: `node --test "Tests/web/*.test.js"`
 Expected: PASS — `# pass 7`, `# fail 0`.
 
 - [ ] **Step 6: Verify in the running app**
@@ -766,4 +766,4 @@ Note for whoever runs this: the shared-working-tree lesson from the diff-mode ru
 
 - Zoom does not survive a re-render (`setTheme`, or an FSEvents-driven reload on file change). State lives on nodes that get thrown away. This is the issue's own non-goal.
 - ⌘E with the **image** lightbox open likely bakes its black backdrop into the PDF. Pre-existing (`#lightbox` is `position: fixed` and nothing clears it), and `beforeExport()` is now the natural place to fix it — but out of scope here.
-- The pure-math node test is not wired into `swift test`, which is a Swift-only target. It must be run as `node --test Tests/web/`.
+- The pure-math node test is not wired into `swift test`, which is a Swift-only target. It must be run as `node --test "Tests/web/*.test.js"`.
