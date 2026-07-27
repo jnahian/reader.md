@@ -1350,6 +1350,21 @@ final class DiffPayloadTests: XCTestCase {
 }
 
 final class DiffSettingsTests: XCTestCase {
+    private var savedMode = false
+    private var savedScope: DiffScope = .all
+
+    /// These tests share the app's real UserDefaults — the same pattern as
+    /// ReadingPositionTests. Put the user's own choices back afterwards, or
+    /// running `swift test` silently flips their diff preference.
+    override func setUp() async throws {
+        savedMode = Settings.loadDiffMode()
+        savedScope = Settings.loadDiffScope()
+    }
+
+    override func tearDown() async throws {
+        Settings.saveDiffMode(savedMode)
+        Settings.saveDiffScope(savedScope)
+    }
 
     func testDiffModeDefaultsOff() {
         UserDefaults.standard.removeObject(forKey: "reader.md.diffMode")
@@ -1524,9 +1539,10 @@ In `Sources/ReaderMd/Models/AppState.swift`, add after the `exportToken` declara
     @Published var gitStatuses: [String: GitFileStatus] = [:]
     @Published var diffToken: Int = 0
 
-    /// Probed once, because /usr/bin/git is an xcode-select shim: on a Mac with
-    /// no Command Line Tools the first call can raise Apple's install dialog.
-    private static let gitAvailable = GitDiff.isAvailable()
+    /// Probed once, off the main actor, because /usr/bin/git is an xcode-select
+    /// shim: on a Mac with no Command Line Tools that call can raise Apple's
+    /// install dialog, and it must not run on the launch path.
+    @Published private(set) var gitAvailable = false
 
     /// Repo root per root folder. Roots may be different repos, or not repos.
     private var repoRootCache: [String: URL] = [:]
@@ -1537,6 +1553,17 @@ Add to the end of `init()`:
 ```swift
         diffMode = Settings.loadDiffMode()
         diffScope = Settings.loadDiffScope()
+        // Probe git off the launch path, then do the first refresh once the
+        // answer is in — every git call in this class is gated on it.
+        Task.detached(priority: .utility) { [weak self] in
+            let available = GitDiff.isAvailable()
+            await MainActor.run {
+                guard let self, available else { return }
+                self.gitAvailable = true
+                self.refreshDiff()
+                self.refreshGitStatus()
+            }
+        }
 ```
 
 Add a new `// MARK: - Diff mode` section before `// MARK: - Folder management`:
@@ -1568,7 +1595,7 @@ Add a new `// MARK: - Diff mode` section before `// MARK: - Folder management`:
     /// when diff mode is off — it still refreshes `diffAvailable` so the
     /// toolbar button knows whether to appear.
     func refreshDiff() {
-        guard Self.gitAvailable, let file = selectedFile else {
+        guard gitAvailable, let file = selectedFile else {
             diffAvailable = false
             diffFile = nil
             diffToken += 1
@@ -1597,7 +1624,7 @@ Add a new `// MARK: - Diff mode` section before `// MARK: - Folder management`:
 
     /// Refreshes the badge map for every root that is a git repo.
     func refreshGitStatus() {
-        guard Self.gitAvailable else { return }
+        guard gitAvailable else { return }
         let urls = roots.map(\.url)
         Task.detached(priority: .utility) {
             var merged: [String: GitFileStatus] = [:]
