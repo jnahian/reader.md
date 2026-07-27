@@ -113,7 +113,17 @@ final class AppState: ObservableObject {
     @Published var focusSearch: Bool = false   // toggled to request focus
 
     // Outline state, populated by the web view.
-    @Published var toc: [TOCEntry] = []
+    // didSet defaults every assignment to "document outline"; refreshDiff() flips
+    // it back to true right after assigning the hunk outline. This lets the flag
+    // stay correct even though the 'toc' web-view message assigns `state.toc`
+    // directly (see MarkdownWebView.swift) rather than through a setter method.
+    @Published var toc: [TOCEntry] = [] {
+        didSet { tocIsDiffOutline = false }
+    }
+    /// True when `toc` currently holds hunk rows (diff mode) rather than document
+    /// headings. TOCView compares this against `canShowDiff` to suppress rows left
+    /// over from the mode just exited, until the fresh outline for the new mode arrives.
+    @Published private(set) var tocIsDiffOutline: Bool = false
     @Published var activeHeadingID: String?
     @Published var pendingScroll: String?   // heading id the TOC asked to scroll to
     @Published var reloadToken: Int = 0      // bumped to force a re-read of the open file
@@ -303,6 +313,7 @@ final class AppState: ObservableObject {
                 self.diffToken += 1
                 if wantDiff, let computed {
                     self.toc = Self.diffOutline(for: computed)
+                    self.tocIsDiffOutline = true
                     self.wordCount = 0        // meaningless for a diff
                 } else if wantDiff {
                     self.toc = []
