@@ -190,7 +190,11 @@ extension GitDiff {
             current = nil
         }
 
-        for line in unified.components(separatedBy: "\n") {
+        // ponytail: real git output ends with \n, which produces a trailing empty
+        // element; drop it to avoid parsing the empty string as a context row.
+        let lines = unified.components(separatedBy: "\n")
+        let trimmed = lines.last == "" ? Array(lines.dropLast()) : lines
+        for line in trimmed {
             if line.hasPrefix("@@") {
                 closeHunk()
                 guard let starts = hunkStarts(line) else { continue }

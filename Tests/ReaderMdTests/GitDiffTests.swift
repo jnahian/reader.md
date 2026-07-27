@@ -229,4 +229,21 @@ final class GitDiffParseTests: XCTestCase {
         XCTAssertEqual(rows[0].old?.text, "-- old caption")
         XCTAssertEqual(rows[0].new?.text, "++ new caption")
     }
+
+    /// Real `git diff` stdout always ends with a newline. The parser must not
+    /// treat the trailing empty element from `components(separatedBy: "\n")` as a
+    /// content row — it would create a phantom context row at the end of every hunk.
+    func testTrailingNewlineDoesNotCreatePhantomRow() {
+        let text = """
+        --- a/a.md
+        +++ b/a.md
+        @@ -1,2 +1,2 @@
+         keep
+        -old
+        +new
+        """ + "\n"
+        let rows = GitDiff.parse(text).hunks[0].rows
+        XCTAssertEqual(rows.count, 2)
+        XCTAssertEqual(rows.map(\.kind), [.context, .modified])
+    }
 }
