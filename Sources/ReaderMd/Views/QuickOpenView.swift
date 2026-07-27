@@ -234,8 +234,10 @@ func paletteCommands(_ state: AppState) -> [PaletteCommand] {
                        systemImage: "network") { $0.showAddRemote = true },
     ]
     if state.selectedFile != nil {
-        cmds.append(PaletteCommand(id: "export", title: "Export as PDF…", subtitle: "Document",
-                                   systemImage: "arrow.down.doc") { $0.exportToken += 1 })
+        if !state.canShowDiff {
+            cmds.append(PaletteCommand(id: "export", title: "Export as PDF…", subtitle: "Document",
+                                       systemImage: "arrow.down.doc") { $0.exportToken += 1 })
+        }
         cmds.append(PaletteCommand(id: "copyPath", title: "Copy File Path", subtitle: "Document",
                                    systemImage: "doc.on.clipboard") { s in
             guard let file = s.selectedFile else { return }

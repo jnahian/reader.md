@@ -113,10 +113,21 @@ struct MarkdownWebView: NSViewRepresentable {
         coord.applyTypography(scale: state.fontScale, width: state.contentWidth)
 
         if state.canShowDiff {
-            if state.diffToken != coord.lastDiffToken || coord.loadedPath != state.selectedFile?.url.path {
+            let pathChanged = coord.loadedPath != state.selectedFile?.url.path
+            let tokenChanged = state.diffToken != coord.lastDiffToken
+            if pathChanged {
                 coord.loadedPath = state.selectedFile?.url.path
+            }
+            if pathChanged || tokenChanged {
                 if let path = state.selectedFile?.url.path, state.gitStatus(for: path) == .conflicted {
                     coord.pushDiff(nil, empty: "This file has unresolved merge conflicts")
+                } else if pathChanged && !tokenChanged {
+                    // AppState.refreshDiff() recomputes the diff on a detached Task, so
+                    // right after a file switch state.diffFile still holds the PREVIOUS
+                    // file's hunks for a frame. Push a neutral placeholder instead of
+                    // those stale hunks under the new file's name; the real diff follows
+                    // once diffToken lands and tokenChanged fires on its own.
+                    coord.pushDiff(nil, empty: "Loading diff…")
                 } else {
                     coord.pushDiff(state.diffFile, empty: state.diffScope.emptyMessage)
                 }
@@ -501,7 +512,19 @@ struct MarkdownWebView: NSViewRepresentable {
                 if let name = lastReadingTheme {
                     webView?.evaluateJavaScript("window.ReaderMd.setReadingTheme('\(name)');")
                 }
-                if loadedPath != nil { pushCurrentFile(keepScroll: false) }
+                // Cold launch: updateNSView already ran once with isReady false, so
+                // pushDiff/pushCurrentFile were both no-ops (see their `guard isReady`).
+                // Restore whichever mode is actually current — diff mode must not
+                // silently fall back to plain markdown just because it renders first.
+                if state.canShowDiff {
+                    if let path = state.selectedFile?.url.path, state.gitStatus(for: path) == .conflicted {
+                        pushDiff(nil, empty: "This file has unresolved merge conflicts")
+                    } else {
+                        pushDiff(state.diffFile, empty: state.diffScope.emptyMessage)
+                    }
+                } else if loadedPath != nil {
+                    pushCurrentFile(keepScroll: false)
+                }
 
             case "toc":
                 guard let arr = message.body as? [[String: Any]] else { return }
