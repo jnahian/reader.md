@@ -595,3 +595,118 @@ final class GitStatusParseTests: XCTestCase {
         XCTAssertEqual(map["/repo/docs/new/b.md"], .untracked)
     }
 }
+
+/// The payload handed to bridge.js. Shape is a contract with loadDiff().
+final class DiffPayloadTests: XCTestCase {
+
+    private let unified = """
+    --- a/a.md
+    +++ b/a.md
+    @@ -2,2 +2,2 @@
+    -requires macOS 13
+    +requires macOS 14
+     unchanged
+    """
+
+    private func payload() throws -> [String: Any] {
+        let file = GitDiff.annotateHeadings(
+            GitDiff.annotateWords(GitDiff.parse(unified)),
+            newSideLines: ["## Install", "unchanged"])
+        let data = Data(file.jsonPayload().utf8)
+        return try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    }
+
+    func testTopLevelCounts() throws {
+        let json = try payload()
+        XCTAssertEqual(json["additions"] as? Int, 1)
+        XCTAssertEqual(json["deletions"] as? Int, 1)
+    }
+
+    func testHunkCarriesIDHeadingAndCounts() throws {
+        let hunks = try XCTUnwrap(try payload()["hunks"] as? [[String: Any]])
+        XCTAssertEqual(hunks.count, 1)
+        XCTAssertEqual(hunks[0]["id"] as? String, "hunk-0")
+        XCTAssertEqual(hunks[0]["heading"] as? String, "Install")
+        XCTAssertEqual(hunks[0]["additions"] as? Int, 1)
+    }
+
+    func testRowCarriesKindAndBothCells() throws {
+        let hunks = try XCTUnwrap(try payload()["hunks"] as? [[String: Any]])
+        let rows = try XCTUnwrap(hunks[0]["rows"] as? [[String: Any]])
+        XCTAssertEqual(rows[0]["kind"] as? String, "modified")
+        let new = try XCTUnwrap(rows[0]["new"] as? [String: Any])
+        XCTAssertEqual(new["n"] as? Int, 2)
+        XCTAssertEqual(new["text"] as? String, "requires macOS 14")
+        let spans = try XCTUnwrap(new["spans"] as? [[Int]])
+        XCTAssertEqual(spans, [[15, 2]])
+    }
+
+    /// An absent side is JSON null, which the renderer draws as a filler cell.
+    func testAbsentSideIsNull() throws {
+        let file = GitDiff.parse("--- a/a.md\n+++ b/a.md\n@@ -1,1 +1,2 @@\n keep\n+added")
+        let data = Data(file.jsonPayload().utf8)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let hunks = try XCTUnwrap(json["hunks"] as? [[String: Any]])
+        let rows = try XCTUnwrap(hunks[0]["rows"] as? [[String: Any]])
+        XCTAssertTrue(rows[1]["old"] is NSNull)
+    }
+
+    /// The payload is embedded in an evaluateJavaScript string literal, so any
+    /// character that could close it early must survive a round trip.
+    func testTextWithQuotesAndBackslashesSurvives() throws {
+        let file = GitDiff.parse("--- a/a.md\n+++ b/a.md\n@@ -1,1 +1,1 @@\n+say \"hi\\\" now")
+        let data = Data(file.jsonPayload().utf8)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let hunks = try XCTUnwrap(json["hunks"] as? [[String: Any]])
+        let rows = try XCTUnwrap(hunks[0]["rows"] as? [[String: Any]])
+        let new = try XCTUnwrap(rows[0]["new"] as? [String: Any])
+        XCTAssertEqual(new["text"] as? String, "say \"hi\\\" now")
+    }
+}
+
+final class DiffSettingsTests: XCTestCase {
+    private var savedMode = false
+    private var savedScope: DiffScope = .all
+
+    /// These tests share the app's real UserDefaults — the same pattern as
+    /// ReadingPositionTests. Put the user's own choices back afterwards, or
+    /// running `swift test` silently flips their diff preference.
+    override func setUp() async throws {
+        savedMode = Settings.loadDiffMode()
+        savedScope = Settings.loadDiffScope()
+    }
+
+    override func tearDown() async throws {
+        Settings.saveDiffMode(savedMode)
+        Settings.saveDiffScope(savedScope)
+    }
+
+    func testDiffModeDefaultsOff() {
+        UserDefaults.standard.removeObject(forKey: "reader.md.diffMode")
+        XCTAssertFalse(Settings.loadDiffMode())
+    }
+
+    func testDiffModeRoundTrips() {
+        Settings.saveDiffMode(true)
+        XCTAssertTrue(Settings.loadDiffMode())
+        Settings.saveDiffMode(false)
+        XCTAssertFalse(Settings.loadDiffMode())
+    }
+
+    func testDiffScopeDefaultsToAll() {
+        UserDefaults.standard.removeObject(forKey: "reader.md.diffScope")
+        XCTAssertEqual(Settings.loadDiffScope(), .all)
+    }
+
+    func testDiffScopeRoundTrips() {
+        Settings.saveDiffScope(.staged)
+        XCTAssertEqual(Settings.loadDiffScope(), .staged)
+    }
+
+    /// A scope removed in some future version must not crash startup.
+    func testUnknownScopeFallsBackToAll() {
+        UserDefaults.standard.set("nonexistent", forKey: "reader.md.diffScope")
+        XCTAssertEqual(Settings.loadDiffScope(), .all)
+        UserDefaults.standard.removeObject(forKey: "reader.md.diffScope")
+    }
+}

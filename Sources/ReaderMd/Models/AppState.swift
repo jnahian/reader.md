@@ -148,6 +148,24 @@ final class AppState: ObservableObject {
     @Published var findPrevToken: Int = 0
     @Published var exportToken: Int = 0
 
+    // Diff mode — a sticky VIEW MODE, not a one-shot, so it is persisted state
+    // rather than a bump token. `diffToken` is the one-shot: it's bumped after
+    // each recompute so the web view knows to push the new model.
+    @Published var diffMode: Bool = false
+    @Published var diffScope: DiffScope = .all
+    @Published var diffFile: DiffFile?
+    @Published var diffAvailable: Bool = false          // open file is inside a repo
+    @Published var gitStatuses: [String: GitFileStatus] = [:]
+    @Published var diffToken: Int = 0
+
+    /// Probed once, off the main actor, because /usr/bin/git is an xcode-select
+    /// shim: on a Mac with no Command Line Tools that call can raise Apple's
+    /// install dialog, and it must not run on the launch path.
+    @Published private(set) var gitAvailable = false
+
+    /// Repo root per root folder. Roots may be different repos, or not repos.
+    private var repoRootCache: [String: URL] = [:]
+
     // Highlights/annotations/comments (#1/#2/#3) for the current document.
     @Published var marks: [Mark] = []
     @Published var orphanedMarkIDs: Set<UUID> = []
@@ -188,6 +206,87 @@ final class AppState: ObservableObject {
         positions = Settings.loadPositions().filter { FileManager.default.fileExists(atPath: $0.key) }
         loadSavedRoots()
         loadSavedRemotes()
+        diffMode = Settings.loadDiffMode()
+        diffScope = Settings.loadDiffScope()
+        // Probe git off the launch path, then do the first refresh once the
+        // answer is in — every git call in this class is gated on it.
+        Task.detached(priority: .utility) {
+            guard GitDiff.isAvailable() else { return }
+            await MainActor.run { [weak self] in
+                guard let self else { return }
+                self.gitAvailable = true
+                self.refreshDiff()
+                self.refreshGitStatus()
+            }
+        }
+    }
+
+    // MARK: - Diff mode
+
+    /// True when the diff pane should be showing instead of rendered markdown.
+    /// A file with no repo renders normally even while `diffMode` is on, so
+    /// opening a remote folder mid-session isn't a dead end.
+    var canShowDiff: Bool { diffMode && diffAvailable }
+
+    func toggleDiffMode() {
+        diffMode.toggle()
+        Settings.saveDiffMode(diffMode)
+        refreshDiff()
+    }
+
+    func setDiffScope(_ scope: DiffScope) {
+        guard scope != diffScope else { return }
+        diffScope = scope
+        Settings.saveDiffScope(scope)
+        refreshDiff()
+    }
+
+    func gitStatus(for path: String) -> GitFileStatus? { gitStatuses[path] }
+
+    /// Recomputes the open file's diff and its repo membership. Safe to call
+    /// when diff mode is off — it still refreshes `diffAvailable` so the
+    /// toolbar button knows whether to appear.
+    func refreshDiff() {
+        guard gitAvailable, let file = selectedFile else {
+            diffAvailable = false
+            diffFile = nil
+            diffToken += 1
+            return
+        }
+        let url = file.url
+        let scope = diffScope
+        let wantDiff = diffMode
+        let cached = repoRootCache[url.deletingLastPathComponent().path]
+
+        Task.detached(priority: .userInitiated) {
+            let root = cached ?? GitDiff.repoRoot(for: url)
+            let computed: DiffFile?
+            if wantDiff, let root {
+                computed = GitDiff.diff(file: url, scope: scope, repoRoot: root)
+            } else {
+                computed = nil
+            }
+            await MainActor.run { [weak self] in
+                guard let self, self.selectedFile?.url == url else { return }
+                if let root { self.repoRootCache[url.deletingLastPathComponent().path] = root }
+                self.diffAvailable = root != nil
+                self.diffFile = computed
+                self.diffToken += 1
+            }
+        }
+    }
+
+    /// Refreshes the badge map for every root that is a git repo.
+    func refreshGitStatus() {
+        guard gitAvailable else { return }
+        let urls = roots.map(\.url)
+        Task.detached(priority: .utility) {
+            let merged: [String: GitFileStatus] = urls.reduce(into: [:]) { acc, url in
+                guard let root = GitDiff.repoRoot(for: url) else { return }
+                acc.merge(GitDiff.status(root: root)) { current, _ in current }
+            }
+            await MainActor.run { [weak self] in self?.gitStatuses = merged }
+        }
     }
 
     // MARK: - Folder management
@@ -265,6 +364,7 @@ final class AppState: ObservableObject {
             selectedFile = nil
             toc = []
             loadMarksForCurrentFile()
+            refreshDiff()
         }
         roots.removeAll { $0.id == root.id }
         rebuildWatchers()
@@ -309,12 +409,14 @@ final class AppState: ObservableObject {
             if FileManager.default.fileExists(atPath: file.url.path) {
                 // Open file may have been edited on disk → force a re-read.
                 reloadToken += 1
+                refreshDiff()
             } else {
                 selectedFile = nil
                 toc = []
                 loadMarksForCurrentFile()
             }
         }
+        refreshGitStatus()
     }
 
     private func persistRoots() {
@@ -469,6 +571,7 @@ final class AppState: ObservableObject {
         activeHeadingID = nil
         scrollProgress = 0
         loadMarksForCurrentFile()
+        refreshDiff()
     }
 
     func openPath(_ path: String) {
@@ -509,6 +612,7 @@ final class AppState: ObservableObject {
         activeHeadingID = nil
         scrollProgress = 0
         loadMarksForCurrentFile()
+        refreshDiff()
     }
 
     // MARK: - Reading position

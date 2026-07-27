@@ -45,6 +45,14 @@ struct ReaderMdApp: App {
                     appDelegate.state = state
                     state.checkWhatsNew()
                 }
+                .onReceive(NotificationCenter.default.publisher(
+                    for: NSApplication.didBecomeActiveNotification)) { _ in
+                    // Staging a file doesn't touch the working tree, and .git is
+                    // in ignoredDirs — so FSEvents never fires for it. Coming back
+                    // to the window is the signal that the index may have moved.
+                    state.refreshDiff()
+                    state.refreshGitStatus()
+                }
                 // Without this, SwiftUI answers every incoming readermd:// URL by
                 // opening a *second* window instead of routing it to the existing one.
                 .handlesExternalEvents(preferring: ["*"], allowing: ["*"])

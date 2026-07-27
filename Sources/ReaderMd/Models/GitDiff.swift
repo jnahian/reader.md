@@ -523,3 +523,88 @@ extension GitDiff {
         return value
     }
 }
+
+// MARK: - Assembling a file's diff
+
+extension GitDiff {
+
+    /// The parsed, annotated diff for one file, or nil when the scope has no
+    /// changes for it. Callers must be off the main actor.
+    static func diff(file: URL, scope: DiffScope, repoRoot: URL) -> DiffFile? {
+        let relative = relativePath(of: file, under: repoRoot)
+        var raw: String
+
+        switch run(scope.arguments + ["--", relative], in: repoRoot) {
+        case .failure: return nil
+        case .output(let text): raw = text
+        }
+
+        // An untracked file is invisible to `git diff`, so compare it against
+        // nothing and let the whole file render as added.
+        if raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            guard status(root: repoRoot)[file.standardizedFileURL.path] == .untracked,
+                  case .output(let text) = run(["diff", "--no-index", "--", "/dev/null", relative], in: repoRoot),
+                  !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            else { return nil }
+            raw = text
+        }
+
+        let parsed = annotateWords(parse(raw))
+        guard !parsed.isEmpty else { return nil }
+        return annotateHeadings(parsed, newSideLines: newSideLines(file: file, scope: scope, repoRoot: repoRoot))
+    }
+
+    /// The post-change text the outline's headings are resolved against. For
+    /// `.staged` the new side is the index, not the working tree, so it comes
+    /// from `git show :path` rather than from disk.
+    private static func newSideLines(file: URL, scope: DiffScope, repoRoot: URL) -> [String] {
+        if scope == .staged {
+            let relative = relativePath(of: file, under: repoRoot)
+            if case .output(let text) = run(["show", ":\(relative)"], in: repoRoot), !text.isEmpty {
+                return text.components(separatedBy: "\n")
+            }
+        }
+        let text = (try? String(contentsOf: file, encoding: .utf8)) ?? ""
+        return text.components(separatedBy: "\n")
+    }
+
+    private static func relativePath(of file: URL, under root: URL) -> String {
+        let filePath = file.standardizedFileURL.path
+        let rootPath = root.standardizedFileURL.path
+        guard filePath.hasPrefix(rootPath + "/") else { return filePath }
+        return String(filePath.dropFirst(rootPath.count + 1))
+    }
+}
+
+// MARK: - JSON payload for bridge.js
+
+extension DiffFile {
+
+    /// Shape consumed by `window.ReaderMd.loadDiff`. Keys are short because a
+    /// large diff serializes one object per row.
+    func jsonPayload() -> String {
+        func cell(_ c: DiffCell?) -> Any {
+            guard let c else { return NSNull() }
+            return ["n": c.lineNumber,
+                    "text": c.text,
+                    "spans": c.spans.map { [$0.start, $0.length] }]
+        }
+        let payload: [String: Any] = [
+            "additions": additions,
+            "deletions": deletions,
+            "hunks": hunks.map { h in
+                [
+                    "id": h.id,
+                    "heading": h.heading,
+                    "additions": h.additions,
+                    "deletions": h.deletions,
+                    "rows": h.rows.map { r in
+                        ["kind": r.kind.rawValue, "old": cell(r.old), "new": cell(r.new)]
+                    },
+                ] as [String: Any]
+            },
+        ]
+        guard let data = try? JSONSerialization.data(withJSONObject: payload) else { return "{\"hunks\":[]}" }
+        return String(decoding: data, as: UTF8.self)
+    }
+}

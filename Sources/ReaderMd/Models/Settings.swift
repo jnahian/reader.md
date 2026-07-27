@@ -16,6 +16,8 @@ enum Settings {
     private static let showResolvedThreadsKey = "reader.md.showResolvedThreads"
     private static let readingThemeKey = "reader.md.readingTheme"
     private static let positionsKey = "reader.md.positions"
+    private static let diffModeKey = "reader.md.diffMode"
+    private static let diffScopeKey = "reader.md.diffScope"
 
     private static var defaults: UserDefaults { .standard }
 
@@ -126,5 +128,23 @@ enum Settings {
     }
     static func saveShowResolvedThreads(_ value: Bool) {
         defaults.set(value, forKey: showResolvedThreadsKey)
+    }
+
+    // Diff mode: a sticky view mode, remembered across launches like the
+    // other view preferences.
+    static func loadDiffMode() -> Bool {
+        defaults.object(forKey: diffModeKey) as? Bool ?? false
+    }
+    static func saveDiffMode(_ value: Bool) {
+        defaults.set(value, forKey: diffModeKey)
+    }
+
+    /// Falls back to `.all` for an absent or unrecognized value, so a scope
+    /// removed in a future version can't break startup.
+    static func loadDiffScope() -> DiffScope {
+        DiffScope(rawValue: defaults.string(forKey: diffScopeKey) ?? "") ?? .all
+    }
+    static func saveDiffScope(_ value: DiffScope) {
+        defaults.set(value.rawValue, forKey: diffScopeKey)
     }
 }
