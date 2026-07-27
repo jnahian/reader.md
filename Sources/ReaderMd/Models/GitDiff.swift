@@ -244,3 +244,115 @@ extension GitDiff {
         return (old, new)
     }
 }
+
+// MARK: - Word-level intra-line diff
+
+extension GitDiff {
+
+    /// Above this many tokens per line the O(n*m) table stops being free.
+    /// ponytail: fixed cap, both sides span fully past it. Swap in a Myers diff
+    /// only if someone actually reads minified single-line tables.
+    private static let wordDiffTokenCap = 400
+
+    /// Character ranges that differ between two versions of one line.
+    /// Offsets count Characters so multibyte text can't split a grapheme.
+    static func wordSpans(old: String, new: String) -> (old: [WordSpan], new: [WordSpan]) {
+        if old == new { return ([], []) }
+        let a = tokenize(old), b = tokenize(new)
+
+        guard a.count <= wordDiffTokenCap, b.count <= wordDiffTokenCap else {
+            return (fullSpan(old), fullSpan(new))
+        }
+
+        // dp[i][j] = length of the longest common token subsequence of a[i...], b[j...]
+        var dp = Array(repeating: Array(repeating: 0, count: b.count + 1), count: a.count + 1)
+        for i in stride(from: a.count - 1, through: 0, by: -1) {
+            for j in stride(from: b.count - 1, through: 0, by: -1) {
+                dp[i][j] = a[i] == b[j] ? dp[i + 1][j + 1] + 1
+                                        : max(dp[i + 1][j], dp[i][j + 1])
+            }
+        }
+
+        var matchedA = Array(repeating: false, count: a.count)
+        var matchedB = Array(repeating: false, count: b.count)
+        var i = 0, j = 0
+        while i < a.count, j < b.count {
+            if a[i] == b[j] {
+                matchedA[i] = true
+                matchedB[j] = true
+                i += 1
+                j += 1
+            } else if dp[i + 1][j] >= dp[i][j + 1] {
+                i += 1
+            } else {
+                j += 1
+            }
+        }
+        return (spans(a, matched: matchedA), spans(b, matched: matchedB))
+    }
+
+    /// Fills `spans` on every `.modified` row. Wholly added or removed rows are
+    /// already fully shaded by their row background, so they're left alone.
+    static func annotateWords(_ file: DiffFile) -> DiffFile {
+        var result = file
+        for h in result.hunks.indices {
+            for r in result.hunks[h].rows.indices where result.hunks[h].rows[r].kind == .modified {
+                guard var old = result.hunks[h].rows[r].old,
+                      var new = result.hunks[h].rows[r].new else { continue }
+                let (oldSpans, newSpans) = wordSpans(old: old.text, new: new.text)
+                old.spans = oldSpans
+                new.spans = newSpans
+                result.hunks[h].rows[r].old = old
+                result.hunks[h].rows[r].new = new
+            }
+        }
+        return result
+    }
+
+    /// Runs of whitespace and runs of non-whitespace, in order. Keeping the
+    /// whitespace as its own token means spans stay aligned to the original
+    /// string without a separate offset table.
+    private static func tokenize(_ s: String) -> [String] {
+        var out: [String] = []
+        var current = ""
+        var currentIsSpace: Bool?
+        for ch in s {
+            let isSpace = ch.isWhitespace
+            if currentIsSpace == nil || currentIsSpace == isSpace {
+                current.append(ch)
+            } else {
+                out.append(current)
+                current = String(ch)
+            }
+            currentIsSpace = isSpace
+        }
+        if !current.isEmpty { out.append(current) }
+        return out
+    }
+
+    private static func fullSpan(_ s: String) -> [WordSpan] {
+        s.isEmpty ? [] : [WordSpan(start: 0, length: s.count)]
+    }
+
+    /// Merges consecutive unmatched tokens into one span each.
+    private static func spans(_ tokens: [String], matched: [Bool]) -> [WordSpan] {
+        var out: [WordSpan] = []
+        var offset = 0
+        var runStart: Int?
+        for (k, token) in tokens.enumerated() {
+            if matched[k] {
+                if let start = runStart {
+                    out.append(WordSpan(start: start, length: offset - start))
+                    runStart = nil
+                }
+            } else if runStart == nil {
+                runStart = offset
+            }
+            offset += token.count
+        }
+        if let start = runStart {
+            out.append(WordSpan(start: start, length: offset - start))
+        }
+        return out
+    }
+}

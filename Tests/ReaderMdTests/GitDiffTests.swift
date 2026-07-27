@@ -247,3 +247,107 @@ final class GitDiffParseTests: XCTestCase {
         XCTAssertEqual(rows.map(\.kind), [.context, .modified])
     }
 }
+
+/// Word-level spans within a paired row. A markdown paragraph is one long line,
+/// so line-level shading alone makes prose diffs unreadable.
+final class GitDiffWordSpanTests: XCTestCase {
+
+    private func text(_ s: String, _ spans: [WordSpan]) -> [String] {
+        let chars = Array(s)
+        return spans.map { String(chars[$0.start..<($0.start + $0.length)]) }
+    }
+
+    func testSingleWordInsertion() {
+        let (old, new) = GitDiff.wordSpans(old: "brew install reader-md",
+                                           new: "brew install --cask reader-md")
+        XCTAssertTrue(old.isEmpty)
+        XCTAssertEqual(text("brew install --cask reader-md", new), ["--cask "])
+    }
+
+    func testSingleWordDeletion() {
+        let (old, new) = GitDiff.wordSpans(old: "the quick brown fox",
+                                           new: "the quick fox")
+        XCTAssertEqual(text("the quick brown fox", old), ["brown "])
+        XCTAssertTrue(new.isEmpty)
+    }
+
+    func testSingleWordReplacement() {
+        let (old, new) = GitDiff.wordSpans(old: "requires macOS 13",
+                                           new: "requires macOS 14")
+        XCTAssertEqual(text("requires macOS 13", old), ["13"])
+        XCTAssertEqual(text("requires macOS 14", new), ["14"])
+    }
+
+    /// Nothing in common: both sides span the whole line, and the renderer's
+    /// row shading already says the same thing. Still correct, not special-cased.
+    func testWholeLineReplacement() {
+        let (old, new) = GitDiff.wordSpans(old: "alpha", new: "beta")
+        XCTAssertEqual(old, [WordSpan(start: 0, length: 5)])
+        XCTAssertEqual(new, [WordSpan(start: 0, length: 4)])
+    }
+
+    func testIdenticalLinesProduceNoSpans() {
+        let (old, new) = GitDiff.wordSpans(old: "same text", new: "same text")
+        XCTAssertTrue(old.isEmpty)
+        XCTAssertTrue(new.isEmpty)
+    }
+
+    func testEmptyOldSide() {
+        let (old, new) = GitDiff.wordSpans(old: "", new: "added line")
+        XCTAssertTrue(old.isEmpty)
+        XCTAssertEqual(new, [WordSpan(start: 0, length: 10)])
+    }
+
+    func testEmptyNewSide() {
+        let (old, new) = GitDiff.wordSpans(old: "removed line", new: "")
+        XCTAssertEqual(old, [WordSpan(start: 0, length: 12)])
+        XCTAssertTrue(new.isEmpty)
+    }
+
+    /// Leading indentation is a token like any other; changing it is a real change.
+    func testLeadingWhitespaceChangeIsSpanned() {
+        let (old, new) = GitDiff.wordSpans(old: "  indented", new: "    indented")
+        XCTAssertEqual(text("  indented", old), ["  "])
+        XCTAssertEqual(text("    indented", new), ["    "])
+    }
+
+    /// Non-ASCII must be measured in Characters, not bytes, or spans land
+    /// mid-grapheme and the renderer slices a word in half.
+    func testMultibyteOffsetsCountCharacters() {
+        let (_, new) = GitDiff.wordSpans(old: "café is open", new: "café is closed")
+        XCTAssertEqual(text("café is closed", new), ["closed"])
+    }
+
+    /// A pathological single line (a minified table row, a base64 blob) would
+    /// make the O(n*m) table enormous. Above the cap both sides span fully.
+    func testVeryLongLinesFallBackToFullSpan() {
+        let a = String(repeating: "word ", count: 500)
+        let b = String(repeating: "term ", count: 500)
+        let (old, new) = GitDiff.wordSpans(old: a, new: b)
+        XCTAssertEqual(old, [WordSpan(start: 0, length: a.count)])
+        XCTAssertEqual(new, [WordSpan(start: 0, length: b.count)])
+    }
+
+    /// Only paired rows get spans; a wholly added or removed line is already
+    /// fully shaded by its row.
+    func testAnnotateFillsModifiedRowsOnly() {
+        let unified = """
+        --- a/a.md
+        +++ b/a.md
+        @@ -1,3 +1,3 @@
+        -requires macOS 13
+        +requires macOS 14
+        +brand new line
+         unchanged
+        """
+        let file = GitDiff.annotateWords(GitDiff.parse(unified))
+        let rows = file.hunks[0].rows
+        XCTAssertEqual(rows[0].kind, .modified)
+        XCTAssertFalse(rows[0].old?.spans.isEmpty ?? true)
+        XCTAssertFalse(rows[0].new?.spans.isEmpty ?? true)
+        XCTAssertEqual(rows[1].kind, .added)
+        XCTAssertTrue(rows[1].new?.spans.isEmpty ?? false)
+        XCTAssertEqual(rows[2].kind, .context)
+        XCTAssertTrue(rows[2].new?.spans.isEmpty ?? false)
+    }
+}
