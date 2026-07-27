@@ -56,11 +56,32 @@ GitDiff.diff(file: URL, scope: DiffScope) -> DiffFile?
 ```
 
 - `repoRoot` shells `git -C <dir> rev-parse --show-toplevel`.
-- `status` shells `git status --porcelain`, keeping markdown paths only.
+- `status` shells `git status --porcelain -uall`, keeping markdown paths only.
 - `diff` shells `git diff` / `git diff --cached` / `git diff HEAD` per scope and
   parses the unified output.
 
 `DiffScope` is `.unstaged | .staged | .all`.
+
+**Exit-code contract**, because git's is not uniform and guessing it silently
+breaks whole categories of file:
+
+- `git diff` and friends exit **0 whether or not there is output**. Empty stdout
+  means no changes in that scope, not failure.
+- `git diff --no-index` exits **1 when the files differ** — that is the success
+  case for untracked files. Treating nonzero as failure would drop every
+  untracked file on the floor.
+- Only a genuine launch failure, or an exit code of 2 or higher, is an error.
+
+**Status path keying.** `git status --porcelain` emits paths relative to the repo
+root, and quotes plus C-escapes them when they contain spaces or non-ASCII. `-uall`
+is required, otherwise a new folder collapses to a single `docs/` entry and its
+files get no badges. `status` unquotes and unescapes, then keys the dictionary by
+**absolute path**, so `FileNode`'s URLs match without per-lookup conversion.
+
+**Multi-root.** `AppState.roots` is plural, and roots may be different repos or
+not repos at all. `repoRoot` and `status` are therefore resolved per root and
+cached per root, not once for the app. A file's badge comes from its own root's
+status map; roots that are not repos contribute nothing.
 
 `DiffFile` is a plain struct carrying `[Hunk]`. Each `Hunk` holds its old and new
 line ranges, its paired rows, its `+`/`−` counts, and the markdown heading it
@@ -186,6 +207,21 @@ OUTLINE
 • FAQ                +0 −2
 ```
 
+**Reuses the existing `TOCEntry` type, no new outline plumbing.** `TOCView` taps
+call `state.requestScroll(to: entry.id)`, and `bridge.js`'s `scrollToHeading(id)`
+is a bare `getElementById(id).scrollIntoView`. So each hunk row is a `TOCEntry`
+with `id = "hunk-N"`, `text` = the enclosing heading, `level` = that heading's
+depth for indentation — and `loadDiff` stamps `id="hunk-N"` on each hunk
+container. The click path then works unchanged.
+
+**The scroll-spy does need a diff variant.** `reportActiveHeading` scans
+`h1,h2,h3,h4` inside `contentEl` and posts `activeHeading`; in diff mode there
+are no headings, so `activeHeadingID` would never update and the outline would
+never highlight the row you are looking at. In diff mode the same scroll listener
+scans `[id^="hunk-"]` containers instead, applying the identical "topmost element
+above 100px" rule, and posts the hunk id on the existing `activeHeading` channel.
+`AppState` needs no change — the ids just come from a different element set.
+
 ### Suppressed in diff mode
 
 - **Marks** — the mark layer hides and mark creation is disabled. Marks anchor by
@@ -225,6 +261,8 @@ theme. Not hardcoded green and red, so sepia does not get neon rows.
 - Word-level LCS: whole-line replacement, single-word edit, leading and trailing
   whitespace, empty line, line added with no counterpart.
 - Scope-to-argv mapping for the three `DiffScope` cases.
+- Porcelain parsing: quoted and C-escaped paths, `-uall` output for a new folder,
+  non-markdown paths filtered out, keys resolved to absolute paths.
 
 The `Process` invocation, the split table rendering, the sidebar badges, and the
 diff-mode suppression of marks and export are verified by running the app, per
