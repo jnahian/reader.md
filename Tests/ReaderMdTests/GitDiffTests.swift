@@ -513,6 +513,22 @@ final class GitDiffHeadingTests: XCTestCase {
         XCTAssertEqual(file.hunks[0].headingLevel, 3)
         XCTAssertEqual(file.hunks[1].heading, "Overview › Configuration")
     }
+
+    /// The common case with git's default 3 lines of context: a hunk's first
+    /// new-side line (`newStart`) IS a heading line. `headingBreadcrumb` is
+    /// strictly "lines above", so the hunk must be labelled with THAT heading,
+    /// not its parent — `annotateHeadings` has to look one line past `newStart`.
+    func testAnnotateHeadingsWhenHunkStartsOnAHeadingLine() {
+        let unified = """
+        --- a/a.md
+        +++ b/a.md
+        @@ -3,1 +3,1 @@
+        -## Install
+        +## Install
+        """
+        let file = GitDiff.annotateHeadings(GitDiff.parse(unified), newSideLines: doc)
+        XCTAssertEqual(file.hunks[0].heading, "Overview › Install")
+    }
 }
 
 /// Porcelain paths are repo-root-relative, and git quotes plus C-escapes them
@@ -575,6 +591,20 @@ final class GitStatusParseTests: XCTestCase {
         XCTAssertEqual(map["/repo/a\"b.md"], .untracked)
     }
 
+    /// `\\` inside a quoted path is an escaped backslash, decoding to one literal `\`.
+    func testEscapedBackslashDecodes() {
+        let map = GitDiff.parseStatus("?? \"a\\\\b.md\"", root: root)
+        XCTAssertEqual(map["/repo/a\\b.md"], .untracked)
+    }
+
+    /// git's C-quoting (quote.c) also emits \a \b \f \v for control characters,
+    /// not just \n \t \r. Undecoded, these left the literal letters a/b/f/v in
+    /// the path, so it never matched and the file got no sidebar badge.
+    func testControlCharacterEscapesDecode() {
+        let map = GitDiff.parseStatus("?? \"bell\\a.md\"", root: root)
+        XCTAssertEqual(map["/repo/bell\u{07}.md"], .untracked)
+    }
+
     /// A rename badges the destination — that's the file the sidebar shows.
     func testRenameUsesTheNewPath() {
         let map = GitDiff.parseStatus("R  old.md -> new.md", root: root)
@@ -602,7 +632,7 @@ final class DiffPayloadTests: XCTestCase {
     private let unified = """
     --- a/a.md
     +++ b/a.md
-    @@ -2,2 +2,2 @@
+    @@ -1,2 +1,2 @@
     -requires macOS 13
     +requires macOS 14
      unchanged
@@ -635,7 +665,7 @@ final class DiffPayloadTests: XCTestCase {
         let rows = try XCTUnwrap(hunks[0]["rows"] as? [[String: Any]])
         XCTAssertEqual(rows[0]["kind"] as? String, "modified")
         let new = try XCTUnwrap(rows[0]["new"] as? [String: Any])
-        XCTAssertEqual(new["n"] as? Int, 2)
+        XCTAssertEqual(new["n"] as? Int, 1)
         XCTAssertEqual(new["text"] as? String, "requires macOS 14")
         let spans = try XCTUnwrap(new["spans"] as? [[Int]])
         XCTAssertEqual(spans, [[15, 2]])
@@ -661,6 +691,43 @@ final class DiffPayloadTests: XCTestCase {
         let rows = try XCTUnwrap(hunks[0]["rows"] as? [[String: Any]])
         let new = try XCTUnwrap(rows[0]["new"] as? [String: Any])
         XCTAssertEqual(new["text"] as? String, "say \"hi\\\" now")
+    }
+}
+
+/// The untracked-file `--no-index` fallback in `GitDiff.diff` must only fire
+/// for `.unstaged`/`.all` — for `.staged`, an untracked file has nothing
+/// staged, so the fallback would falsely render the whole file as staged.
+/// Needs a real repo, so this shells out to git like `GitDiff` itself does.
+final class GitDiffUntrackedFallbackTests: XCTestCase {
+    private var repo: URL!
+
+    override func setUpWithError() throws {
+        repo = FileManager.default.temporaryDirectory
+            .appendingPathComponent("git-fallback-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: repo, withIntermediateDirectories: true)
+        guard case .output = GitDiff.run(["init"], in: repo) else {
+            throw XCTSkip("git init failed in this environment")
+        }
+    }
+
+    override func tearDownWithError() throws {
+        try? FileManager.default.removeItem(at: repo)
+    }
+
+    func testStagedScopeReportsNoDiffForAnUntrackedFile() throws {
+        let file = repo.appendingPathComponent("new.md")
+        try "# New".write(to: file, atomically: true, encoding: .utf8)
+
+        XCTAssertNil(GitDiff.diff(file: file, scope: .staged, repoRoot: repo))
+    }
+
+    /// Unstaged/all are the scopes the fallback exists for — untouched by the fix.
+    func testUnstagedScopeStillRendersAnUntrackedFileAsAdded() throws {
+        let file = repo.appendingPathComponent("new.md")
+        try "# New".write(to: file, atomically: true, encoding: .utf8)
+
+        let diff = try XCTUnwrap(GitDiff.diff(file: file, scope: .unstaged, repoRoot: repo))
+        XCTAssertGreaterThan(diff.additions, 0)
     }
 }
 

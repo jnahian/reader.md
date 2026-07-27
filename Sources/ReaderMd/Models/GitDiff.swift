@@ -401,7 +401,11 @@ extension GitDiff {
     static func annotateHeadings(_ file: DiffFile, newSideLines: [String]) -> DiffFile {
         var result = file
         for h in result.hunks.indices {
-            let found = headingBreadcrumb(beforeLine: result.hunks[h].newStart, in: newSideLines)
+            // headingBreadcrumb is strictly "lines above the given line", so when
+            // the hunk's first new-side line IS itself a heading (the common case
+            // with git's default 3 lines of context), passing newStart unchanged
+            // would resolve to that heading's PARENT. Look one line past it.
+            let found = headingBreadcrumb(beforeLine: result.hunks[h].newStart + 1, in: newSideLines)
             result.hunks[h].heading = found.text
             result.hunks[h].headingLevel = found.level
         }
@@ -508,6 +512,10 @@ extension GitDiff {
             case "n": bytes.append(0x0A)
             case "t": bytes.append(0x09)
             case "r": bytes.append(0x0D)
+            case "a": bytes.append(0x07)
+            case "b": bytes.append(0x08)
+            case "f": bytes.append(0x0C)
+            case "v": bytes.append(0x0B)
             default:  bytes.append(contentsOf: Array(String(next).utf8))
             }
             i += 2
@@ -540,9 +548,13 @@ extension GitDiff {
         }
 
         // An untracked file is invisible to `git diff`, so compare it against
-        // nothing and let the whole file render as added.
+        // nothing and let the whole file render as added. Excluded for `.staged`:
+        // an untracked file has nothing staged, so `git diff --cached` correctly
+        // returning empty means "not staged" — falling back here would render
+        // the whole file as added, falsely implying it is staged.
         if raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            guard status(root: repoRoot)[file.standardizedFileURL.path] == .untracked,
+            guard scope != .staged,
+                  status(root: repoRoot)[file.standardizedFileURL.path] == .untracked,
                   case .output(let text) = run(["diff", "--no-index", "--", "/dev/null", relative], in: repoRoot),
                   !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             else { return nil }

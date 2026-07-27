@@ -166,6 +166,13 @@ final class AppState: ObservableObject {
     /// Repo root per root folder. Roots may be different repos, or not repos.
     private var repoRootCache: [String: URL] = [:]
 
+    /// Generation counters guarding against out-of-order async completions:
+    /// bumped at dispatch, captured by the in-flight task, checked back before
+    /// the result is applied — a stale completion (an older refresh landing
+    /// after a newer one) is dropped rather than overwriting fresher state.
+    private var diffRequest = 0
+    private var statusRequest = 0
+
     // Highlights/annotations/comments (#1/#2/#3) for the current document.
     @Published var marks: [Mark] = []
     @Published var orphanedMarkIDs: Set<UUID> = []
@@ -257,6 +264,8 @@ final class AppState: ObservableObject {
         let scope = diffScope
         let wantDiff = diffMode
         let cached = repoRootCache[url.deletingLastPathComponent().path]
+        diffRequest += 1
+        let generation = diffRequest
 
         Task.detached(priority: .userInitiated) {
             let root = cached ?? GitDiff.repoRoot(for: url)
@@ -267,7 +276,10 @@ final class AppState: ObservableObject {
                 computed = nil
             }
             await MainActor.run { [weak self] in
-                guard let self, self.selectedFile?.url == url else { return }
+                // Both checks matter: the URL check catches navigation to a
+                // different file, the generation check catches two in-flight
+                // refreshes for the SAME file completing out of order.
+                guard let self, self.diffRequest == generation, self.selectedFile?.url == url else { return }
                 if let root { self.repoRootCache[url.deletingLastPathComponent().path] = root }
                 self.diffAvailable = root != nil
                 self.diffFile = computed
@@ -280,12 +292,17 @@ final class AppState: ObservableObject {
     func refreshGitStatus() {
         guard gitAvailable else { return }
         let urls = roots.map(\.url)
+        statusRequest += 1
+        let generation = statusRequest
         Task.detached(priority: .utility) {
             let merged: [String: GitFileStatus] = urls.reduce(into: [:]) { acc, url in
                 guard let root = GitDiff.repoRoot(for: url) else { return }
                 acc.merge(GitDiff.status(root: root)) { current, _ in current }
             }
-            await MainActor.run { [weak self] in self?.gitStatuses = merged }
+            await MainActor.run { [weak self] in
+                guard let self, self.statusRequest == generation else { return }
+                self.gitStatuses = merged
+            }
         }
     }
 
@@ -414,6 +431,7 @@ final class AppState: ObservableObject {
                 selectedFile = nil
                 toc = []
                 loadMarksForCurrentFile()
+                refreshDiff()
             }
         }
         refreshGitStatus()
