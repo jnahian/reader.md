@@ -131,7 +131,7 @@ struct FileTreeRow: View {
                 Text(badge.rawValue)
                     .font(.system(size: 10, weight: .bold, design: .monospaced))
                     .foregroundStyle(badgeColor(badge, selected: selected))
-                    .help(badgeHelp(badge))
+                    .dockTooltip(badgeHelp(badge))
             }
         }
         .padding(.vertical, 4)

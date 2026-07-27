@@ -230,6 +230,8 @@ final class AppState: ObservableObject {
         diffScope = Settings.loadDiffScope()
         // Probe git off the launch path, then do the first refresh once the
         // answer is in — every git call in this class is gated on it.
+        // The first git status refresh (below) only runs after gitAvailable is set,
+        // so it can't run during loadSavedRoots() in the init body above.
         Task.detached(priority: .utility) {
             guard GitDiff.isAvailable() else { return }
             await MainActor.run { [weak self] in
@@ -349,7 +351,6 @@ final class AppState: ObservableObject {
             addRoot(URL(fileURLWithPath: path), persist: false)
         }
         persistRoots()
-        refreshGitStatus()
     }
 
     func pickFolders() {
