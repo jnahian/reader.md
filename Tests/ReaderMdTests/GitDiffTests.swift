@@ -731,6 +731,88 @@ final class GitDiffUntrackedFallbackTests: XCTestCase {
     }
 }
 
+/// A repo reached through a symlinked path — the shape of anything under /tmp
+/// on macOS. `git rev-parse --show-toplevel` answers with every symlink already
+/// resolved, while the open file and the sidebar are named the way the user
+/// added them. The two namespaces have to be reconciled explicitly; nothing
+/// does it for free.
+final class GitDiffSymlinkedRepoTests: XCTestCase {
+    private var base: URL!
+    private var real: URL!
+    private var link: URL!
+
+    override func setUpWithError() throws {
+        let fm = FileManager.default
+        base = fm.temporaryDirectory.appendingPathComponent("git-symlink-\(UUID().uuidString)")
+        real = base.appendingPathComponent("real")
+        link = base.appendingPathComponent("link")
+        try fm.createDirectory(at: real, withIntermediateDirectories: true)
+        guard case .output = GitDiff.run(["init"], in: real) else {
+            throw XCTSkip("git init failed in this environment")
+        }
+        try fm.createSymbolicLink(at: link, withDestinationURL: real)
+    }
+
+    override func tearDownWithError() throws {
+        try? FileManager.default.removeItem(at: base)
+    }
+
+    private func commit(_ file: URL, _ text: String) throws {
+        try text.write(to: file, atomically: true, encoding: .utf8)
+        _ = GitDiff.run(["add", "-A"], in: real)
+        _ = GitDiff.run(["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "x"], in: real)
+    }
+
+    /// The untracked check used to key the open file's URL into a `git status`
+    /// map built in git's resolved namespace. The two never matched, so the
+    /// `--no-index` fallback never fired and the pane read "no changes".
+    func testUntrackedFileThroughASymlinkedPathStillDiffs() throws {
+        // `.all` is `git diff HEAD`, so the repo needs a commit to have a HEAD.
+        try commit(link.appendingPathComponent("seed.md"), "# Seed\n")
+        let file = link.appendingPathComponent("note.md")
+        try "# Hello\n\nbody\n".write(to: file, atomically: true, encoding: .utf8)
+        let root = try XCTUnwrap(GitDiff.repoRoot(for: file))
+
+        let diff = try XCTUnwrap(GitDiff.diff(file: file, scope: .all, repoRoot: root))
+        XCTAssertGreaterThan(diff.additions, 0)
+    }
+
+    /// A tracked edit already worked, because git resolves an absolute pathspec
+    /// itself. Pinned so making `relativePath` symlink-aware can't regress it.
+    func testTrackedEditThroughASymlinkedPathStillDiffs() throws {
+        let file = link.appendingPathComponent("note.md")
+        try commit(file, "# Hello\n\nbody\n")
+        try "# Hello\n\nBODY\n".write(to: file, atomically: true, encoding: .utf8)
+        let root = try XCTUnwrap(GitDiff.repoRoot(for: file))
+
+        let diff = try XCTUnwrap(GitDiff.diff(file: file, scope: .all, repoRoot: root))
+        XCTAssertEqual(diff.deletions, 1)
+    }
+
+    /// Badge lookups use `FileNode.url.path`, which is built by descending from
+    /// the folder the user added — so the status map has to be keyed there, not
+    /// under git's resolved top-level. Resolving at lookup time instead would
+    /// mean a realpath syscall per sidebar row per render.
+    func testStatusIsKeyedUnderTheFolderTheUserAdded() throws {
+        let file = link.appendingPathComponent("note.md")
+        try "# Hello\n".write(to: file, atomically: true, encoding: .utf8)
+        let root = try XCTUnwrap(GitDiff.repoRoot(for: file))
+
+        let map = GitDiff.status(root: root, displayedAs: link)
+        XCTAssertEqual(map[file.path], .untracked)
+    }
+
+    /// Without a display root the keys stay in git's namespace — the identity
+    /// case every non-symlinked repo takes.
+    func testAbsentDisplayRootKeepsGitsOwnNamespace() throws {
+        let file = real.appendingPathComponent("note.md")
+        try "# Hello\n".write(to: file, atomically: true, encoding: .utf8)
+        let root = try XCTUnwrap(GitDiff.repoRoot(for: file))
+
+        XCTAssertEqual(GitDiff.status(root: root)[file.standardizedFileURL.path], .untracked)
+    }
+}
+
 final class DiffSettingsTests: XCTestCase {
     private var savedMode = false
     private var savedScope: DiffScope = .all

@@ -340,7 +340,10 @@ final class AppState: ObservableObject {
         Task.detached(priority: .utility) {
             let merged: [String: GitFileStatus] = urls.reduce(into: [:]) { acc, url in
                 guard let root = GitDiff.repoRoot(for: url) else { return }
-                acc.merge(GitDiff.status(root: root)) { current, _ in current }
+                // `url` is the folder the user added; `root` is git's resolved
+                // top-level. Keys must come back in the former's namespace or
+                // they match no FileNode path.
+                acc.merge(GitDiff.status(root: root, displayedAs: url)) { current, _ in current }
             }
             await MainActor.run { [weak self] in
                 guard let self, self.statusRequest == generation else { return }

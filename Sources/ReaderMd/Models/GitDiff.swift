@@ -87,6 +87,15 @@ enum GitDiff {
         return trimmed.isEmpty ? nil : URL(fileURLWithPath: trimmed)
     }
 
+    /// A path with every symlink resolved — the namespace git answers in.
+    /// `rev-parse --show-toplevel` and `status --porcelain` both report resolved
+    /// paths, while the folders the user added and the URLs in the file tree are
+    /// whatever they were typed or picked as. Comparing the two forms directly is
+    /// the bug this exists to prevent.
+    static func canonical(_ url: URL) -> String {
+        url.resolvingSymlinksInPath().standardizedFileURL.path
+    }
+
     /// Probed once at launch and cached by the caller. On a Mac without Command
     /// Line Tools this is the call that can raise Apple's install dialog, because
     /// /usr/bin/git is an xcode-select shim — once, at startup, and only there.
@@ -453,12 +462,45 @@ extension GitDiff {
     ///
     /// `-uall` is required: without it a newly created folder collapses to a
     /// single `docs/` entry and none of its files get badges.
-    static func status(root: URL) -> [String: GitFileStatus] {
+    ///
+    /// Pass `displayedAs` the root folder the user actually added — see
+    /// `pathKeyer` for why the keys have to live in that namespace.
+    static func status(root: URL, displayedAs displayRoot: URL? = nil) -> [String: GitFileStatus] {
         guard case .output(let out) = run(["status", "--porcelain", "-uall"], in: root) else { return [:] }
-        return parseStatus(out, root: root)
+        return parseStatus(out, root: root, displayedAs: displayRoot)
     }
 
-    static func parseStatus(_ output: String, root: URL) -> [String: GitFileStatus] {
+    /// Porcelain paths are relative to git's own top-level, which has every
+    /// symlink resolved. Badge lookups come from `FileNode.url.path`, built by
+    /// descending from the folder the user added — so for a repo reached through
+    /// a symlink (anything under /tmp) the two forms never meet, and the sidebar
+    /// loses every badge. Map git's namespace back onto the user's once, here,
+    /// rather than resolving per row at lookup time: that would be a realpath
+    /// syscall per visible row on every SwiftUI render pass.
+    private static func pathKeyer(root: URL, displayRoot: URL?) -> (String) -> String {
+        let gitNamespace = { (relative: String) in
+            root.appendingPathComponent(relative).standardizedFileURL.path
+        }
+        guard let displayRoot else { return gitNamespace }
+
+        let resolvedRoot = canonical(root)
+        let resolvedDisplay = canonical(displayRoot)
+        // `.path` verbatim, not standardized: FileNode paths are the root's own
+        // path with components appended, so that is the form to match.
+        let displayPath = displayRoot.path
+        guard resolvedDisplay != displayPath else { return gitNamespace }
+
+        return { relative in
+            let absolute = (resolvedRoot as NSString).appendingPathComponent(relative)
+            // Outside the added folder — not in the tree, so no badge needs it.
+            guard absolute.hasPrefix(resolvedDisplay + "/") else { return gitNamespace(relative) }
+            return displayPath + absolute.dropFirst(resolvedDisplay.count)
+        }
+    }
+
+    static func parseStatus(_ output: String, root: URL,
+                            displayedAs displayRoot: URL? = nil) -> [String: GitFileStatus] {
+        let key = pathKeyer(root: root, displayRoot: displayRoot)
         var map: [String: GitFileStatus] = [:]
         for line in output.components(separatedBy: "\n") {
             guard line.count > 3 else { continue }
@@ -474,8 +516,7 @@ extension GitDiff {
             let ext = (path as NSString).pathExtension.lowercased()
             guard FileScanner.markdownExtensions.contains(ext) else { continue }
 
-            let absolute = root.appendingPathComponent(path).standardizedFileURL.path
-            map[absolute] = status(forCode: code)
+            map[key(path)] = status(forCode: code)
         }
         return map
     }
@@ -554,7 +595,7 @@ extension GitDiff {
         // the whole file as added, falsely implying it is staged.
         if raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             guard scope != .staged,
-                  status(root: repoRoot)[file.standardizedFileURL.path] == .untracked,
+                  isUntracked(relative, in: repoRoot),
                   case .output(let text) = run(["diff", "--no-index", "--", "/dev/null", relative], in: repoRoot),
                   !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             else { return nil }
@@ -580,9 +621,25 @@ extension GitDiff {
         return text.components(separatedBy: "\n")
     }
 
+    /// True for a path git neither tracks nor ignores — exactly the case
+    /// `git diff` has nothing to say about, so the caller falls back to
+    /// `--no-index`. One targeted `ls-files` rather than keying the file's URL
+    /// into a whole-repo `status` scan: that scan ran on every unchanged-file
+    /// open, and its keys are in git's resolved namespace while the URL is not.
+    /// `--exclude-standard` keeps an ignored file reading as "no changes"
+    /// instead of rendering wholesale as an addition.
+    static func isUntracked(_ relative: String, in repoRoot: URL) -> Bool {
+        guard case .output(let text) = run(["ls-files", "--others", "--exclude-standard", "--", relative],
+                                           in: repoRoot) else { return false }
+        return !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// Only the containing directory is resolved, never the last component: a
+    /// symlinked *file* is its own entry in git's index, so resolving it would
+    /// hand git the target's path and lose the file it was asked about.
     private static func relativePath(of file: URL, under root: URL) -> String {
-        let filePath = file.standardizedFileURL.path
-        let rootPath = root.standardizedFileURL.path
+        let filePath = canonical(file.deletingLastPathComponent()) + "/" + file.lastPathComponent
+        let rootPath = canonical(root)
         guard filePath.hasPrefix(rootPath + "/") else { return filePath }
         return String(filePath.dropFirst(rootPath.count + 1))
     }
