@@ -463,7 +463,7 @@ struct Hunk: Equatable, Identifiable {
     var rows: [DiffRow]
     /// Breadcrumb of the markdown headings this hunk sits under, e.g.
     /// "Install › Homebrew". Empty when the hunk precedes every heading.
-    /// Filled by `annotate(headingsFor:)`; the parser leaves it blank.
+    /// Filled by `annotateHeadings(_:newSideLines:)`; the parser leaves it blank.
     var heading: String = ""
     var headingLevel: Int = 1
 
@@ -1025,8 +1025,17 @@ extension GitDiff {
         let rest = trimmed.dropFirst(hashes)
         guard rest.first == " " else { return nil }
         var text = rest.trimmingCharacters(in: .whitespaces)
-        while text.hasSuffix("#") { text.removeLast() }
-        text = text.trimmingCharacters(in: .whitespaces)
+        // CommonMark: a closing `#` sequence must be preceded by whitespace
+        // (or be the whole remaining text, since the mandatory space after
+        // the opening hashes was already trimmed above). Without that, a
+        // trailing `#` is just heading text, e.g. "Intro to C#".
+        let closingRun = text.reversed().prefix { $0 == "#" }.count
+        if closingRun > 0 {
+            let runStart = text.index(text.endIndex, offsetBy: -closingRun)
+            if runStart == text.startIndex || text[text.index(before: runStart)].isWhitespace {
+                text = text[..<runStart].trimmingCharacters(in: .whitespaces)
+            }
+        }
         return text.isEmpty ? nil : (hashes, text)
     }
 }
@@ -1870,9 +1879,12 @@ function diffCellHTML(cell, side) {
          `<td class="diff-text ${side}">${spannedText(cell.text, cell.spans)}</td>`;
 }
 
-// Wraps the changed character ranges in <span class="w">. Offsets count
-// Characters (Swift side), so split into code points, not UTF-16 units —
-// otherwise an emoji or accented name shifts every span after it.
+// Wraps the changed ranges in <span class="w">. Offsets count UNICODE SCALARS,
+// which is exactly what the spread operator below iterates — [...text] yields
+// code points, not UTF-16 units and not grapheme clusters. Swift emits scalar
+// offsets for this reason (see WordSpan). Do not switch either side to
+// Characters/graphemes alone: "👨‍👩‍👧" is 1 Swift Character but 5 elements here,
+// and every span after such a cluster would land on the wrong text.
 function spannedText(text, spans) {
   if (!spans || !spans.length) return esc(text);
   const chars = [...text];

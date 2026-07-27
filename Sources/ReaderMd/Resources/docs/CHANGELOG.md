@@ -6,6 +6,23 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **See what changed with ⇧⌘D.** When a markdown file lives in a git repository,
+  Reader.md can swap the rendered page for a side-by-side source diff. A word or
+  two edited in a long paragraph is highlighted on its own, so a small change no
+  longer paints the whole paragraph red and green. The button appears in the
+  toolbar only for files inside a repository.
+- **Choose what you're comparing against.** The diff header carries an
+  `Unstaged | Staged | All` control, so you can read just your unstaged edits,
+  just what you've staged, or everything since the last commit. Your choice is
+  remembered.
+- **The outline becomes a hunk navigator.** In diff mode the outline lists one
+  row per changed block, labelled with the heading it sits under and its
+  `+3 −2` counts — click one to jump straight to it.
+- **Changed files are marked in the sidebar.** Modified, added, untracked, and
+  conflicted markdown files carry a small `M` / `A` / `?` / `U` badge.
+
 ### Fixed
 
 - Task list items no longer show a bullet *and* a checkbox — the checkbox now

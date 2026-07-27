@@ -4,6 +4,7 @@
 const contentEl = document.getElementById('content');
 let mermaidCounter = 0;
 let currentDir = '';
+let diffMode = false;
 
 // highlight.js stylesheet pairs [light, dark] per reading theme. Both hrefs are
 // set on theme change (see setReadingTheme) so the currently-disabled sheet is
@@ -80,6 +81,18 @@ window.ReaderMd = {
 
   reloadMarkdown(text, dir) {
     render(text, dir, true);
+  },
+
+  // Diff mode replaces the rendered document wholesale. It deliberately does
+  // NOT post toc/wordCount — Swift owns the outline here (one row per hunk),
+  // and a word count of a diff means nothing.
+  loadDiff(json) {
+    diffMode = true;
+    renderDiff(JSON.parse(json));
+  },
+
+  clearDiff() {
+    diffMode = false;
   },
 
   scrollToHeading(id) {
@@ -161,6 +174,7 @@ function splitFrontmatter(text) {
 }
 
 async function render(text, dir, keepScroll, resume) {
+  diffMode = false;
   const prevScroll = keepScroll ? window.scrollY : 0;
   window.__lastMarkdown = text;
   currentDir = dir || '';
@@ -194,6 +208,60 @@ async function render(text, dir, keepScroll, resume) {
   reportActiveHeading();
   reportProgress();
   post('rendered', true);
+}
+
+function renderDiff(payload) {
+  window.scrollTo(0, 0);
+  if (!payload.hunks || !payload.hunks.length) {
+    contentEl.innerHTML = `<p class="diff-empty">${esc(payload.empty || 'No changes')}</p>`;
+    return;
+  }
+  contentEl.innerHTML = payload.hunks.map(diffHunkHTML).join('');
+  reportActiveHeading();
+  reportProgress();
+  post('rendered', true);
+}
+
+function diffHunkHTML(hunk) {
+  const rows = hunk.rows.map(diffRowHTML).join('');
+  const label = hunk.heading || 'Top of file';
+  return `<section class="diff-hunk" id="${escapeHtml(hunk.id)}">
+    <div class="diff-hunk-head">
+      <span>${esc(label)}</span>
+      <span class="add">+${hunk.additions}</span>
+      <span class="del">−${hunk.deletions}</span>
+    </div>
+    <div class="diff-scroll"><table class="diff"><tbody>${rows}</tbody></table></div>
+  </section>`;
+}
+
+function diffRowHTML(row) {
+  return `<tr class="${row.kind}">${diffCellHTML(row.old, 'old')}${diffCellHTML(row.new, 'new')}</tr>`;
+}
+
+/// A null cell is a filler: the other side gained or lost a line here.
+function diffCellHTML(cell, side) {
+  if (!cell) return `<td class="diff-num"></td><td class="diff-text ${side}"></td>`;
+  return `<td class="diff-num">${cell.n}</td>` +
+         `<td class="diff-text ${side}">${spannedText(cell.text, cell.spans)}</td>`;
+}
+
+// Wraps the changed ranges in <span class="w">. Offsets count UNICODE SCALARS,
+// which is exactly what the spread operator below iterates — [...text] yields
+// code points, not UTF-16 units and not grapheme clusters. Swift emits scalar
+// offsets for this reason (see WordSpan). Do not switch either side to
+// Characters/graphemes alone: "👨‍👩‍👧" is 1 Swift Character but 5 elements here,
+// and every span after such a cluster would land on the wrong text.
+function spannedText(text, spans) {
+  if (!spans || !spans.length) return esc(text);
+  const chars = [...text];
+  let out = '', cursor = 0;
+  for (const [start, length] of spans) {
+    out += esc(chars.slice(cursor, start).join(''));
+    out += `<span class="w">${esc(chars.slice(start, start + length).join(''))}</span>`;
+    cursor = start + length;
+  }
+  return out + esc(chars.slice(cursor).join(''));
 }
 
 function postWordCount() {
@@ -353,16 +421,20 @@ function postTOC() {
 }
 
 function reportActiveHeading() {
-  // Same exclusion as assignHeadingIds/postTOC/addHeadingAnchors: the footnote
-  // extension's sr-only <h2> is a real h2. Without this, scrolling into the
-  // footnotes posts activeHeading:"footnote-label", which matches no TOC row, so
-  // the outline's active-row highlight silently vanishes.
-  const headings = [...contentEl.querySelectorAll('h1,h2,h3,h4')]
-    .filter((h) => !h.closest('section[data-footnotes]'));
-  if (!headings.length) return;
-  let activeId = headings[0].id;
-  for (const h of headings) {
-    if (h.getBoundingClientRect().top <= 100) activeId = h.id;
+  // In diff mode the outline is hunks, not headings, so the spy scans hunk
+  // containers instead. Same "topmost element above 100px" rule, same
+  // activeHeading channel — AppState can't tell the difference.
+  const els = diffMode
+    ? [...contentEl.querySelectorAll('section.diff-hunk')]
+    // Same exclusion as assignHeadingIds/postTOC/addHeadingAnchors: the footnote
+    // extension's sr-only <h2> is a real h2. Without this, scrolling into the
+    // footnotes posts activeHeading:"footnote-label", which matches no TOC row, so
+    // the outline's active-row highlight silently vanishes.
+    : [...contentEl.querySelectorAll('h1,h2,h3,h4')].filter((h) => !h.closest('section[data-footnotes]'));
+  if (!els.length) return;
+  let activeId = els[0].id;
+  for (const el of els) {
+    if (el.getBoundingClientRect().top <= 100) activeId = el.id;
     else break;
   }
   post('activeHeading', activeId);
@@ -529,6 +601,9 @@ function applyMarks(marksJSON) {
 // popover. Fires after mouseup (mouse selection) or shift/arrow keyup
 // (keyboard selection); a collapsed/empty selection posts null to dismiss.
 function reportSelection() {
+  // Marks anchor by character offset into the RENDERED DOM; against diff rows
+  // they would resolve to the wrong text, so no selection is reported here.
+  if (diffMode) return;
   const sel = window.getSelection();
   if (!sel || sel.isCollapsed || sel.rangeCount === 0) {
     // A plain click (collapsed) inside an existing highlight must not dismiss:

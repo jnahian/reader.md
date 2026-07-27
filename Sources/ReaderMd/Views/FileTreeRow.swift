@@ -27,6 +27,31 @@ struct FileTreeRow: View {
         return node.isDirectory ? .accentColor : .secondary
     }
 
+    /// Uncommitted-change badge, files only. Directories stay unmarked — a
+    /// rolled-up count would compete with the folder chevron for the same space.
+    private var badge: GitFileStatus? {
+        node.isDirectory ? nil : state.gitStatus(for: node.url.path)
+    }
+
+    private func badgeColor(_ status: GitFileStatus, selected: Bool) -> Color {
+        if selected { return .white }
+        switch status {
+        case .modified:   return .orange
+        case .added:      return .green
+        case .untracked:  return .secondary
+        case .conflicted: return .red
+        }
+    }
+
+    private func badgeHelp(_ status: GitFileStatus) -> String {
+        switch status {
+        case .modified:   return "Modified"
+        case .added:      return "Added"
+        case .untracked:  return "Untracked"
+        case .conflicted: return "Conflicted"
+        }
+    }
+
     private var directoryRow: some View {
         VStack(alignment: .leading, spacing: 1) {
             row(icon: "folder.fill", chevron: true, selected: false)
@@ -100,7 +125,14 @@ struct FileTreeRow: View {
                 .font(.system(size: 13))
                 .foregroundStyle(selected ? Color.white : Color.primary)
                 .lineLimit(1)
-            Spacer(minLength: 0)
+            Spacer(minLength: 4)
+
+            if let badge {
+                Text(badge.rawValue)
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundStyle(badgeColor(badge, selected: selected))
+                    .dockTooltip(badgeHelp(badge))
+            }
         }
         .padding(.vertical, 4)
         .padding(.leading, CGFloat(depth) * 14 + 10)

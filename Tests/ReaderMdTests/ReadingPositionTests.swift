@@ -62,4 +62,48 @@ final class ReadingPositionTests: XCTestCase {
 
         XCTAssertTrue(Settings.loadPositions().isEmpty)
     }
+
+    /// The diff pane posts its own scroll fraction through the same `progress`
+    /// message as the document view — on render and on every scroll event. Toggling
+    /// diff mode on, then scrolling around in it, must not overwrite the file's
+    /// saved reading position. Needs a real git repo, the same pattern as
+    /// GitDiffUntrackedFallbackTests in GitDiffTests.swift, because `canShowDiff`
+    /// only goes true once AppState's async git probe confirms the file lives
+    /// inside one.
+    func testProgressSurvivesADiffModeToggle() async throws {
+        let repo = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diff-mode-progress-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: repo, withIntermediateDirectories: true)
+        guard case .output = GitDiff.run(["init"], in: repo) else {
+            throw XCTSkip("git init failed in this environment")
+        }
+        defer { try? FileManager.default.removeItem(at: repo) }
+
+        let fileURL = repo.appendingPathComponent("doc.md")
+        try "# Doc".write(to: fileURL, atomically: true, encoding: .utf8)
+
+        let state = AppState()
+        state.open(FileNode(url: fileURL, isDirectory: false))
+        state.recordProgress(0.60)
+
+        // Set directly rather than via toggleDiffMode(), which persists to the
+        // user's real UserDefaults — this test must not touch that preference.
+        state.diffMode = true
+        state.refreshDiff()
+
+        // diffAvailable flips asynchronously once AppState's git probe (kicked off
+        // in init) confirms the repo and refreshDiff's own detached task resolves.
+        let deadline = Date().addingTimeInterval(5)
+        while !state.canShowDiff && Date() < deadline {
+            try await Task.sleep(nanoseconds: 20_000_000)
+        }
+        guard state.canShowDiff else {
+            throw XCTSkip("git not available in this environment")
+        }
+
+        state.recordProgress(0.05)   // a diff-pane scroll
+
+        XCTAssertEqual(AppState().savedProgress(for: fileURL.path), 0.60, accuracy: 0.0001,
+                        "a diff-pane scroll must not overwrite the document's saved reading position")
+    }
 }

@@ -16,10 +16,15 @@ struct TOCView: View {
                 ScrollView {
                     // Rail + sliding marker realized per-row via a leading capsule.
                     VStack(alignment: .leading, spacing: 2) {
-                        ForEach(state.toc) { entry in
-                            TOCRow(entry: entry, active: entry.id == state.activeHeadingID)
-                                .id(entry.id)
-                                .onTapGesture { state.requestScroll(to: entry.id) }
+                        // Suppresses a stale outline left over from the mode just
+                        // exited (e.g. hunk rows lingering after diff mode turns
+                        // off) until the fresh entries for the new mode arrive.
+                        if state.tocIsDiffOutline == state.canShowDiff {
+                            ForEach(state.toc) { entry in
+                                TOCRow(entry: entry, active: entry.id == state.activeHeadingID)
+                                    .id(entry.id)
+                                    .onTapGesture { state.requestScroll(to: entry.id) }
+                            }
                         }
                     }
                     .padding(.vertical, 4)
@@ -57,7 +62,14 @@ private struct TOCRow: View {
                 .padding(.leading, CGFloat(entry.level - 1) * 12 + 10)
                 .padding(.vertical, 3)
 
-            Spacer(minLength: 0)
+            Spacer(minLength: 6)
+
+            if let detail = entry.detail {
+                Text(detail)
+                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.tertiary)
+                    .padding(.trailing, 8)
+            }
         }
         .padding(.leading, 6)
         .background(

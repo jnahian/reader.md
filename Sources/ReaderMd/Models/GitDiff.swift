@@ -87,6 +87,15 @@ enum GitDiff {
         return trimmed.isEmpty ? nil : URL(fileURLWithPath: trimmed)
     }
 
+    /// A path with every symlink resolved — the namespace git answers in.
+    /// `rev-parse --show-toplevel` and `status --porcelain` both report resolved
+    /// paths, while the folders the user added and the URLs in the file tree are
+    /// whatever they were typed or picked as. Comparing the two forms directly is
+    /// the bug this exists to prevent.
+    static func canonical(_ url: URL) -> String {
+        url.resolvingSymlinksInPath().standardizedFileURL.path
+    }
+
     /// Probed once at launch and cached by the caller. On a Mac without Command
     /// Line Tools this is the call that can raise Apple's install dialog, because
     /// /usr/bin/git is an xcode-select shim — once, at startup, and only there.
@@ -139,7 +148,7 @@ struct Hunk: Equatable, Identifiable {
     var rows: [DiffRow]
     /// Breadcrumb of the markdown headings this hunk sits under, e.g.
     /// "Install › Homebrew". Empty when the hunk precedes every heading.
-    /// Filled by `annotate(headingsFor:)`; the parser leaves it blank.
+    /// Filled by `annotateHeadings(_:newSideLines:)`; the parser leaves it blank.
     var heading: String = ""
     var headingLevel: Int = 1
 
@@ -361,5 +370,310 @@ extension GitDiff {
             out.append(WordSpan(start: start, length: offset - start))
         }
         return out
+    }
+}
+
+// MARK: - Hunk → heading
+
+extension GitDiff {
+
+    /// The breadcrumb of markdown headings in effect just above `line`
+    /// (1-based), e.g. "Install › Homebrew". Empty when nothing precedes it.
+    ///
+    /// Fenced code is skipped: a `# comment` in a bash block is not a heading,
+    /// and mislabelling one would send the outline to the wrong place.
+    static func headingBreadcrumb(beforeLine line: Int, in lines: [String]) -> (text: String, level: Int) {
+        var stack: [(level: Int, text: String)] = []
+        var fence: String?
+
+        for raw in lines.prefix(max(0, line - 1)) {
+            let trimmed = raw.trimmingCharacters(in: .whitespaces)
+
+            if let open = fence {
+                if trimmed.hasPrefix(open) { fence = nil }
+                continue
+            }
+            if trimmed.hasPrefix("```") { fence = "```"; continue }
+            if trimmed.hasPrefix("~~~") { fence = "~~~"; continue }
+
+            guard let heading = atxHeading(trimmed) else { continue }
+            stack.removeAll { $0.level >= heading.level }
+            stack.append(heading)
+        }
+
+        guard let deepest = stack.last else { return ("", 1) }
+        return (stack.map(\.text).joined(separator: " › "), deepest.level)
+    }
+
+    /// Labels every hunk with the heading it falls under, resolved against the
+    /// new side's full text.
+    static func annotateHeadings(_ file: DiffFile, newSideLines: [String]) -> DiffFile {
+        var result = file
+        for h in result.hunks.indices {
+            // headingBreadcrumb is strictly "lines above the given line", so when
+            // the hunk's first new-side line IS itself a heading (the common case
+            // with git's default 3 lines of context), passing newStart unchanged
+            // would resolve to that heading's PARENT. Look one line past it.
+            let found = headingBreadcrumb(beforeLine: result.hunks[h].newStart + 1, in: newSideLines)
+            result.hunks[h].heading = found.text
+            result.hunks[h].headingLevel = found.level
+        }
+        return result
+    }
+
+    /// An ATX heading of level 1...4. CommonMark requires a space after the
+    /// hashes, so "#nothing" is a paragraph. Levels 5 and 6 are ignored to match
+    /// the outline's existing 1...4 range.
+    private static func atxHeading(_ trimmed: String) -> (level: Int, text: String)? {
+        let hashes = trimmed.prefix { $0 == "#" }.count
+        guard (1...4).contains(hashes) else { return nil }
+        let rest = trimmed.dropFirst(hashes)
+        guard rest.first == " " else { return nil }
+        var text = rest.trimmingCharacters(in: .whitespaces)
+        // CommonMark: a closing `#` sequence must be preceded by whitespace
+        // (or be the whole remaining text, since the mandatory space after
+        // the opening hashes was already trimmed above). Without that, a
+        // trailing `#` is just heading text, e.g. "Intro to C#".
+        let closingRun = text.reversed().prefix { $0 == "#" }.count
+        if closingRun > 0 {
+            let runStart = text.index(text.endIndex, offsetBy: -closingRun)
+            if runStart == text.startIndex || text[text.index(before: runStart)].isWhitespace {
+                text = text[..<runStart].trimmingCharacters(in: .whitespaces)
+            }
+        }
+        return text.isEmpty ? nil : (hashes, text)
+    }
+}
+
+// MARK: - Repository status
+
+/// The badge shown after a changed markdown file in the sidebar.
+enum GitFileStatus: String, Equatable {
+    case modified = "M"
+    case added = "A"
+    case conflicted = "U"
+    case untracked = "?"
+}
+
+extension GitDiff {
+
+    /// Markdown files with uncommitted changes, keyed by absolute path.
+    /// Callers must be off the main actor.
+    ///
+    /// `-uall` is required: without it a newly created folder collapses to a
+    /// single `docs/` entry and none of its files get badges.
+    ///
+    /// Pass `displayedAs` the root folder the user actually added — see
+    /// `pathKeyer` for why the keys have to live in that namespace.
+    static func status(root: URL, displayedAs displayRoot: URL? = nil) -> [String: GitFileStatus] {
+        guard case .output(let out) = run(["status", "--porcelain", "-uall"], in: root) else { return [:] }
+        return parseStatus(out, root: root, displayedAs: displayRoot)
+    }
+
+    /// Porcelain paths are relative to git's own top-level, which has every
+    /// symlink resolved. Badge lookups come from `FileNode.url.path`, built by
+    /// descending from the folder the user added — so for a repo reached through
+    /// a symlink (anything under /tmp) the two forms never meet, and the sidebar
+    /// loses every badge. Map git's namespace back onto the user's once, here,
+    /// rather than resolving per row at lookup time: that would be a realpath
+    /// syscall per visible row on every SwiftUI render pass.
+    private static func pathKeyer(root: URL, displayRoot: URL?) -> (String) -> String {
+        let gitNamespace = { (relative: String) in
+            root.appendingPathComponent(relative).standardizedFileURL.path
+        }
+        guard let displayRoot else { return gitNamespace }
+
+        let resolvedRoot = canonical(root)
+        let resolvedDisplay = canonical(displayRoot)
+        // `.path` verbatim, not standardized: FileNode paths are the root's own
+        // path with components appended, so that is the form to match.
+        let displayPath = displayRoot.path
+        guard resolvedDisplay != displayPath else { return gitNamespace }
+
+        return { relative in
+            let absolute = (resolvedRoot as NSString).appendingPathComponent(relative)
+            // Outside the added folder — not in the tree, so no badge needs it.
+            guard absolute.hasPrefix(resolvedDisplay + "/") else { return gitNamespace(relative) }
+            return displayPath + absolute.dropFirst(resolvedDisplay.count)
+        }
+    }
+
+    static func parseStatus(_ output: String, root: URL,
+                            displayedAs displayRoot: URL? = nil) -> [String: GitFileStatus] {
+        let key = pathKeyer(root: root, displayRoot: displayRoot)
+        var map: [String: GitFileStatus] = [:]
+        for line in output.components(separatedBy: "\n") {
+            guard line.count > 3 else { continue }
+            let code = String(line.prefix(2))
+            var path = String(line.dropFirst(3))
+
+            // "R  old.md -> new.md" — badge the destination, that's what's on disk.
+            if let arrow = path.range(of: " -> ") {
+                path = String(path[arrow.upperBound...])
+            }
+            path = unquote(path)
+
+            let ext = (path as NSString).pathExtension.lowercased()
+            guard FileScanner.markdownExtensions.contains(ext) else { continue }
+
+            map[key(path)] = status(forCode: code)
+        }
+        return map
+    }
+
+    private static func status(forCode code: String) -> GitFileStatus {
+        if code == "??" { return .untracked }
+        // Any unmerged combination, per git-status(1): DD AU UD UA DU AA UU.
+        if code.contains("U") || code == "DD" || code == "AA" { return .conflicted }
+        if code.hasPrefix("A") { return .added }
+        return .modified
+    }
+
+    /// Git wraps a path in quotes and C-escapes it when it holds a space, a
+    /// quote, or non-ASCII. Escapes are decoded as BYTES and then read as UTF-8,
+    /// because "\303\251" is one é, not two characters.
+    private static func unquote(_ path: String) -> String {
+        guard path.hasPrefix("\""), path.hasSuffix("\""), path.count >= 2 else { return path }
+        var bytes: [UInt8] = []
+        let chars = Array(path.dropFirst().dropLast())
+        var i = 0
+        while i < chars.count {
+            guard chars[i] == "\\", i + 1 < chars.count else {
+                bytes.append(contentsOf: Array(String(chars[i]).utf8))
+                i += 1
+                continue
+            }
+            let next = chars[i + 1]
+            if let octal = octalByte(chars, at: i + 1) {
+                bytes.append(octal)
+                i += 4
+                continue
+            }
+            switch next {
+            case "n": bytes.append(0x0A)
+            case "t": bytes.append(0x09)
+            case "r": bytes.append(0x0D)
+            case "a": bytes.append(0x07)
+            case "b": bytes.append(0x08)
+            case "f": bytes.append(0x0C)
+            case "v": bytes.append(0x0B)
+            default:  bytes.append(contentsOf: Array(String(next).utf8))
+            }
+            i += 2
+        }
+        return String(decoding: bytes, as: UTF8.self)
+    }
+
+    private static func octalByte(_ chars: [Character], at index: Int) -> UInt8? {
+        guard index + 2 < chars.count else { return nil }
+        let digits = String(chars[index...(index + 2)])
+        guard digits.allSatisfy({ $0.isNumber && $0 != "8" && $0 != "9" }),
+              let value = UInt8(digits, radix: 8) else { return nil }
+        return value
+    }
+}
+
+// MARK: - Assembling a file's diff
+
+extension GitDiff {
+
+    /// The parsed, annotated diff for one file, or nil when the scope has no
+    /// changes for it. Callers must be off the main actor.
+    static func diff(file: URL, scope: DiffScope, repoRoot: URL) -> DiffFile? {
+        let relative = relativePath(of: file, under: repoRoot)
+        var raw: String
+
+        switch run(scope.arguments + ["--", relative], in: repoRoot) {
+        case .failure: return nil
+        case .output(let text): raw = text
+        }
+
+        // An untracked file is invisible to `git diff`, so compare it against
+        // nothing and let the whole file render as added. Excluded for `.staged`:
+        // an untracked file has nothing staged, so `git diff --cached` correctly
+        // returning empty means "not staged" — falling back here would render
+        // the whole file as added, falsely implying it is staged.
+        if raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            guard scope != .staged,
+                  isUntracked(relative, in: repoRoot),
+                  case .output(let text) = run(["diff", "--no-index", "--", "/dev/null", relative], in: repoRoot),
+                  !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            else { return nil }
+            raw = text
+        }
+
+        let parsed = annotateWords(parse(raw))
+        guard !parsed.isEmpty else { return nil }
+        return annotateHeadings(parsed, newSideLines: newSideLines(file: file, scope: scope, repoRoot: repoRoot))
+    }
+
+    /// The post-change text the outline's headings are resolved against. For
+    /// `.staged` the new side is the index, not the working tree, so it comes
+    /// from `git show :path` rather than from disk.
+    private static func newSideLines(file: URL, scope: DiffScope, repoRoot: URL) -> [String] {
+        if scope == .staged {
+            let relative = relativePath(of: file, under: repoRoot)
+            if case .output(let text) = run(["show", ":\(relative)"], in: repoRoot), !text.isEmpty {
+                return text.components(separatedBy: "\n")
+            }
+        }
+        let text = (try? String(contentsOf: file, encoding: .utf8)) ?? ""
+        return text.components(separatedBy: "\n")
+    }
+
+    /// True for a path git neither tracks nor ignores — exactly the case
+    /// `git diff` has nothing to say about, so the caller falls back to
+    /// `--no-index`. One targeted `ls-files` rather than keying the file's URL
+    /// into a whole-repo `status` scan: that scan ran on every unchanged-file
+    /// open, and its keys are in git's resolved namespace while the URL is not.
+    /// `--exclude-standard` keeps an ignored file reading as "no changes"
+    /// instead of rendering wholesale as an addition.
+    static func isUntracked(_ relative: String, in repoRoot: URL) -> Bool {
+        guard case .output(let text) = run(["ls-files", "--others", "--exclude-standard", "--", relative],
+                                           in: repoRoot) else { return false }
+        return !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// Only the containing directory is resolved, never the last component: a
+    /// symlinked *file* is its own entry in git's index, so resolving it would
+    /// hand git the target's path and lose the file it was asked about.
+    private static func relativePath(of file: URL, under root: URL) -> String {
+        let filePath = canonical(file.deletingLastPathComponent()) + "/" + file.lastPathComponent
+        let rootPath = canonical(root)
+        guard filePath.hasPrefix(rootPath + "/") else { return filePath }
+        return String(filePath.dropFirst(rootPath.count + 1))
+    }
+}
+
+// MARK: - JSON payload for bridge.js
+
+extension DiffFile {
+
+    /// Shape consumed by `window.ReaderMd.loadDiff`. Keys are short because a
+    /// large diff serializes one object per row.
+    func jsonPayload() -> String {
+        func cell(_ c: DiffCell?) -> Any {
+            guard let c else { return NSNull() }
+            return ["n": c.lineNumber,
+                    "text": c.text,
+                    "spans": c.spans.map { [$0.start, $0.length] }]
+        }
+        let payload: [String: Any] = [
+            "additions": additions,
+            "deletions": deletions,
+            "hunks": hunks.map { h in
+                [
+                    "id": h.id,
+                    "heading": h.heading,
+                    "additions": h.additions,
+                    "deletions": h.deletions,
+                    "rows": h.rows.map { r in
+                        ["kind": r.kind.rawValue, "old": cell(r.old), "new": cell(r.new)]
+                    },
+                ] as [String: Any]
+            },
+        ]
+        guard let data = try? JSONSerialization.data(withJSONObject: payload) else { return "{\"hunks\":[]}" }
+        return String(decoding: data, as: UTF8.self)
     }
 }
