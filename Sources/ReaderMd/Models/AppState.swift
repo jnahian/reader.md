@@ -313,13 +313,19 @@ final class AppState: ObservableObject {
                 self.diffAvailable = root != nil
                 self.diffFile = computed
                 self.diffToken += 1
-                if wantDiff, let computed {
-                    self.toc = Self.diffOutline(for: computed)
-                    self.tocIsDiffOutline = true
+                if wantDiff {
+                    // A conflicted file renders the "unresolved merge conflicts" notice
+                    // (see MarkdownWebView) instead of hunk rows — and `git diff` on an
+                    // unmerged path emits combined-diff format GitDiff.parse() doesn't
+                    // understand, so any hunks here would likely be garbled anyway. Keep
+                    // the outline empty rather than listing rows absent from the rendered DOM.
+                    if let computed, self.gitStatus(for: url.path) != .conflicted {
+                        self.toc = Self.diffOutline(for: computed)
+                        self.tocIsDiffOutline = true
+                    } else {
+                        self.toc = []
+                    }
                     self.wordCount = 0        // meaningless for a diff
-                } else if wantDiff {
-                    self.toc = []
-                    self.wordCount = 0
                 }
             }
         }
@@ -677,6 +683,10 @@ final class AppState: ObservableObject {
     /// long document resumes where you left off. The web view posts on every
     /// scroll event, so only meaningful moves are written back.
     func recordProgress(_ fraction: Double) {
+        // The diff pane posts its own scroll fraction through this same message —
+        // on render (renderDiff → reportProgress) and on every subsequent scroll
+        // event. Never let that overwrite the document's saved reading position.
+        guard !canShowDiff else { return }
         scrollProgress = fraction
         guard let url = selectedFile?.url,
               !Self.isBundledDoc(url), !Self.isStdinTemp(url) else { return }

@@ -225,7 +225,7 @@ function renderDiff(payload) {
 function diffHunkHTML(hunk) {
   const rows = hunk.rows.map(diffRowHTML).join('');
   const label = hunk.heading || 'Top of file';
-  return `<section class="diff-hunk" id="${esc(hunk.id)}">
+  return `<section class="diff-hunk" id="${escapeHtml(hunk.id)}">
     <div class="diff-hunk-head">
       <span>${esc(label)}</span>
       <span class="add">+${hunk.additions}</span>

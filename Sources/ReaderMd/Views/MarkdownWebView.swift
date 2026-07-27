@@ -67,6 +67,11 @@ final class DropWebView: WKWebView {
     }
 }
 
+/// Shown in place of the diff for a file with unresolved merge conflicts — `git diff`
+/// on an unmerged path emits combined-diff format the hunk renderer doesn't understand.
+/// Shared by updateNSView and the coordinator's "ready" handler so the two can't drift.
+private let conflictNoticeMessage = "This file has unresolved merge conflicts"
+
 /// Wraps a WKWebView that renders markdown via bundled JS (marked, highlight.js, KaTeX, Mermaid).
 struct MarkdownWebView: NSViewRepresentable {
     @EnvironmentObject var state: AppState
@@ -120,7 +125,7 @@ struct MarkdownWebView: NSViewRepresentable {
             }
             if pathChanged || tokenChanged {
                 if let path = state.selectedFile?.url.path, state.gitStatus(for: path) == .conflicted {
-                    coord.pushDiff(nil, empty: "This file has unresolved merge conflicts")
+                    coord.pushDiff(nil, empty: conflictNoticeMessage)
                 } else if pathChanged && !tokenChanged {
                     // AppState.refreshDiff() recomputes the diff on a detached Task, so
                     // right after a file switch state.diffFile still holds the PREVIOUS
@@ -518,7 +523,7 @@ struct MarkdownWebView: NSViewRepresentable {
                 // silently fall back to plain markdown just because it renders first.
                 if state.canShowDiff {
                     if let path = state.selectedFile?.url.path, state.gitStatus(for: path) == .conflicted {
-                        pushDiff(nil, empty: "This file has unresolved merge conflicts")
+                        pushDiff(nil, empty: conflictNoticeMessage)
                     } else {
                         pushDiff(state.diffFile, empty: state.diffScope.emptyMessage)
                     }
