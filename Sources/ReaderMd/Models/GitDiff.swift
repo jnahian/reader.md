@@ -422,3 +422,95 @@ extension GitDiff {
         return text.isEmpty ? nil : (hashes, text)
     }
 }
+
+// MARK: - Repository status
+
+/// The badge shown after a changed markdown file in the sidebar.
+enum GitFileStatus: String, Equatable {
+    case modified = "M"
+    case added = "A"
+    case conflicted = "U"
+    case untracked = "?"
+}
+
+extension GitDiff {
+
+    /// Markdown files with uncommitted changes, keyed by absolute path.
+    /// Callers must be off the main actor.
+    ///
+    /// `-uall` is required: without it a newly created folder collapses to a
+    /// single `docs/` entry and none of its files get badges.
+    static func status(root: URL) -> [String: GitFileStatus] {
+        guard case .output(let out) = run(["status", "--porcelain", "-uall"], in: root) else { return [:] }
+        return parseStatus(out, root: root)
+    }
+
+    static func parseStatus(_ output: String, root: URL) -> [String: GitFileStatus] {
+        var map: [String: GitFileStatus] = [:]
+        for line in output.components(separatedBy: "\n") {
+            guard line.count > 3 else { continue }
+            let code = String(line.prefix(2))
+            var path = String(line.dropFirst(3))
+
+            // "R  old.md -> new.md" — badge the destination, that's what's on disk.
+            if let arrow = path.range(of: " -> ") {
+                path = String(path[arrow.upperBound...])
+            }
+            path = unquote(path)
+
+            let ext = (path as NSString).pathExtension.lowercased()
+            guard FileScanner.markdownExtensions.contains(ext) else { continue }
+
+            let absolute = root.appendingPathComponent(path).standardizedFileURL.path
+            map[absolute] = status(forCode: code)
+        }
+        return map
+    }
+
+    private static func status(forCode code: String) -> GitFileStatus {
+        if code == "??" { return .untracked }
+        // Any unmerged combination, per git-status(1): DD AU UD UA DU AA UU.
+        if code.contains("U") || code == "DD" || code == "AA" { return .conflicted }
+        if code.hasPrefix("A") { return .added }
+        return .modified
+    }
+
+    /// Git wraps a path in quotes and C-escapes it when it holds a space, a
+    /// quote, or non-ASCII. Escapes are decoded as BYTES and then read as UTF-8,
+    /// because "\303\251" is one é, not two characters.
+    private static func unquote(_ path: String) -> String {
+        guard path.hasPrefix("\""), path.hasSuffix("\""), path.count >= 2 else { return path }
+        var bytes: [UInt8] = []
+        let chars = Array(path.dropFirst().dropLast())
+        var i = 0
+        while i < chars.count {
+            guard chars[i] == "\\", i + 1 < chars.count else {
+                bytes.append(contentsOf: Array(String(chars[i]).utf8))
+                i += 1
+                continue
+            }
+            let next = chars[i + 1]
+            if let octal = octalByte(chars, at: i + 1) {
+                bytes.append(octal)
+                i += 4
+                continue
+            }
+            switch next {
+            case "n": bytes.append(0x0A)
+            case "t": bytes.append(0x09)
+            case "r": bytes.append(0x0D)
+            default:  bytes.append(contentsOf: Array(String(next).utf8))
+            }
+            i += 2
+        }
+        return String(decoding: bytes, as: UTF8.self)
+    }
+
+    private static func octalByte(_ chars: [Character], at index: Int) -> UInt8? {
+        guard index + 2 < chars.count else { return nil }
+        let digits = String(chars[index...(index + 2)])
+        guard digits.allSatisfy({ $0.isNumber && $0 != "8" && $0 != "9" }),
+              let value = UInt8(digits, radix: 8) else { return nil }
+        return value
+    }
+}

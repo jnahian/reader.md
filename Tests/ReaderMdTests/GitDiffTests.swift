@@ -489,3 +489,84 @@ final class GitDiffHeadingTests: XCTestCase {
         XCTAssertEqual(file.hunks[1].heading, "Overview › Configuration")
     }
 }
+
+/// Porcelain paths are repo-root-relative, and git quotes plus C-escapes them
+/// when they contain spaces or non-ASCII. The map is keyed by absolute path so
+/// FileNode's URLs match without per-lookup conversion.
+final class GitStatusParseTests: XCTestCase {
+
+    private let root = URL(fileURLWithPath: "/repo")
+
+    func testStatusLetters() {
+        let out = """
+         M docs/a.md
+        A  docs/b.md
+        ?? docs/c.md
+        UU docs/d.md
+        """
+        let map = GitDiff.parseStatus(out, root: root)
+        XCTAssertEqual(map["/repo/docs/a.md"], .modified)
+        XCTAssertEqual(map["/repo/docs/b.md"], .added)
+        XCTAssertEqual(map["/repo/docs/c.md"], .untracked)
+        XCTAssertEqual(map["/repo/docs/d.md"], .conflicted)
+    }
+
+    /// Any unmerged combination counts as conflicted, not just UU.
+    func testUnmergedCombinationsAreConflicted() {
+        let map = GitDiff.parseStatus("AU a.md\nUD b.md\nDD c.md\nAA d.md", root: root)
+        XCTAssertEqual(map["/repo/a.md"], .conflicted)
+        XCTAssertEqual(map["/repo/b.md"], .conflicted)
+        XCTAssertEqual(map["/repo/c.md"], .conflicted)
+        XCTAssertEqual(map["/repo/d.md"], .conflicted)
+    }
+
+    /// Non-markdown files never get a badge; the sidebar doesn't show them.
+    func testNonMarkdownIsFilteredOut() {
+        let map = GitDiff.parseStatus(" M src/main.swift\n M docs/a.md", root: root)
+        XCTAssertNil(map["/repo/src/main.swift"])
+        XCTAssertEqual(map.count, 1)
+    }
+
+    func testEveryMarkdownExtensionIsKept() {
+        let out = " M a.md\n M b.markdown\n M c.mdown\n M d.mdx"
+        XCTAssertEqual(GitDiff.parseStatus(out, root: root).count, 4)
+    }
+
+    /// A path with a space arrives quoted.
+    func testQuotedPathWithSpace() {
+        let map = GitDiff.parseStatus("?? \"docs/my notes.md\"", root: root)
+        XCTAssertEqual(map["/repo/docs/my notes.md"], .untracked)
+    }
+
+    /// Non-ASCII arrives as octal byte escapes inside the quotes.
+    func testOctalEscapedPathDecodesToUTF8() {
+        // "café.md" — é is C3 A9 → \303\251
+        let map = GitDiff.parseStatus("?? \"caf\\303\\251.md\"", root: root)
+        XCTAssertEqual(map["/repo/café.md"], .untracked)
+    }
+
+    func testBackslashEscapesDecode() {
+        let map = GitDiff.parseStatus("?? \"a\\\"b.md\"", root: root)
+        XCTAssertEqual(map["/repo/a\"b.md"], .untracked)
+    }
+
+    /// A rename badges the destination — that's the file the sidebar shows.
+    func testRenameUsesTheNewPath() {
+        let map = GitDiff.parseStatus("R  old.md -> new.md", root: root)
+        XCTAssertEqual(map["/repo/new.md"], .modified)
+        XCTAssertNil(map["/repo/old.md"])
+    }
+
+    func testBlankAndShortLinesAreIgnored() {
+        let map = GitDiff.parseStatus("\n M a.md\n\nxx\n", root: root)
+        XCTAssertEqual(map.count, 1)
+    }
+
+    /// `-uall` is what makes this possible: without it a new folder collapses
+    /// to a single "docs/" entry and its files get no badges at all.
+    func testUallListsIndividualFilesInANewFolder() {
+        let map = GitDiff.parseStatus("?? docs/new/a.md\n?? docs/new/b.md", root: root)
+        XCTAssertEqual(map.count, 2)
+        XCTAssertEqual(map["/repo/docs/new/b.md"], .untracked)
+    }
+}
