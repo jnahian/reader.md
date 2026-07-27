@@ -521,7 +521,11 @@ extension GitDiff {
             current = nil
         }
 
-        for line in unified.components(separatedBy: "\n") {
+        // Real git output ends with \n, which leaves a trailing empty element.
+        // Without dropping it, that empty string parses as a context row and
+        // every rendered hunk gains a phantom blank line at the end.
+        let lines = unified.components(separatedBy: "\n")
+        for line in (lines.last == "" ? Array(lines.dropLast()) : lines) {
             if line.hasPrefix("@@") {
                 closeHunk()
                 guard let starts = hunkStarts(line) else { continue }
