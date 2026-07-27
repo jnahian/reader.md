@@ -1025,14 +1025,16 @@ extension GitDiff {
         let rest = trimmed.dropFirst(hashes)
         guard rest.first == " " else { return nil }
         var text = rest.trimmingCharacters(in: .whitespaces)
-        // CommonMark: a CLOSING hash sequence must be preceded by whitespace.
-        // Stripping unconditionally would turn "## Intro to C#" into "Intro to C"
-        // — silently mangling real heading text in the outline.
-        let closing = text.reversed().prefix { $0 == "#" }.count
-        if closing > 0, closing < text.count,
-           text[text.index(text.endIndex, offsetBy: -closing - 1)].isWhitespace {
-            text.removeLast(closing)
-            text = text.trimmingCharacters(in: .whitespaces)
+        // CommonMark: a closing `#` sequence must be preceded by whitespace
+        // (or be the whole remaining text, since the mandatory space after
+        // the opening hashes was already trimmed above). Without that, a
+        // trailing `#` is just heading text, e.g. "Intro to C#".
+        let closingRun = text.reversed().prefix { $0 == "#" }.count
+        if closingRun > 0 {
+            let runStart = text.index(text.endIndex, offsetBy: -closingRun)
+            if runStart == text.startIndex || text[text.index(before: runStart)].isWhitespace {
+                text = text[..<runStart].trimmingCharacters(in: .whitespaces)
+            }
         }
         return text.isEmpty ? nil : (hashes, text)
     }
