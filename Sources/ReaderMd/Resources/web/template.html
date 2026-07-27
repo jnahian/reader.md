@@ -89,6 +89,13 @@
     hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
     .mermaid { display: flex; justify-content: center; margin: 1em 0; }
     input[type="checkbox"] { margin-right: 6px; }
+    /* GFM task lists: the checkbox is the marker, so drop the bullet and pull the
+       box into the marker column (GitHub does the same). Two selectors because a
+       loose list item wraps its content — checkbox included — in a <p>. */
+    li:has(> input[type="checkbox"]),
+    li:has(> p > input[type="checkbox"]) { list-style: none; }
+    li > input[type="checkbox"],
+    li > p > input[type="checkbox"] { margin: 0 0.35em 0.15em -1.35em; vertical-align: middle; }
     .error-msg { color: #d1242f; padding: 12px 0; }
 
     /* text highlights (#1) */

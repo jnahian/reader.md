@@ -6,6 +6,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Task list items no longer show a bullet *and* a checkbox — the checkbox now
+  sits in the marker column on its own, matching GitHub.
+
 ## [1.13.0] - 2026-07-22
 
 ### Added
