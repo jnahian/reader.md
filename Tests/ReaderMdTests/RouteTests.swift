@@ -32,12 +32,24 @@ final class RouteTests: XCTestCase {
             ["ls", "extra"],                    // ls takes nothing
             ["-", "extra"],                     // stdin takes nothing
             ["a.md", "b.md"],                   // one path at a time
+            ["--diff"],                         // nothing to diff
+            ["ls", "--diff"],                   // --diff isn't a modifier on other verbs
+            ["rm", "docs", "--diff"],
         ]
         for args in bad {
             guard case .misuse = Route.parse(args, cwd: cwd) else {
                 return XCTFail("\(args) should be .misuse, not silently accepted or treated as help")
             }
         }
+    }
+
+    /// Position-independent, so `reader --diff notes.md` and `reader notes.md --diff`
+    /// both work — and the plain form stays diff-free.
+    func testDiffFlagIsPositionIndependent() {
+        let want = Command.open(path: "/Users/x/proj/notes.md", diff: true)
+        XCTAssertEqual(Route.parse(["notes.md", "--diff"], cwd: cwd), want)
+        XCTAssertEqual(Route.parse(["--diff", "notes.md"], cwd: cwd), want)
+        XCTAssertEqual(Route.parse(["notes.md"], cwd: cwd), .open(path: "/Users/x/proj/notes.md", diff: false))
     }
 
     func testRelativePathResolvesAgainstCwd() {

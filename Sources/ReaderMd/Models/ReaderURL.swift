@@ -4,7 +4,7 @@ import Foundation
 /// because these URLs can also be fired by any web page.
 enum ReaderURL {
     enum Action: Equatable {
-        case open(String)               // absolute path: a markdown file, or a folder to add
+        case open(String, diff: Bool = false)   // absolute path: a markdown file, or a folder to add
         case addRemote(RemoteSpec)      // never synced directly — opens the confirmation sheet
         case remove(String)             // a name or a path; the app matches it against its roots
     }
@@ -22,7 +22,7 @@ enum ReaderURL {
         switch url.host {
         case "open":
             guard let path = value("path") else { return nil }
-            return .open(path)
+            return .open(path, diff: value("diff") == "1")
 
         case "add-remote":
             guard let dest = value("dest"),

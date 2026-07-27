@@ -2,7 +2,8 @@ import Foundation
 
 /// What the user asked for. Pure data — no filesystem, no side effects.
 enum Command: Equatable {
-    case open(path: String)
+    /// `diff: true` also turns on the app's (sticky) diff mode, like the toolbar toggle.
+    case open(path: String, diff: Bool = false)
     case remote(dest: String, path: String, name: String)
     case remove(token: String)
     case list
@@ -27,6 +28,15 @@ enum Route {
     // MARK: - argv -> Command
 
     static func parse(_ args: [String], cwd: String) -> Command {
+        // `--diff` is a modifier on opening a file, position-independent. Re-parse
+        // without it (no recursion risk — it's gone from args) and reject it on any
+        // other verb.
+        if args.contains("--diff") {
+            guard case .open(let path, _) = parse(args.filter { $0 != "--diff" }, cwd: cwd) else {
+                return .misuse("--diff only applies to a markdown file")
+            }
+            return .open(path: path, diff: true)
+        }
         guard let first = args.first else { return .help }
         let extras = args.count - 1
 
@@ -101,9 +111,9 @@ enum Route {
         components.scheme = scheme
 
         switch command {
-        case .open(let path):
+        case .open(let path, let diff):
             components.host = "open"
-            components.percentEncodedQueryItems = encoded(["path": path])
+            components.percentEncodedQueryItems = encoded(diff ? ["path": path, "diff": "1"] : ["path": path])
         case .remote(let dest, let path, let name):
             components.host = "add-remote"
             components.percentEncodedQueryItems = encoded(["dest": dest, "path": path, "name": name])

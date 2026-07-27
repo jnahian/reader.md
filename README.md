@@ -56,6 +56,7 @@ A native macOS rebuild of the markdown viewer using SwiftUI and AppKit. The whol
 
 ```
 reader <file.md>                   open a markdown file
+reader <file.md> --diff            open it in diff mode (git changes)
 reader <folder>                    add a folder to the sidebar
 reader .                           add the current directory
 reader remote me@vps:/srv/docs     add a remote (SSH) folder — opens a confirmation sheet

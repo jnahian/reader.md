@@ -26,7 +26,10 @@ struct ReaderMdApp: App {
                         return
                     }
                     switch ReaderURL.action(for: url) {
-                    case .open(let path):
+                    case .open(let path, let diff):
+                        // Before the open, so the file's first refreshDiff already
+                        // computes the diff. Sticky, exactly like the toolbar toggle.
+                        if diff, !state.diffMode { state.toggleDiffMode() }
                         // openDropped does the routing (folder -> root, markdown -> open)
                         // AND rejects non-markdown files — which is what keeps a hostile
                         // `readermd://open?path=/etc/passwd` from rendering.

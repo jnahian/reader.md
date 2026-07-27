@@ -6,13 +6,16 @@ struct ReaderCLI {
         let args = Array(CommandLine.arguments.dropFirst())
         let command = Route.parse(args, cwd: FileManager.default.currentDirectoryPath)
 
-        if case .open(let path) = command {
+        if case .open(let path, let diff) = command {
             var isDirectory: ObjCBool = false
             guard FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) else {
                 fail("no such file or folder: \(path)")
             }
             if !isDirectory.boolValue, !Route.markdownExtensions.contains((path as NSString).pathExtension.lowercased()) {
                 fail("not a markdown file: \(path)")
+            }
+            if diff, isDirectory.boolValue {
+                fail("--diff needs a markdown file, not a folder: \(path)")
             }
         }
 
@@ -66,6 +69,7 @@ struct ReaderCLI {
     reader — open markdown in Reader.md
 
       reader <file.md>          open a markdown file
+      reader <file.md> --diff   open it in diff mode (git changes)
       reader <folder>           add a folder to the sidebar
       reader .                  add the current directory
       reader remote <user@host:/path>

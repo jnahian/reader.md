@@ -30,6 +30,13 @@ final class ProtocolRoundTripTests: XCTestCase {
         }
     }
 
+    func testOpenWithDiffRoundTrip() {
+        guard let url = Route.url(for: .open(path: "/tmp/a&b.md", diff: true)) else {
+            return XCTFail("Route.url produced nil")
+        }
+        XCTAssertEqual(ReaderURL.action(for: url), .open("/tmp/a&b.md", diff: true))
+    }
+
     func testAddRemoteRoundTrip() {
         let dest = "me@vps"
         let path = "/srv/docs & more"
