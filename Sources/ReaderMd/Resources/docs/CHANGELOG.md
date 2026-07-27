@@ -22,6 +22,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `+3 −2` counts — click one to jump straight to it.
 - **Changed files are marked in the sidebar.** Modified, added, untracked, and
   conflicted markdown files carry a small `M` / `A` / `?` / `U` badge.
+- **Zoom into Mermaid diagrams.** Diagrams no longer have to fit the column
+  width to be readable. Hover one for zoom controls, pinch to zoom, drag to pan,
+  or open it fullscreen — it stays sharp at any size. ⌘E always exports the
+  diagram at its fitted size.
 
 ### Fixed
 
