@@ -338,6 +338,7 @@ final class AppState: ObservableObject {
             addRoot(URL(fileURLWithPath: path), persist: false)
         }
         persistRoots()
+        refreshGitStatus()
     }
 
     func pickFolders() {
@@ -389,6 +390,7 @@ final class AppState: ObservableObject {
         }
         watchers.append(watcher)
         if persist { persistRoots() }
+        refreshGitStatus()
     }
 
     /// Reorder roots by drag-and-drop in the sidebar.
