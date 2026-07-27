@@ -95,3 +95,148 @@ enum GitDiff {
         return false
     }
 }
+
+// MARK: - Model
+
+/// A character range within one line that actually changed, used to shade the
+/// changed words more strongly than the row. Offsets count Characters, not bytes.
+struct WordSpan: Equatable {
+    let start: Int
+    let length: Int
+}
+
+/// One side of a split-diff row. `nil` where that side has no line at all.
+struct DiffCell: Equatable {
+    let lineNumber: Int
+    let text: String
+    var spans: [WordSpan] = []
+}
+
+enum DiffRowKind: String, Equatable {
+    case context   // unchanged, shown on both sides
+    case added     // right side only
+    case removed   // left side only
+    case modified  // a `-` paired with a `+`
+}
+
+struct DiffRow: Equatable {
+    let kind: DiffRowKind
+    var old: DiffCell?
+    var new: DiffCell?
+}
+
+struct Hunk: Equatable, Identifiable {
+    let index: Int
+    let oldStart: Int
+    let newStart: Int
+    var rows: [DiffRow]
+    /// Breadcrumb of the markdown headings this hunk sits under, e.g.
+    /// "Install › Homebrew". Empty when the hunk precedes every heading.
+    /// Filled by `annotate(headingsFor:)`; the parser leaves it blank.
+    var heading: String = ""
+    var headingLevel: Int = 1
+
+    /// Element id stamped on the hunk container, and the id of its outline row.
+    var id: String { "hunk-\(index)" }
+
+    var additions: Int { rows.filter { $0.kind == .added || $0.kind == .modified }.count }
+    var deletions: Int { rows.filter { $0.kind == .removed || $0.kind == .modified }.count }
+}
+
+struct DiffFile: Equatable {
+    var hunks: [Hunk]
+    var isEmpty: Bool { hunks.isEmpty }
+    var additions: Int { hunks.reduce(0) { $0 + $1.additions } }
+    var deletions: Int { hunks.reduce(0) { $0 + $1.deletions } }
+}
+
+// MARK: - Unified diff parsing
+
+extension GitDiff {
+
+    /// Parses `git diff` output for a single file into split rows.
+    ///
+    /// Runs of `-` lines followed by runs of `+` lines are paired index-by-index
+    /// into `.modified` rows; whichever run is longer contributes `.removed` or
+    /// `.added` remainders. That pairing is what makes a side-by-side view line up.
+    static func parse(_ unified: String) -> DiffFile {
+        var hunks: [Hunk] = []
+        var oldLine = 0, newLine = 0
+        var rows: [DiffRow] = []
+        var pendingOld: [DiffCell] = [], pendingNew: [DiffCell] = []
+        var current: (oldStart: Int, newStart: Int)?
+
+        /// Flush a -/+ run into paired rows plus remainders.
+        func flushRun() {
+            let paired = min(pendingOld.count, pendingNew.count)
+            for i in 0..<paired {
+                rows.append(DiffRow(kind: .modified, old: pendingOld[i], new: pendingNew[i]))
+            }
+            for cell in pendingOld.dropFirst(paired) {
+                rows.append(DiffRow(kind: .removed, old: cell, new: nil))
+            }
+            for cell in pendingNew.dropFirst(paired) {
+                rows.append(DiffRow(kind: .added, old: nil, new: cell))
+            }
+            pendingOld.removeAll()
+            pendingNew.removeAll()
+        }
+
+        func closeHunk() {
+            guard let c = current else { return }
+            flushRun()
+            hunks.append(Hunk(index: hunks.count, oldStart: c.oldStart, newStart: c.newStart, rows: rows))
+            rows.removeAll()
+            current = nil
+        }
+
+        for line in unified.components(separatedBy: "\n") {
+            if line.hasPrefix("@@") {
+                closeHunk()
+                guard let starts = hunkStarts(line) else { continue }
+                current = starts
+                oldLine = starts.oldStart
+                newLine = starts.newStart
+                continue
+            }
+            guard current != nil else { continue }   // file headers before the first @@
+
+            // "\ No newline at end of file" is a marker, not content.
+            if line.hasPrefix("\\") { continue }
+
+            let marker = line.first
+            let text = line.isEmpty ? "" : String(line.dropFirst())
+            switch marker {
+            case "-":
+                pendingOld.append(DiffCell(lineNumber: oldLine, text: text))
+                oldLine += 1
+            case "+":
+                pendingNew.append(DiffCell(lineNumber: newLine, text: text))
+                newLine += 1
+            case " ", nil:
+                flushRun()
+                rows.append(DiffRow(kind: .context,
+                                    old: DiffCell(lineNumber: oldLine, text: text),
+                                    new: DiffCell(lineNumber: newLine, text: text)))
+                oldLine += 1
+                newLine += 1
+            default:
+                continue   // "diff --git", "index", "--- a/", "+++ b/" and friends
+            }
+        }
+        closeHunk()
+        return DiffFile(hunks: hunks)
+    }
+
+    /// `@@ -12,4 +12,5 @@ optional context` → (12, 12). The counts are omitted
+    /// for single-line ranges (`@@ -3 +3 @@`), so only the start is read.
+    private static func hunkStarts(_ header: String) -> (oldStart: Int, newStart: Int)? {
+        let fields = header.split(separator: " ")
+        guard fields.count >= 3 else { return nil }
+        func start(_ field: Substring) -> Int? {
+            Int(field.dropFirst().split(separator: ",").first ?? "")
+        }
+        guard let old = start(fields[1]), let new = start(fields[2]) else { return nil }
+        return (old, new)
+    }
+}
