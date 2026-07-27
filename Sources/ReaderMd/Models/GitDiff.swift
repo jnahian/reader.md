@@ -363,3 +363,62 @@ extension GitDiff {
         return out
     }
 }
+
+// MARK: - Hunk → heading
+
+extension GitDiff {
+
+    /// The breadcrumb of markdown headings in effect just above `line`
+    /// (1-based), e.g. "Install › Homebrew". Empty when nothing precedes it.
+    ///
+    /// Fenced code is skipped: a `# comment` in a bash block is not a heading,
+    /// and mislabelling one would send the outline to the wrong place.
+    static func headingBreadcrumb(beforeLine line: Int, in lines: [String]) -> (text: String, level: Int) {
+        var stack: [(level: Int, text: String)] = []
+        var fence: String?
+
+        for raw in lines.prefix(max(0, line - 1)) {
+            let trimmed = raw.trimmingCharacters(in: .whitespaces)
+
+            if let open = fence {
+                if trimmed.hasPrefix(open) { fence = nil }
+                continue
+            }
+            if trimmed.hasPrefix("```") { fence = "```"; continue }
+            if trimmed.hasPrefix("~~~") { fence = "~~~"; continue }
+
+            guard let heading = atxHeading(trimmed) else { continue }
+            stack.removeAll { $0.level >= heading.level }
+            stack.append(heading)
+        }
+
+        guard let deepest = stack.last else { return ("", 1) }
+        return (stack.map(\.text).joined(separator: " › "), deepest.level)
+    }
+
+    /// Labels every hunk with the heading it falls under, resolved against the
+    /// new side's full text.
+    static func annotateHeadings(_ file: DiffFile, newSideLines: [String]) -> DiffFile {
+        var result = file
+        for h in result.hunks.indices {
+            let found = headingBreadcrumb(beforeLine: result.hunks[h].newStart, in: newSideLines)
+            result.hunks[h].heading = found.text
+            result.hunks[h].headingLevel = found.level
+        }
+        return result
+    }
+
+    /// An ATX heading of level 1...4. CommonMark requires a space after the
+    /// hashes, so "#nothing" is a paragraph. Levels 5 and 6 are ignored to match
+    /// the outline's existing 1...4 range.
+    private static func atxHeading(_ trimmed: String) -> (level: Int, text: String)? {
+        let hashes = trimmed.prefix { $0 == "#" }.count
+        guard (1...4).contains(hashes) else { return nil }
+        let rest = trimmed.dropFirst(hashes)
+        guard rest.first == " " else { return nil }
+        var text = rest.trimmingCharacters(in: .whitespaces)
+        while text.hasSuffix("#") { text.removeLast() }
+        text = text.trimmingCharacters(in: .whitespaces)
+        return text.isEmpty ? nil : (hashes, text)
+    }
+}

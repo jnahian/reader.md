@@ -401,3 +401,91 @@ final class GitDiffWordSpanTests: XCTestCase {
         XCTAssertTrue(rows[0].old?.spans.isEmpty ?? false)
     }
 }
+
+/// The outline in diff mode is one row per hunk, labelled by the heading the
+/// hunk falls under. Resolution walks the new side's lines above the hunk.
+final class GitDiffHeadingTests: XCTestCase {
+
+    private let doc = [
+        "# Overview",          // line 1
+        "",                    // 2
+        "## Install",          // 3
+        "",                    // 4
+        "### Homebrew",        // 5
+        "",                    // 6
+        "brew install x",      // 7
+        "",                    // 8
+        "## Configuration",    // 9
+        "",                    // 10
+        "settings live here",  // 11
+    ]
+
+    func testNestedHeadingsBecomeABreadcrumb() {
+        let h = GitDiff.headingBreadcrumb(beforeLine: 7, in: doc)
+        XCTAssertEqual(h.text, "Overview › Install › Homebrew")
+        XCTAssertEqual(h.level, 3)
+    }
+
+    /// A sibling heading pops the deeper ones off the stack.
+    func testSiblingHeadingPopsDeeperLevels() {
+        let h = GitDiff.headingBreadcrumb(beforeLine: 11, in: doc)
+        XCTAssertEqual(h.text, "Overview › Configuration")
+        XCTAssertEqual(h.level, 2)
+    }
+
+    func testHeadingLineItselfResolvesToItsParent() {
+        let h = GitDiff.headingBreadcrumb(beforeLine: 3, in: doc)
+        XCTAssertEqual(h.text, "Overview")
+    }
+
+    func testBeforeAnyHeadingIsEmpty() {
+        let h = GitDiff.headingBreadcrumb(beforeLine: 1, in: ["intro text", "# Later"])
+        XCTAssertEqual(h.text, "")
+        XCTAssertEqual(h.level, 1)
+    }
+
+    /// `#` inside a fenced code block is a shell comment, not a heading.
+    func testHashInsideFencedCodeIsNotAHeading() {
+        let lines = ["# Real", "", "```bash", "# not a heading", "```", "", "body"]
+        let h = GitDiff.headingBreadcrumb(beforeLine: 7, in: lines)
+        XCTAssertEqual(h.text, "Real")
+    }
+
+    /// Tilde fences are equally valid in CommonMark.
+    func testHashInsideTildeFenceIsNotAHeading() {
+        let lines = ["# Real", "~~~", "# not a heading", "~~~", "body"]
+        XCTAssertEqual(GitDiff.headingBreadcrumb(beforeLine: 5, in: lines).text, "Real")
+    }
+
+    /// A `#` with no space is not an ATX heading in CommonMark.
+    func testHashWithoutSpaceIsNotAHeading() {
+        XCTAssertEqual(GitDiff.headingBreadcrumb(beforeLine: 3, in: ["#nothing", "", "body"]).text, "")
+    }
+
+    func testTrailingHashesAreStripped() {
+        XCTAssertEqual(GitDiff.headingBreadcrumb(beforeLine: 2, in: ["## Install ##", "body"]).text, "Install")
+    }
+
+    /// Levels 5 and 6 are ignored, matching the outline's 1...4 range.
+    func testDeepHeadingsAreIgnored() {
+        let lines = ["## Install", "##### Tiny", "body"]
+        XCTAssertEqual(GitDiff.headingBreadcrumb(beforeLine: 3, in: lines).text, "Install")
+    }
+
+    func testAnnotateFillsEveryHunk() {
+        let unified = """
+        --- a/a.md
+        +++ b/a.md
+        @@ -7,1 +7,1 @@
+        -brew install x
+        +brew install y
+        @@ -11,1 +11,1 @@
+        -settings live here
+        +settings live there
+        """
+        let file = GitDiff.annotateHeadings(GitDiff.parse(unified), newSideLines: doc)
+        XCTAssertEqual(file.hunks[0].heading, "Overview › Install › Homebrew")
+        XCTAssertEqual(file.hunks[0].headingLevel, 3)
+        XCTAssertEqual(file.hunks[1].heading, "Overview › Configuration")
+    }
+}
