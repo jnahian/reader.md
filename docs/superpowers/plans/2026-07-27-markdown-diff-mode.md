@@ -1622,9 +1622,24 @@ and at the end of `handleFolderChange()`, after the `if let file = selectedFile 
         refreshGitStatus()
 ```
 
-- [ ] **Step 3d: Refresh on file open and on app activation**
+- [ ] **Step 3d: Refresh on file change and on app activation**
 
-Find the method that assigns `selectedFile` when opening a node (`func open(_ node: FileNode)`) and add `refreshDiff()` as its final statement.
+`selectedFile` is assigned in four places, but three of them — `open(_:)`, `goBack()`, and `goForward()` — funnel through one private method. Hook that, not `open`, or navigating history with ⌘[ would leave a stale diff on screen.
+
+In `Sources/ReaderMd/Models/AppState.swift`, add `refreshDiff()` as the final statement of `setCurrent(_ node: FileNode)`:
+
+```swift
+    private func setCurrent(_ node: FileNode) {
+        selectedFile = node
+        toc = []
+        activeHeadingID = nil
+        scrollProgress = 0
+        loadMarksForCurrentFile()
+        refreshDiff()
+    }
+```
+
+The fourth site clears the selection rather than setting it, so `diffAvailable` has to fall back to false. Add `refreshDiff()` as the final statement of `closeFile()`, and inside `removeRoot(_:)`'s `if let file = selectedFile, ...` block after `selectedFile = nil`.
 
 In `Sources/ReaderMd/ReaderMdApp.swift`, inside the `WindowGroup`'s content view modifiers, add:
 
@@ -2160,7 +2175,9 @@ Expected: FAIL — `type 'AppState' has no member 'diffOutline'`.
 
 - [ ] **Step 3a: Add `detail` to `TOCEntry` and the outline builder**
 
-In `Sources/ReaderMd/Models/AppState.swift`, replace the `TOCEntry` declaration with:
+First confirm no call site breaks. Run `grep -rn "TOCEntry(" Sources/` — the only construction should be in `MarkdownWebView`'s `toc` message handler. `detail` is a `var` Optional, so it gets an implicit `nil` in the memberwise init and existing labeled calls keep compiling; if the grep turns up a *positional* construction, add the file to this task's **Files:** list and update it too.
+
+Then, in `Sources/ReaderMd/Models/AppState.swift`, replace the `TOCEntry` declaration with:
 
 ```swift
 /// A heading in the currently open document, used for the outline. In diff mode
