@@ -99,7 +99,14 @@ enum GitDiff {
 // MARK: - Model
 
 /// A character range within one line that actually changed, used to shade the
-/// changed words more strongly than the row. Offsets count Characters, not bytes.
+/// changed words more strongly than the row. Offsets count Unicode scalars
+/// (code points), NOT Swift `Character`s (grapheme clusters) or bytes — because
+/// the JS renderer slices with `const chars = [...text]`, and the spread
+/// operator iterates code points. `String.unicodeScalars.count` in Swift
+/// equals `[...str].length` in JS; that identity is the contract. A ZWJ emoji
+/// sequence or a decomposed accent is one Character but several scalars, so
+/// switching this back to Character-based counting silently breaks JS-side
+/// slicing on any such text. Do not revert.
 struct WordSpan: Equatable {
     let start: Int
     let length: Int
@@ -255,7 +262,7 @@ extension GitDiff {
     private static let wordDiffTokenCap = 400
 
     /// Character ranges that differ between two versions of one line.
-    /// Offsets count Characters so multibyte text can't split a grapheme.
+    /// Offsets count Unicode scalars — see the doc comment on `WordSpan`.
     static func wordSpans(old: String, new: String) -> (old: [WordSpan], new: [WordSpan]) {
         if old == new { return ([], []) }
         let a = tokenize(old), b = tokenize(new)
@@ -331,7 +338,7 @@ extension GitDiff {
     }
 
     private static func fullSpan(_ s: String) -> [WordSpan] {
-        s.isEmpty ? [] : [WordSpan(start: 0, length: s.count)]
+        s.isEmpty ? [] : [WordSpan(start: 0, length: s.unicodeScalars.count)]
     }
 
     /// Merges consecutive unmatched tokens into one span each.
@@ -348,7 +355,7 @@ extension GitDiff {
             } else if runStart == nil {
                 runStart = offset
             }
-            offset += token.count
+            offset += token.unicodeScalars.count
         }
         if let start = runStart {
             out.append(WordSpan(start: start, length: offset - start))

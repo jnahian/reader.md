@@ -252,9 +252,17 @@ final class GitDiffParseTests: XCTestCase {
 /// so line-level shading alone makes prose diffs unreadable.
 final class GitDiffWordSpanTests: XCTestCase {
 
+    /// Slices by Unicode scalar offset, mirroring the JS renderer's `[...text]`
+    /// spread (which iterates code points) rather than Swift's `Character`
+    /// (grapheme cluster) view. This is what actually verifies the contract —
+    /// slicing via `Array(string)` would hide the Character/scalar divergence.
     private func text(_ s: String, _ spans: [WordSpan]) -> [String] {
-        let chars = Array(s)
-        return spans.map { String(chars[$0.start..<($0.start + $0.length)]) }
+        let scalars = s.unicodeScalars
+        return spans.map {
+            let start = scalars.index(scalars.startIndex, offsetBy: $0.start)
+            let end = scalars.index(start, offsetBy: $0.length)
+            return String(scalars[start..<end])
+        }
     }
 
     func testSingleWordInsertion() {
@@ -311,11 +319,37 @@ final class GitDiffWordSpanTests: XCTestCase {
         XCTAssertEqual(text("    indented", new), ["    "])
     }
 
-    /// Non-ASCII must be measured in Characters, not bytes, or spans land
-    /// mid-grapheme and the renderer slices a word in half.
-    func testMultibyteOffsetsCountCharacters() {
+    /// Non-ASCII must be measured in Unicode scalars, not bytes, or spans land
+    /// mid-codepoint and the renderer slices a word in half.
+    func testMultibyteOffsetsCountUnicodeScalars() {
         let (_, new) = GitDiff.wordSpans(old: "café is open", new: "café is closed")
         XCTAssertEqual(text("café is closed", new), ["closed"])
+    }
+
+    /// A ZWJ emoji sequence is one Swift `Character` but five Unicode scalars
+    /// (man + ZWJ + woman + ZWJ + girl). Character-counted offsets would land
+    /// four scalars short of where JS's `[...text]` spread expects them.
+    func testZWJEmojiSequenceBeforeChangedWordUsesScalarOffsets() {
+        let (_, new) = GitDiff.wordSpans(old: "👨‍👩‍👧 family photo is here",
+                                         new: "👨‍👩‍👧 family photo is gone")
+        XCTAssertEqual(text("👨‍👩‍👧 family photo is gone", new), ["gone"])
+    }
+
+    /// A decomposed accent (`e` + combining acute) is one grapheme cluster but
+    /// two Unicode scalars — the same divergence as the ZWJ case, smaller.
+    func testDecomposedAccentBeforeChangedWordUsesScalarOffsets() {
+        let combining = "e\u{0301}"
+        let (_, new) = GitDiff.wordSpans(old: "\(combining) status is old",
+                                         new: "\(combining) status is new")
+        XCTAssertEqual(text("\(combining) status is new", new), ["new"])
+    }
+
+    /// A line that's whitespace on both sides but a different amount of it —
+    /// still a real, fully-spanned change, not an edge case that should vanish.
+    func testWhitespaceOnlyLineOnBothSides() {
+        let (old, new) = GitDiff.wordSpans(old: " ", new: "  ")
+        XCTAssertEqual(text(" ", old), [" "])
+        XCTAssertEqual(text("  ", new), ["  "])
     }
 
     /// A pathological single line (a minified table row, a base64 blob) would
@@ -349,5 +383,21 @@ final class GitDiffWordSpanTests: XCTestCase {
         XCTAssertTrue(rows[1].new?.spans.isEmpty ?? false)
         XCTAssertEqual(rows[2].kind, .context)
         XCTAssertTrue(rows[2].new?.spans.isEmpty ?? false)
+    }
+
+    /// A wholly removed row is already fully shaded by its row background;
+    /// annotateWords must leave its spans empty rather than diffing it against nothing.
+    func testAnnotateLeavesRemovedRowSpansEmpty() {
+        let unified = """
+        --- a/a.md
+        +++ b/a.md
+        @@ -1,2 +1,1 @@
+        -gone
+         keep
+        """
+        let file = GitDiff.annotateWords(GitDiff.parse(unified))
+        let rows = file.hunks[0].rows
+        XCTAssertEqual(rows[0].kind, .removed)
+        XCTAssertTrue(rows[0].old?.spans.isEmpty ?? false)
     }
 }
