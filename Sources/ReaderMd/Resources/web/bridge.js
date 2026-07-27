@@ -367,6 +367,7 @@ async function renderMermaid() {
       view.className = 'mm-view';
       view.innerHTML = svg;
       view.appendChild(diagramControls(view));
+      addDiagramZoom(view);
       container.appendChild(view);
     } catch (err) {
       // No controls on an error block: there is no diagram to zoom.
@@ -404,10 +405,24 @@ function resetZoom(view) {
   applyZoom(view);
 }
 
-// A button has no pointer position, so it anchors at the view's centre.
+// Convert a viewport point into the svg's own layout space, which is the space the
+// zoom state's x/y live in. The two differ by the centring inset whenever the
+// diagram is narrower than the column, because .mm-view centres it — anchoring in
+// view space instead sends a small diagram flying off sideways by
+// inset * (scale - 1). transform-origin is 0 0, so scaling never moves the origin
+// and the layout position is just the rendered one minus the current translate.
+function anchorIn(view, clientX, clientY) {
+  const svg = view.querySelector('svg');
+  const { x, y } = zoomState(view);
+  const r = svg.getBoundingClientRect();
+  return [clientX - (r.left - x), clientY - (r.top - y)];
+}
+
+// A button has no pointer position, so it anchors at the centre of what the reader
+// can currently see — the view's centre.
 function zoomStep(view, factor) {
   const r = view.getBoundingClientRect();
-  view._zoom = zoomAt(zoomState(view), factor, r.width / 2, r.height / 2);
+  view._zoom = zoomAt(zoomState(view), factor, ...anchorIn(view, r.left + r.width / 2, r.top + r.height / 2));
   applyZoom(view);
 }
 
@@ -428,6 +443,53 @@ function diagramControls(view) {
     button('↺', 'Reset zoom', () => resetZoom(view)),
   );
   return bar;
+}
+
+function addDiagramZoom(view) {
+  view.addEventListener('wheel', (e) => {
+    // A macOS trackpad pinch arrives as a ctrlKey wheel event. A plain wheel must
+    // keep scrolling the page — except in fullscreen, where there is no page behind.
+    if (!e.ctrlKey && !view.classList.contains('fs')) return;
+    e.preventDefault();
+    view._zoom = zoomAt(zoomState(view), Math.exp(-e.deltaY / 200), ...anchorIn(view, e.clientX, e.clientY));
+    applyZoom(view);
+  }, { passive: false });
+
+  view.addEventListener('dblclick', (e) => {
+    // Double-clicking a button shouldn't also reset the whole diagram.
+    if (e.target.closest('.mm-controls')) return;
+    resetZoom(view);
+  });
+
+  let drag = null;
+  view.addEventListener('pointerdown', (e) => {
+    // Nothing is hidden at or below fit, so there is nothing to pan to.
+    if (zoomState(view).s <= 1 || e.button !== 0) return;
+    if (e.target.closest('.mm-controls')) return;
+    drag = { x: e.clientX, y: e.clientY, moved: false };
+    view.setPointerCapture(e.pointerId);
+    view.classList.add('panning');
+  });
+
+  view.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const st = zoomState(view);
+    view._zoom = { s: st.s, x: st.x + (e.clientX - drag.x), y: st.y + (e.clientY - drag.y) };
+    drag.x = e.clientX;
+    drag.y = e.clientY;
+    drag.moved = true;
+    applyZoom(view);
+  });
+
+  // Task 4's backdrop-click exit reads _dragged, so a pan that ends over the
+  // backdrop doesn't also close the overlay.
+  const endDrag = () => {
+    view._dragged = !!(drag && drag.moved);
+    drag = null;
+    view.classList.remove('panning');
+  };
+  view.addEventListener('pointerup', endDrag);
+  view.addEventListener('pointercancel', endDrag);
 }
 
 function fixRelativeImages() {
