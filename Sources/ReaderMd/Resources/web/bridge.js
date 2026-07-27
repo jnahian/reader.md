@@ -363,14 +363,71 @@ async function renderMermaid() {
     const id = `mermaid-${++mermaidCounter}`;
     try {
       const { svg } = await mermaid.render(id, def);
-      container.innerHTML = svg;
+      const view = document.createElement('div');
+      view.className = 'mm-view';
+      view.innerHTML = svg;
+      view.appendChild(diagramControls(view));
+      container.appendChild(view);
     } catch (err) {
+      // No controls on an error block: there is no diagram to zoom.
       container.innerHTML = `<pre class="error-msg">Mermaid error: ${escapeHtml(String(err.message || err))}</pre>`;
       const orphan = document.getElementById(`d${id}`);
       if (orphan) orphan.remove();
     }
     block.closest('pre').replaceWith(container);
   }
+}
+
+// ---- Mermaid diagram zoom (#38) ----
+
+const STEP = 1.25;
+
+// Zoom state lives on the element and dies with it: a re-render throws the node
+// away, so there is no registry to invalidate.
+function zoomState(view) {
+  if (!view._zoom) view._zoom = { s: 1, x: 0, y: 0 };
+  return view._zoom;
+}
+
+function applyZoom(view) {
+  const svg = view.querySelector('svg');
+  if (!svg) return;
+  const { s, x, y } = zoomState(view);
+  svg.style.transformOrigin = '0 0';
+  svg.style.transform = `translate(${x}px, ${y}px) scale(${s})`;
+  // At or below fit nothing is hidden, so there is nothing to drag towards.
+  view.classList.toggle('pannable', s > 1);
+}
+
+function resetZoom(view) {
+  view._zoom = { s: 1, x: 0, y: 0 };
+  applyZoom(view);
+}
+
+// A button has no pointer position, so it anchors at the view's centre.
+function zoomStep(view, factor) {
+  const r = view.getBoundingClientRect();
+  view._zoom = zoomAt(zoomState(view), factor, r.width / 2, r.height / 2);
+  applyZoom(view);
+}
+
+function diagramControls(view) {
+  const bar = document.createElement('div');
+  bar.className = 'mm-controls';
+  const button = (glyph, title, fn) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = glyph;
+    b.title = title;
+    b.addEventListener('click', fn);
+    return b;
+  };
+  bar.append(
+    button('−', 'Zoom out', () => zoomStep(view, 1 / STEP)),
+    button('+', 'Zoom in', () => zoomStep(view, STEP)),
+    button('↺', 'Reset zoom', () => resetZoom(view)),
+  );
+  return bar;
 }
 
 function fixRelativeImages() {
@@ -665,7 +722,7 @@ contentEl.addEventListener('click', (e) => {
 // `.sr-only` covers the footnote extension's visually-hidden "Footnotes" <h2>:
 // hidden to the reader, but a real text node, so an unfiltered search for
 // "footnotes" would match it and inflate the count.
-const FIND_EXCLUDE = '.anchor, .copy-btn, svg, .katex, .sr-only';
+const FIND_EXCLUDE = '.anchor, .copy-btn, .mm-controls, svg, .katex, .sr-only';
 let findMatches = [];   // one entry per occurrence: an array of its <mark> elements
 let findFocus = 0;      // index of the .current occurrence
 let findQuery = '';     // the live query, so refind() can rebuild after a re-render
