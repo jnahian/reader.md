@@ -57,7 +57,14 @@ private struct TOCRow: View {
                 .padding(.leading, CGFloat(entry.level - 1) * 12 + 10)
                 .padding(.vertical, 3)
 
-            Spacer(minLength: 0)
+            Spacer(minLength: 6)
+
+            if let detail = entry.detail {
+                Text(detail)
+                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.tertiary)
+                    .padding(.trailing, 8)
+            }
         }
         .padding(.leading, 6)
         .background(

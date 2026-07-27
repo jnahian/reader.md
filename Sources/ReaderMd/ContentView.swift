@@ -10,7 +10,9 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             VStack(spacing: 0) {
-                ReadingProgressBar()
+                if !state.canShowDiff {
+                    ReadingProgressBar()
+                }
                 contentRow
             }
 

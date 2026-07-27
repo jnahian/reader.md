@@ -777,3 +777,59 @@ final class DiffSettingsTests: XCTestCase {
         UserDefaults.standard.removeObject(forKey: "reader.md.diffScope")
     }
 }
+
+/// In diff mode the outline lists hunks, not headings. The ids must match the
+/// element ids bridge.js stamps, or clicking a row scrolls nowhere.
+final class DiffOutlineTests: XCTestCase {
+
+    private func file() -> DiffFile {
+        let unified = """
+        --- a/a.md
+        +++ b/a.md
+        @@ -7,1 +7,1 @@
+        -brew install x
+        +brew install y
+        @@ -11,2 +11,1 @@
+        -one
+        -two
+        """
+        let doc = ["# Overview", "", "## Install", "", "### Homebrew", "",
+                   "brew install y", "", "## Configuration", "", "one"]
+        return GitDiff.annotateHeadings(GitDiff.parse(unified), newSideLines: doc)
+    }
+
+    func testOneEntryPerHunk() {
+        XCTAssertEqual(AppState.diffOutline(for: file()).count, 2)
+    }
+
+    /// The id is the contract with bridge.js: scrollToHeading is getElementById.
+    func testEntryIDsMatchHunkElementIDs() {
+        XCTAssertEqual(AppState.diffOutline(for: file()).map(\.id), ["hunk-0", "hunk-1"])
+    }
+
+    func testEntryTextIsTheHeadingBreadcrumb() {
+        XCTAssertEqual(AppState.diffOutline(for: file())[0].text, "Overview › Install › Homebrew")
+    }
+
+    func testEntryLevelMatchesHeadingDepth() {
+        let entries = AppState.diffOutline(for: file())
+        XCTAssertEqual(entries[0].level, 3)
+        XCTAssertEqual(entries[1].level, 2)
+    }
+
+    func testDetailCarriesTheCounts() {
+        let entries = AppState.diffOutline(for: file())
+        XCTAssertEqual(entries[0].detail, "+1 −1")
+        XCTAssertEqual(entries[1].detail, "+0 −2")
+    }
+
+    /// A hunk above every heading still needs a readable label.
+    func testHunkWithNoHeadingGetsAFallbackLabel() {
+        let f = GitDiff.parse("--- a/a.md\n+++ b/a.md\n@@ -1,1 +1,1 @@\n-a\n+b")
+        XCTAssertEqual(AppState.diffOutline(for: f)[0].text, "Top of file")
+    }
+
+    func testEmptyDiffProducesNoEntries() {
+        XCTAssertTrue(AppState.diffOutline(for: DiffFile(hunks: [])).isEmpty)
+    }
+}

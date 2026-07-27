@@ -68,11 +68,14 @@ enum ContentWidth: String, CaseIterable {
     }
 }
 
-/// A heading in the currently open document, used for the outline.
+/// A heading in the currently open document, used for the outline. In diff mode
+/// the same type carries one entry per hunk instead, with `detail` holding the
+/// hunk's counts.
 struct TOCEntry: Identifiable, Equatable {
-    let id: String   // heading element id
+    let id: String   // heading element id, or "hunk-N" in diff mode
     let text: String
     let level: Int   // 1...4
+    var detail: String?   // "+3 −1" in diff mode, nil otherwise
 }
 
 /// A markdown file paired with the root folder it lives under, for quick-open.
@@ -250,6 +253,20 @@ final class AppState: ObservableObject {
 
     func gitStatus(for path: String) -> GitFileStatus? { gitStatuses[path] }
 
+    /// The outline in diff mode: one row per hunk, labelled by its enclosing
+    /// heading. `id` must be the hunk's element id — TOCView taps route through
+    /// `requestScroll(to:)`, and bridge.js resolves that with getElementById.
+    ///
+    /// nonisolated static so it can be unit-tested without the main actor.
+    nonisolated static func diffOutline(for file: DiffFile) -> [TOCEntry] {
+        file.hunks.map { hunk in
+            TOCEntry(id: hunk.id,
+                     text: hunk.heading.isEmpty ? "Top of file" : hunk.heading,
+                     level: hunk.headingLevel,
+                     detail: "+\(hunk.additions) −\(hunk.deletions)")
+        }
+    }
+
     /// Recomputes the open file's diff and its repo membership. Safe to call
     /// when diff mode is off — it still refreshes `diffAvailable` so the
     /// toolbar button knows whether to appear.
@@ -284,6 +301,13 @@ final class AppState: ObservableObject {
                 self.diffAvailable = root != nil
                 self.diffFile = computed
                 self.diffToken += 1
+                if wantDiff, let computed {
+                    self.toc = Self.diffOutline(for: computed)
+                    self.wordCount = 0        // meaningless for a diff
+                } else if wantDiff {
+                    self.toc = []
+                    self.wordCount = 0
+                }
             }
         }
     }
