@@ -466,6 +466,31 @@ final class GitDiffHeadingTests: XCTestCase {
         XCTAssertEqual(GitDiff.headingBreadcrumb(beforeLine: 2, in: ["## Install ##", "body"]).text, "Install")
     }
 
+    /// CommonMark: a closing `#` sequence must be preceded by whitespace.
+    /// "## Install ##" has a space before the trailing hashes, so it's a
+    /// real closing sequence and gets stripped.
+    func testClosingSequencePrecededByWhitespaceIsStripped() {
+        XCTAssertEqual(GitDiff.headingBreadcrumb(beforeLine: 2, in: ["## Install ##", "body"]).text, "Install")
+    }
+
+    /// CommonMark: without whitespace before it, a trailing `#` run is not a
+    /// closing sequence — it's just part of the heading text.
+    func testHashWithNoPrecedingWhitespaceIsKeptAsHeadingText() {
+        XCTAssertEqual(GitDiff.headingBreadcrumb(beforeLine: 2, in: ["## Intro to C#", "body"]).text, "Intro to C#")
+    }
+
+    /// CommonMark: only the whitespace-preceded run at the very end is a
+    /// closing sequence; a `#` glued to preceding text is real content.
+    func testOnlyTheWhitespacePrecededRunIsStripped() {
+        XCTAssertEqual(GitDiff.headingBreadcrumb(beforeLine: 2, in: ["## C# ###", "body"]).text, "C#")
+    }
+
+    /// CommonMark: a heading whose text is entirely a closing sequence
+    /// strips to empty text, which is not a heading.
+    func testAllHashesStripsToEmptyAndIsNotAHeading() {
+        XCTAssertEqual(GitDiff.headingBreadcrumb(beforeLine: 2, in: ["## ##", "body"]).text, "")
+    }
+
     /// Levels 5 and 6 are ignored, matching the outline's 1...4 range.
     func testDeepHeadingsAreIgnored() {
         let lines = ["## Install", "##### Tiny", "body"]
