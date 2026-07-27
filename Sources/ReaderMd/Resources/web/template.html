@@ -131,6 +131,16 @@
       color: var(--blockquote); cursor: pointer; font-family: -apple-system, sans-serif;
     }
     .mm-controls button:hover { color: var(--fg); }
+    /* Fullscreen is a CSS overlay, not the Fullscreen API — no WKPreferences
+       gating, and the window and toolbar are untouched. It is .mm-view that goes
+       fixed, never .mermaid: taking the wrapper out of flow would shrink
+       scrollHeight, and the scroll listener would persist a wrong reading position. */
+    .mm-view.fs {
+      position: fixed; inset: 0; z-index: 999; background: rgba(0,0,0,0.82);
+      align-items: center; padding: 24px; box-sizing: border-box;
+    }
+    .mm-view.fs svg { max-height: 100%; }
+    .mm-view.fs .mm-controls { opacity: 1; top: 16px; right: 16px; }
     input[type="checkbox"] { margin-right: 6px; }
     /* GFM task lists: the checkbox is the marker, so drop the bullet and pull the
        box into the marker column (GitHub does the same). Two selectors because a

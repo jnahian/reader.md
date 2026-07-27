@@ -437,13 +437,65 @@ function diagramControls(view) {
     b.addEventListener('click', fn);
     return b;
   };
+  const fs = button('⤢', 'Fullscreen', () => {
+    view.classList.contains('fs') ? exitFullscreen(view) : enterFullscreen(view);
+  });
+  fs.className = 'mm-fs';
   bar.append(
     button('−', 'Zoom out', () => zoomStep(view, 1 / STEP)),
     button('+', 'Zoom in', () => zoomStep(view, STEP)),
     button('↺', 'Reset zoom', () => resetZoom(view)),
+    fs,
   );
   return bar;
 }
+
+function enterFullscreen(view) {
+  const wrapper = view.parentElement;
+  // .mm-view is about to leave the flow, so pin the wrapper's height first.
+  // Letting the page reflow would shrink scrollHeight, and the scroll listener
+  // would then persist a wrong reading position for the document.
+  // getBoundingClientRect, not offsetHeight: the latter rounds to an integer, and
+  // pinning 31px over a real 30.8px shifts the page by the difference — small, but
+  // the entire point of pinning is to not move the reader.
+  wrapper.style.height = `${wrapper.getBoundingClientRect().height}px`;
+  view._saved = zoomState(view);
+  const svg = view.querySelector('svg');
+  // Mermaid caps the svg at the diagram's natural width, which is exactly why a
+  // big diagram looks small. Drop the cap so the vector fills the window; keep
+  // the old value to restore on exit.
+  view._maxWidth = svg ? svg.style.maxWidth : '';
+  if (svg) svg.style.maxWidth = 'none';
+  view.classList.add('fs');
+  resetZoom(view);   // always opens fitted to the window
+  setFullscreenButton(view, true);
+}
+
+function exitFullscreen(view) {
+  const wrapper = view.parentElement;
+  view.classList.remove('fs');
+  wrapper.style.height = '';
+  const svg = view.querySelector('svg');
+  if (svg) svg.style.maxWidth = view._maxWidth || '';
+  view._zoom = view._saved || { s: 1, x: 0, y: 0 };
+  applyZoom(view);
+  setFullscreenButton(view, false);
+}
+
+function setFullscreenButton(view, open) {
+  const b = view.querySelector('.mm-fs');
+  if (!b) return;
+  b.textContent = open ? '✕' : '⤢';
+  b.title = open ? 'Exit fullscreen' : 'Fullscreen';
+}
+
+// One listener for the whole document rather than one per diagram; inert unless
+// something is actually open.
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const open = document.querySelector('.mm-view.fs');
+  if (open) exitFullscreen(open);
+});
 
 function addDiagramZoom(view) {
   view.addEventListener('wheel', (e) => {
@@ -490,6 +542,13 @@ function addDiagramZoom(view) {
   };
   view.addEventListener('pointerup', endDrag);
   view.addEventListener('pointercancel', endDrag);
+
+  view.addEventListener('click', (e) => {
+    if (!view.classList.contains('fs')) return;
+    // e.target === view means the backdrop itself, not the svg or the controls.
+    if (e.target !== view || view._dragged) return;
+    exitFullscreen(view);
+  });
 }
 
 function fixRelativeImages() {
