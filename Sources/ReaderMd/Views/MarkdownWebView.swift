@@ -288,8 +288,15 @@ struct MarkdownWebView: NSViewRepresentable {
             pushCurrentFile(keepScroll: false)
         }
 
+        /// Clearing an already-empty view must be a no-op. updateNSView runs on every
+        /// SwiftUI pass, and the render this kicks off posts toc/wordCount/progress back
+        /// to AppState — @Published writes, which schedule the next pass. Re-clearing
+        /// unconditionally made that a loop that pinned the main thread at 100%, and a
+        /// pinned main thread stops delivering mouse-moved: no :hover anywhere in the page.
         func clear() {
+            guard loadedPath != nil || showingDiff else { return }
             loadedPath = nil
+            showingDiff = false
             guard isReady else { return }
             webView?.evaluateJavaScript("window.ReaderMd.loadMarkdown('', '');")
         }
