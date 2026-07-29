@@ -526,9 +526,10 @@ document.addEventListener('keydown', (e) => {
 
 function addDiagramZoom(view) {
   view.addEventListener('wheel', (e) => {
-    // A macOS trackpad pinch arrives as a ctrlKey wheel event. A plain wheel must
-    // keep scrolling the page — except in fullscreen, where there is no page behind.
-    if (!e.ctrlKey && !view.classList.contains('fs')) return;
+    // A macOS trackpad pinch arrives as a ctrlKey wheel event; ⌘-wheel is the same
+    // gesture for a mouse. A plain wheel must keep scrolling the page — except in
+    // fullscreen, where there is no page behind.
+    if (!e.ctrlKey && !e.metaKey && !view.classList.contains('fs')) return;
     e.preventDefault();
     view._zoom = zoomAt(zoomState(view), Math.exp(-e.deltaY / 200), ...anchorIn(view, e.clientX, e.clientY));
     applyZoom(view);
