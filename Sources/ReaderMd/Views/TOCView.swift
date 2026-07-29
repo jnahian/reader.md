@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TOCView: View {
     @EnvironmentObject var state: AppState
+    @EnvironmentObject var reading: ReadingState
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -21,7 +22,7 @@ struct TOCView: View {
                         // off) until the fresh entries for the new mode arrive.
                         if state.tocIsDiffOutline == state.canShowDiff {
                             ForEach(state.toc) { entry in
-                                TOCRow(entry: entry, active: entry.id == state.activeHeadingID)
+                                TOCRow(entry: entry, active: entry.id == reading.activeHeadingID)
                                     .id(entry.id)
                                     .onTapGesture { state.requestScroll(to: entry.id) }
                             }
@@ -30,7 +31,7 @@ struct TOCView: View {
                     .padding(.vertical, 4)
                     .padding(.trailing, 8)
                 }
-                .onChange(of: state.activeHeadingID) { id in
+                .onChange(of: reading.activeHeadingID) { id in
                     guard let id else { return }
                     withAnimation(.easeInOut(duration: 0.2)) {
                         proxy.scrollTo(id, anchor: .center)

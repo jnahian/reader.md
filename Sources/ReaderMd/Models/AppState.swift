@@ -106,7 +106,15 @@ struct IndexedFile: Identifiable {
 final class AppState: ObservableObject {
     @Published var roots: [RootFolder] = []
     @Published var selectedFile: FileNode?
-    @Published var searchQuery: String = ""
+    @Published var searchQuery: String = "" {
+        didSet { refreshSearchResults() }
+    }
+
+    /// Sidebar filter hits, flat. Recomputed once per keystroke instead of by the
+    /// tree: filtering in place meant every directory row re-ran a recursive
+    /// `matches()` over its subtree, and a non-empty query force-expanded every
+    /// root — materializing ~3k rows into non-lazy VStacks on each edit.
+    @Published private(set) var searchResults: [IndexedFile] = []
     @Published var theme: AppearanceMode = .light
     @Published var readingTheme: ReadingTheme = .standard
     @Published var showTOC: Bool = false
@@ -124,7 +132,6 @@ final class AppState: ObservableObject {
     /// headings. TOCView compares this against `canShowDiff` to suppress rows left
     /// over from the mode just exited, until the fresh outline for the new mode arrives.
     @Published private(set) var tocIsDiffOutline: Bool = false
-    @Published var activeHeadingID: String?
     @Published var pendingScroll: String?   // heading id the TOC asked to scroll to
     @Published var reloadToken: Int = 0      // bumped to force a re-read of the open file
 
@@ -136,8 +143,10 @@ final class AppState: ObservableObject {
     @Published var showSidebar: Bool = true
     @Published var sidebarWidth: Double = 260
 
-    // Reading feedback (posted from the web view)
-    @Published var scrollProgress: Double = 0  // 0...1
+    // Reading feedback (posted from the web view). Scroll-rate values live on
+    // `reading`, NOT here — see ReadingState. A plain `let`, so mutating it
+    // never fires AppState's objectWillChange.
+    let reading = ReadingState()
     @Published var wordCount: Int = 0
 
     // Overlays
@@ -205,7 +214,7 @@ final class AppState: ObservableObject {
     var canGoForward: Bool { !forwardStack.isEmpty }
 
     func requestScroll(to id: String) {
-        activeHeadingID = id
+        reading.activeHeadingID = id
         pendingScroll = id
     }
 
@@ -404,7 +413,7 @@ final class AppState: ObservableObject {
 
     private func addRoot(_ url: URL, persist: Bool) {
         guard !roots.contains(where: { $0.id == url.path }) else { return }
-        let root = RootFolder(url: url)
+        let root = RootFolder(url: url) { [weak self] in self?.refreshSearchResults() }
         roots.append(root)
         let watcher = FolderWatcher(path: url.path) { [weak self] in
             Task { @MainActor in self?.handleFolderChange() }
@@ -467,8 +476,10 @@ final class AppState: ObservableObject {
     }
 
     private func handleFolderChange() {
-        for root in roots { root.rescan() }
-        objectWillChange.send()
+        // No objectWillChange.send() here: each RootFolder publishes its own
+        // children, and only its own RootSectionView observes them. Sending on
+        // AppState re-rendered the entire window instead.
+        for root in roots { root.rescan { [weak self] in self?.refreshSearchResults() } }
         if let file = selectedFile {
             if FileManager.default.fileExists(atPath: file.url.path) {
                 // Open file may have been edited on disk → force a re-read.
@@ -521,7 +532,9 @@ final class AppState: ObservableObject {
     /// Creates the cache dir, appends a remote-tagged root + FSEvents watcher.
     private func registerRemote(_ spec: RemoteSpec) {
         try? FileManager.default.createDirectory(at: spec.cacheURL, withIntermediateDirectories: true)
-        roots.append(RootFolder(url: spec.cacheURL, remote: spec))
+        roots.append(RootFolder(url: spec.cacheURL, remote: spec) { [weak self] in
+            self?.refreshSearchResults()
+        })
         let watcher = FolderWatcher(path: spec.cacheURL.path) { [weak self] in
             Task { @MainActor in self?.handleFolderChange() }
         }
@@ -535,7 +548,7 @@ final class AppState: ObservableObject {
         let result = await RemoteSync.run(spec)
         if result.success {
             root.syncStatus = .idle
-            root.rescan()
+            root.rescan { [weak self] in self?.refreshSearchResults() }
             if let file = selectedFile, file.url.path.hasPrefix(root.url.path + "/") {
                 reloadToken += 1
             }
@@ -633,8 +646,7 @@ final class AppState: ObservableObject {
     func closeFile() {
         selectedFile = nil
         toc = []
-        activeHeadingID = nil
-        scrollProgress = 0
+        reading.reset()
         loadMarksForCurrentFile()
         refreshDiff()
     }
@@ -674,8 +686,7 @@ final class AppState: ObservableObject {
     private func setCurrent(_ node: FileNode) {
         selectedFile = node
         toc = []
-        activeHeadingID = nil
-        scrollProgress = 0
+        reading.reset()
         loadMarksForCurrentFile()
         refreshDiff()
     }
@@ -690,7 +701,7 @@ final class AppState: ObservableObject {
         // on render (renderDiff → reportProgress) and on every subsequent scroll
         // event. Never let that overwrite the document's saved reading position.
         guard !canShowDiff else { return }
-        scrollProgress = fraction
+        reading.progress = fraction
         guard let url = selectedFile?.url,
               !Self.isBundledDoc(url), !Self.isStdinTemp(url) else { return }
         let path = url.path
@@ -758,6 +769,16 @@ final class AppState: ObservableObject {
             walk(root.children)
         }
         return result
+    }
+
+    /// Rebuilds `searchResults`. Called on each keystroke and after a rescan.
+    func refreshSearchResults() {
+        let q = normalizedQuery
+        guard !q.isEmpty else {
+            if !searchResults.isEmpty { searchResults = [] }   // no publish while idle
+            return
+        }
+        searchResults = allFilesIndexed().filter { $0.node.name.lowercased().contains(q) }
     }
 
     /// Rank of a file path in the recents list (0 = most recent), or nil if unseen.

@@ -176,6 +176,7 @@ struct DropTargetOverlay: View {
 /// Thin accent bar under the topbar reflecting read position.
 struct ReadingProgressBar: View {
     @EnvironmentObject var state: AppState
+    @EnvironmentObject var reading: ReadingState
 
     var body: some View {
         GeometryReader { geo in
@@ -184,7 +185,7 @@ struct ReadingProgressBar: View {
                 if state.selectedFile != nil {
                     Rectangle()
                         .fill(Color.accentColor)
-                        .frame(width: geo.size.width * CGFloat(state.scrollProgress))
+                        .frame(width: geo.size.width * CGFloat(reading.progress))
                 }
             }
         }

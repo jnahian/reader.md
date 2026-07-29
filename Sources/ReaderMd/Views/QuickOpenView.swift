@@ -258,8 +258,13 @@ func paletteCommands(_ state: AppState) -> [PaletteCommand] {
 /// live query and selection instead of a snapshot taken when it was installed.
 @MainActor
 final class QuickOpenModel: ObservableObject {
-    @Published var query = "" { didSet { selection = 0 } }
+    @Published var query = "" { didSet { selection = 0; recompute() } }
     @Published private(set) var selection = 0
+
+    /// Rows actually shown — the ordered list clamped to `quickOpenResultLimit`.
+    @Published private(set) var matches: [PaletteItem] = []
+    /// Total matches found (may exceed what the capped list shows).
+    @Published private(set) var totalCount = 0
 
     private var files: [IndexedFile] = []
     private var recents: [String] = []
@@ -296,8 +301,17 @@ final class QuickOpenModel: ObservableObject {
         return trimmed.trimmingCharacters(in: .whitespaces)
     }
 
+    /// Refreshes `matches`/`totalCount`. Driven by `query`'s didSet — computing
+    /// them on access instead meant one body pass ran the fuzzy match over every
+    /// indexed file twice (once for the rows, once for the footer's count).
+    private func recompute() {
+        let ordered = computeOrdered()
+        matches = Array(ordered.prefix(quickOpenResultLimit))
+        totalCount = ordered.count
+    }
+
     /// The full ordered result list, before the visible cap.
-    private var ordered: [PaletteItem] {
+    private func computeOrdered() -> [PaletteItem] {
         switch mode {
         case .commands:
             return quickOpenCommandItems(commands, query: effectiveQuery)
@@ -313,16 +327,9 @@ final class QuickOpenModel: ObservableObject {
         }
     }
 
-    /// Rows actually shown — the ordered list clamped to `quickOpenResultLimit`.
-    var matches: [PaletteItem] { Array(ordered.prefix(quickOpenResultLimit)) }
-
-    /// Total matches found (may exceed what the capped list shows).
-    var totalCount: Int { ordered.count }
-
     /// The selected row, clamped — the list shrinks as you type.
     var selected: PaletteItem? {
-        let items = matches
-        return items.indices.contains(selection) ? items[selection] : items.first
+        matches.indices.contains(selection) ? matches[selection] : matches.first
     }
 
     func move(_ delta: Int) {

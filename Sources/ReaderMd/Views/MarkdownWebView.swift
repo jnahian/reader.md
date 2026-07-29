@@ -545,12 +545,12 @@ struct MarkdownWebView: NSViewRepresentable {
                 }
                 Task { @MainActor in
                     self.state.toc = entries
-                    if self.state.activeHeadingID == nil { self.state.activeHeadingID = entries.first?.id }
+                    if self.state.reading.activeHeadingID == nil { self.state.reading.activeHeadingID = entries.first?.id }
                 }
 
             case "activeHeading":
                 guard let id = message.body as? String else { return }
-                Task { @MainActor in self.state.activeHeadingID = id }
+                Task { @MainActor in self.state.reading.activeHeadingID = id }
 
             case "wordCount":
                 guard let n = message.body as? Int else { return }

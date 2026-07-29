@@ -24,15 +24,6 @@ final class FileNode: Identifiable, Hashable {
 
     static func == (lhs: FileNode, rhs: FileNode) -> Bool { lhs.id == rhs.id }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
-
-    /// True if this file's name matches the query, or (for dirs) any descendant matches.
-    func matches(_ query: String) -> Bool {
-        if query.isEmpty { return true }
-        if isDirectory {
-            return children.contains { $0.matches(query) }
-        }
-        return name.lowercased().contains(query)
-    }
 }
 
 enum FileScanner {
@@ -89,24 +80,35 @@ enum FileScanner {
 
 /// One root folder shown in the sidebar. `remote` is non-nil when this root
 /// is the local cache of a synced remote folder.
+@MainActor
 final class RootFolder: Identifiable, ObservableObject {
     let id: String
     let url: URL
     @Published var remote: RemoteSpec?
-    @Published var children: [FileNode]
+    @Published var children: [FileNode] = []
     @Published var syncStatus: RemoteSyncStatus = .idle
 
-    init(url: URL, remote: RemoteSpec? = nil) {
+    /// Starts empty and fills in from a background scan. `FileScanner.scan` walks
+    /// the whole subtree — measured at ~1.3s across seven roots — so it must never
+    /// run on the main thread, not at launch and not on a folder change.
+    init(url: URL, remote: RemoteSpec? = nil, onScan: (@MainActor () -> Void)? = nil) {
         self.id = remote?.id ?? url.path
         self.url = url
         self.remote = remote
-        self.children = FileScanner.scan(url)
+        rescan(then: onScan)
     }
 
     var name: String { remote?.name ?? url.lastPathComponent }
     var isRemote: Bool { remote != nil }
 
-    func rescan() {
-        children = FileScanner.scan(url)
+    func rescan(then completion: (@MainActor () -> Void)? = nil) {
+        let url = self.url
+        Task.detached(priority: .userInitiated) {
+            let scanned = FileScanner.scan(url)
+            await MainActor.run {
+                self.children = scanned
+                completion?()
+            }
+        }
     }
 }
