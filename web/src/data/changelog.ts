@@ -19,9 +19,39 @@ export interface Release {
 
 export const releasesLog: Release[] = [
   {
+    version: "1.14.0",
+    date: "Jul 29, 2026",
+    badge: "LATEST",
+    groups: [
+      {
+        tag: "ADDED",
+        items: [
+          "<strong>See what changed with ⇧⌘D</strong> — when a markdown file lives in a git repository, Reader.md can swap the rendered page for a side-by-side source diff. A word or two edited in a long paragraph is highlighted on its own, so a small change no longer paints the whole paragraph red and green. The button appears in the toolbar only for files inside a repository.",
+          "<strong>Choose what you're comparing against</strong> — the diff header carries an <code>Unstaged | Staged | All</code> control, so you can read just your unstaged edits, just what you've staged, or everything since the last commit. Your choice is remembered.",
+          "<strong>The outline becomes a hunk navigator</strong> — in diff mode the outline lists one row per changed block, labelled with the heading it sits under and its <code>+3 −2</code> counts — click one to jump straight to it.",
+          "<strong>Changed files are marked in the sidebar</strong> — modified, added, untracked, and conflicted markdown files carry a small <code>M</code> / <code>A</code> / <code>?</code> / <code>U</code> badge.",
+          "<strong>Zoom into Mermaid diagrams</strong> — diagrams no longer have to fit the column width to be readable. Hover one for zoom controls, pinch or ⌘-scroll to zoom, drag to pan, or open it fullscreen — it stays sharp at any size. ⌘E always exports the diagram at its fitted size.",
+        ],
+      },
+      {
+        tag: "IMPROVED",
+        items: [
+          "<strong>The sidebar keeps up with large folders</strong> — scrolling a document, typing in the filter, and opening Quick Open no longer redraw the whole file tree. With a few thousand markdown files across several folders, scrolling was visibly busy and each keystroke in the filter rebuilt every row.",
+          "<strong>Filtering the sidebar shows a flat list of results</strong> — each hit is its filename over the folder it lives in (<code>notes › docs › api</code>), rather than the matching branches of the tree — so a filter over thousands of files stays instant, and <code>README.md</code> tells you which one it is.",
+          "<strong>Folders are scanned in the background</strong> — adding a large folder, or opening the app with several, no longer freezes the window while the tree is read; the sidebar fills in as each folder finishes.",
+        ],
+      },
+      {
+        tag: "FIXED",
+        items: [
+          "<strong>Task list items showed a bullet and a checkbox</strong> — the checkbox now sits in the marker column on its own, matching GitHub.",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.13.0",
     date: "Jul 22, 2026",
-    badge: "LATEST",
     groups: [
       {
         tag: "ADDED",
