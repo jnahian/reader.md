@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.14.0] - 2026-07-29
+
 ### Added
 
 - **See what changed with ⇧⌘D.** When a markdown file lives in a git repository,
@@ -26,6 +28,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   width to be readable. Hover one for zoom controls, pinch or ⌘-scroll to zoom,
   drag to pan, or open it fullscreen — it stays sharp at any size. ⌘E always exports the
   diagram at its fitted size.
+
+### Changed
+
+- **The sidebar keeps up with large folders.** Scrolling a document, typing in
+  the filter, and opening Quick Open no longer redraw the whole file tree. With
+  a few thousand markdown files across several folders, scrolling was visibly
+  busy and each keystroke in the filter rebuilt every row.
+- **Filtering the sidebar shows a flat list of results.** Each hit is its
+  filename over the folder it lives in (`notes › docs › api`), rather than the
+  matching branches of the tree — so a filter over thousands of files stays
+  instant, and `README.md` tells you which one it is.
+- **Folders are scanned in the background.** Adding a large folder, or opening
+  the app with several, no longer freezes the window while the tree is read;
+  the sidebar fills in as each folder finishes.
 
 ### Fixed
 
