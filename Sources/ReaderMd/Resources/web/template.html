@@ -111,7 +111,52 @@
     th, td { border: 1px solid var(--border); padding: 6px 13px; }
     th { background: var(--code-bg); }
     hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
-    .mermaid { display: flex; justify-content: center; margin: 1em 0; }
+    /* mermaid diagrams: zoom + pan (#38). The wrapper stays in flow and keeps its
+       fitted height — transforms don't affect layout, so zooming never moves the
+       prose below. overflow: hidden clips the zoomed svg; it does NOT clip the
+       fullscreen overlay, because a position: fixed descendant escapes ancestor
+       overflow unless that ancestor has a transform (none here).
+
+       min-height keeps room for the controls: they need 30px (top 8 + 22 tall) and
+       live inside this clipping box, whose height is the *fitted* diagram height.
+       A one-row flowchart fits in 8px, which hid all but 3% of them — worst on
+       exactly the wide diagrams that need zooming most.
+
+       .mm-view must STRETCH to that floor, because the controls are positioned
+       against it — centring the view instead leaves them anchored inside a box the
+       height of the diagram, still overflowing. The svg is centred one level down,
+       inside the view, which also keeps it from being stretched out of shape. */
+    .mermaid {
+      display: flex; justify-content: center; margin: 1em 0;
+      position: relative; overflow: hidden; min-height: 38px;
+    }
+    .mm-view {
+      display: flex; justify-content: center; align-items: center;
+      width: 100%; position: relative;
+    }
+    .mm-view.pannable { cursor: grab; }
+    .mm-view.panning { cursor: grabbing; }
+    .mm-controls {
+      position: absolute; top: 8px; right: 8px; display: flex; gap: 4px;
+      opacity: 0; transition: opacity 0.12s;
+    }
+    .mermaid:hover .mm-controls { opacity: 1; }
+    .mm-controls button {
+      width: 22px; height: 22px; padding: 0; font-size: 12px; line-height: 1;
+      border: 1px solid var(--border); border-radius: 6px; background: var(--bg);
+      color: var(--blockquote); cursor: pointer; font-family: -apple-system, sans-serif;
+    }
+    .mm-controls button:hover { color: var(--fg); }
+    /* Fullscreen is a CSS overlay, not the Fullscreen API — no WKPreferences
+       gating, and the window and toolbar are untouched. It is .mm-view that goes
+       fixed, never .mermaid: taking the wrapper out of flow would shrink
+       scrollHeight, and the scroll listener would persist a wrong reading position. */
+    .mm-view.fs {
+      position: fixed; inset: 0; z-index: 999; background: var(--bg);
+      align-items: center; padding: 24px; box-sizing: border-box;
+    }
+    .mm-view.fs svg { max-height: 100%; }
+    .mm-view.fs .mm-controls { opacity: 1; top: 16px; right: 16px; }
     input[type="checkbox"] { margin-right: 6px; }
     /* GFM task lists: the checkbox is the marker, so drop the bullet and pull the
        box into the marker column (GitHub does the same). Two selectors because a
@@ -219,6 +264,7 @@
   <script src="katex/katex.min.js"></script>
   <script src="katex/auto-render.min.js"></script>
   <script src="mermaid.min.js"></script>
+  <script src="zoom.js"></script>
   <script src="bridge.js"></script>
 </body>
 </html>

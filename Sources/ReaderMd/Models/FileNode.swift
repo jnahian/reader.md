@@ -39,6 +39,19 @@ enum FileScanner {
     static let markdownExtensions: Set<String> = ["md", "markdown", "mdown", "mdx"]
     static let ignoredDirs: Set<String> = ["node_modules", ".git", ".svn", "dist", "build", ".next", ".cache"]
 
+    /// Whether a changed path could alter the scanned tree. The tree only ever holds
+    /// markdown, so a write to a log, a .jsonl or a shell snapshot can't change it —
+    /// and rescanning for one is not free: it walks every root on the main thread. A
+    /// root over a directory that churns in non-markdown files (~/.claude, a repo mid
+    /// build) otherwise pins that thread and the window stops delivering mouse events.
+    /// Directories carry no extension, so they pass: a folder rename does change the tree.
+    static func affectsTree(_ path: String) -> Bool {
+        let parts = path.split(separator: "/")
+        if parts.contains(where: { ignoredDirs.contains(String($0)) }) { return false }
+        let ext = (path as NSString).pathExtension.lowercased()
+        return ext.isEmpty || markdownExtensions.contains(ext)
+    }
+
     /// Recursively build a pruned tree containing only markdown files.
     static func scan(_ directory: URL, depth: Int = 0) -> [FileNode] {
         guard depth <= 12 else { return [] }

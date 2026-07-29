@@ -132,6 +132,33 @@ window.ReaderMd = {
   clearFind() {
     clearFind();
   },
+
+  // ⌘E: find highlights and any diagram zoom would both bake into the PDF.
+  // Reset them, snapshot, then put them back. One hook rather than two, because
+  // Swift can't see which of the two is currently active — and both halves
+  // no-op when nothing is, so the caller needs no state to branch on.
+  beforeExport() {
+    clearFind();
+    const open = document.querySelector('.mm-view.fs');
+    if (open) exitFullscreen(open);
+    document.querySelectorAll('.mm-view').forEach((view) => {
+      view._exportZoom = view._zoom;
+      resetZoom(view);
+    });
+  },
+
+  afterExport() {
+    document.querySelectorAll('.mm-view').forEach((view) => {
+      if (view._exportZoom) {
+        view._zoom = view._exportZoom;
+        applyZoom(view);
+      }
+      view._exportZoom = null;
+    });
+    // The method, not a bare function — refind() only exists on this object, and
+    // it already guards on there being a live query.
+    this.refind();
+  },
 };
 
 // ---- Rendering ----
@@ -363,14 +390,193 @@ async function renderMermaid() {
     const id = `mermaid-${++mermaidCounter}`;
     try {
       const { svg } = await mermaid.render(id, def);
-      container.innerHTML = svg;
+      const view = document.createElement('div');
+      view.className = 'mm-view';
+      view.innerHTML = svg;
+      view.appendChild(diagramControls(view));
+      addDiagramZoom(view);
+      container.appendChild(view);
     } catch (err) {
+      // No controls on an error block: there is no diagram to zoom.
       container.innerHTML = `<pre class="error-msg">Mermaid error: ${escapeHtml(String(err.message || err))}</pre>`;
       const orphan = document.getElementById(`d${id}`);
       if (orphan) orphan.remove();
     }
     block.closest('pre').replaceWith(container);
   }
+}
+
+// ---- Mermaid diagram zoom (#38) ----
+
+const STEP = 1.25;
+
+// Zoom state lives on the element and dies with it: a re-render throws the node
+// away, so there is no registry to invalidate.
+function zoomState(view) {
+  if (!view._zoom) view._zoom = { s: 1, x: 0, y: 0 };
+  return view._zoom;
+}
+
+function applyZoom(view) {
+  const svg = view.querySelector('svg');
+  if (!svg) return;
+  const { s, x, y } = zoomState(view);
+  svg.style.transformOrigin = '0 0';
+  svg.style.transform = `translate(${x}px, ${y}px) scale(${s})`;
+  // At or below fit nothing is hidden, so there is nothing to drag towards.
+  view.classList.toggle('pannable', s > 1);
+}
+
+function resetZoom(view) {
+  view._zoom = { s: 1, x: 0, y: 0 };
+  applyZoom(view);
+}
+
+// Convert a viewport point into the svg's own layout space, which is the space the
+// zoom state's x/y live in. The two differ by the centring inset whenever the
+// diagram is narrower than the column, because .mm-view centres it — anchoring in
+// view space instead sends a small diagram flying off sideways by
+// inset * (scale - 1). transform-origin is 0 0, so scaling never moves the origin
+// and the layout position is just the rendered one minus the current translate.
+function anchorIn(view, clientX, clientY) {
+  const svg = view.querySelector('svg');
+  const { x, y } = zoomState(view);
+  const r = svg.getBoundingClientRect();
+  return [clientX - (r.left - x), clientY - (r.top - y)];
+}
+
+// A button has no pointer position, so it anchors at the centre of what the reader
+// can currently see — the view's centre.
+function zoomStep(view, factor) {
+  const r = view.getBoundingClientRect();
+  view._zoom = zoomAt(zoomState(view), factor, ...anchorIn(view, r.left + r.width / 2, r.top + r.height / 2));
+  applyZoom(view);
+}
+
+function diagramControls(view) {
+  const bar = document.createElement('div');
+  bar.className = 'mm-controls';
+  const button = (glyph, title, fn) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = glyph;
+    b.title = title;
+    b.addEventListener('click', fn);
+    return b;
+  };
+  const fs = button('⤢', 'Fullscreen', () => {
+    view.classList.contains('fs') ? exitFullscreen(view) : enterFullscreen(view);
+  });
+  fs.className = 'mm-fs';
+  bar.append(
+    button('−', 'Zoom out', () => zoomStep(view, 1 / STEP)),
+    button('+', 'Zoom in', () => zoomStep(view, STEP)),
+    button('↺', 'Reset zoom', () => resetZoom(view)),
+    fs,
+  );
+  return bar;
+}
+
+function enterFullscreen(view) {
+  const wrapper = view.parentElement;
+  // .mm-view is about to leave the flow, so pin the wrapper's height first.
+  // Letting the page reflow would shrink scrollHeight, and the scroll listener
+  // would then persist a wrong reading position for the document.
+  // getBoundingClientRect, not offsetHeight: the latter rounds to an integer, and
+  // pinning 31px over a real 30.8px shifts the page by the difference — small, but
+  // the entire point of pinning is to not move the reader.
+  wrapper.style.height = `${wrapper.getBoundingClientRect().height}px`;
+  view._saved = zoomState(view);
+  const svg = view.querySelector('svg');
+  // Mermaid caps the svg at the diagram's natural width, which is exactly why a
+  // big diagram looks small. Drop the cap so the vector fills the window; keep
+  // the old value to restore on exit.
+  view._maxWidth = svg ? svg.style.maxWidth : '';
+  if (svg) svg.style.maxWidth = 'none';
+  view.classList.add('fs');
+  resetZoom(view);   // always opens fitted to the window
+  setFullscreenButton(view, true);
+}
+
+function exitFullscreen(view) {
+  const wrapper = view.parentElement;
+  view.classList.remove('fs');
+  wrapper.style.height = '';
+  const svg = view.querySelector('svg');
+  if (svg) svg.style.maxWidth = view._maxWidth || '';
+  view._zoom = view._saved || { s: 1, x: 0, y: 0 };
+  applyZoom(view);
+  setFullscreenButton(view, false);
+}
+
+function setFullscreenButton(view, open) {
+  const b = view.querySelector('.mm-fs');
+  if (!b) return;
+  b.textContent = open ? '✕' : '⤢';
+  b.title = open ? 'Exit fullscreen' : 'Fullscreen';
+}
+
+// One listener for the whole document rather than one per diagram; inert unless
+// something is actually open.
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const open = document.querySelector('.mm-view.fs');
+  if (open) exitFullscreen(open);
+});
+
+function addDiagramZoom(view) {
+  view.addEventListener('wheel', (e) => {
+    // A macOS trackpad pinch arrives as a ctrlKey wheel event; ⌘-wheel is the same
+    // gesture for a mouse. A plain wheel must keep scrolling the page — except in
+    // fullscreen, where there is no page behind.
+    if (!e.ctrlKey && !e.metaKey && !view.classList.contains('fs')) return;
+    e.preventDefault();
+    view._zoom = zoomAt(zoomState(view), Math.exp(-e.deltaY / 200), ...anchorIn(view, e.clientX, e.clientY));
+    applyZoom(view);
+  }, { passive: false });
+
+  view.addEventListener('dblclick', (e) => {
+    // Double-clicking a button shouldn't also reset the whole diagram.
+    if (e.target.closest('.mm-controls')) return;
+    resetZoom(view);
+  });
+
+  let drag = null;
+  view.addEventListener('pointerdown', (e) => {
+    // Nothing is hidden at or below fit, so there is nothing to pan to.
+    if (zoomState(view).s <= 1 || e.button !== 0) return;
+    if (e.target.closest('.mm-controls')) return;
+    drag = { x: e.clientX, y: e.clientY, moved: false };
+    view.setPointerCapture(e.pointerId);
+    view.classList.add('panning');
+  });
+
+  view.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const st = zoomState(view);
+    view._zoom = { s: st.s, x: st.x + (e.clientX - drag.x), y: st.y + (e.clientY - drag.y) };
+    drag.x = e.clientX;
+    drag.y = e.clientY;
+    drag.moved = true;
+    applyZoom(view);
+  });
+
+  // Task 4's backdrop-click exit reads _dragged, so a pan that ends over the
+  // backdrop doesn't also close the overlay.
+  const endDrag = () => {
+    view._dragged = !!(drag && drag.moved);
+    drag = null;
+    view.classList.remove('panning');
+  };
+  view.addEventListener('pointerup', endDrag);
+  view.addEventListener('pointercancel', endDrag);
+
+  view.addEventListener('click', (e) => {
+    if (!view.classList.contains('fs')) return;
+    // e.target === view means the backdrop itself, not the svg or the controls.
+    if (e.target !== view || view._dragged) return;
+    exitFullscreen(view);
+  });
 }
 
 function fixRelativeImages() {
@@ -665,7 +871,7 @@ contentEl.addEventListener('click', (e) => {
 // `.sr-only` covers the footnote extension's visually-hidden "Footnotes" <h2>:
 // hidden to the reader, but a real text node, so an unfiltered search for
 // "footnotes" would match it and inflate the count.
-const FIND_EXCLUDE = '.anchor, .copy-btn, svg, .katex, .sr-only';
+const FIND_EXCLUDE = '.anchor, .copy-btn, .mm-controls, svg, .katex, .sr-only';
 let findMatches = [];   // one entry per occurrence: an array of its <mark> elements
 let findFocus = 0;      // index of the .current occurrence
 let findQuery = '';     // the live query, so refind() can rebuild after a re-render
