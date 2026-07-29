@@ -37,41 +37,10 @@ struct SidebarView: View {
             // Tree
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 1) {
-                    // Recents section
-                    if state.normalizedQuery.isEmpty && !state.recentFiles.isEmpty {
-                        HStack {
-                            sectionHeader("RECENTS")
-                            Button("Clear") { state.clearRecents() }
-                                .buttonStyle(.plain)
-                                .font(.system(size: 11))
-                                .foregroundStyle(.tertiary)
-                                .padding(.trailing, 12)
-                                .dockTooltip("Clear recent files")
-                        }
-                        ForEach(state.recentFiles.prefix(6), id: \.self) { path in
-                            RecentRow(path: path)
-                        }
-                        Spacer().frame(height: 10)
-                    }
-
-                    sectionHeader("FOLDERS")
-
-                    if state.roots.isEmpty {
-                        Text("No folders yet")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.tertiary)
-                            .padding(.horizontal, 12)
-                            .padding(.top, 4)
-                    }
-                    ForEach(state.roots) { root in
-                        RootSectionView(root: root, draggingRootID: $draggingRootID)
-                    }
-                    if searchYieldsNothing {
-                        Text("No matching files")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.tertiary)
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 16)
+                    if !state.normalizedQuery.isEmpty {
+                        searchResults
+                    } else {
+                        tree
                     }
                 }
                 .padding(.horizontal, 8)
@@ -140,6 +109,57 @@ struct SidebarView: View {
         }
     }
 
+    /// The normal (unfiltered) sidebar: recents, then the folder tree.
+    @ViewBuilder
+    private var tree: some View {
+        if !state.recentFiles.isEmpty {
+            HStack {
+                sectionHeader("RECENTS")
+                Button("Clear") { state.clearRecents() }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.tertiary)
+                    .padding(.trailing, 12)
+                    .dockTooltip("Clear recent files")
+            }
+            ForEach(state.recentFiles.prefix(6), id: \.self) { path in
+                RecentRow(path: path)
+            }
+            Spacer().frame(height: 10)
+        }
+
+        sectionHeader("FOLDERS")
+
+        if state.roots.isEmpty {
+            Text("No folders yet")
+                .font(.system(size: 12))
+                .foregroundStyle(.tertiary)
+                .padding(.horizontal, 12)
+                .padding(.top, 4)
+        }
+        ForEach(state.roots) { root in
+            RootSectionView(root: root, draggingRootID: $draggingRootID)
+        }
+    }
+
+    /// Filter hits as a flat list, each labelled with its folder. Flat rather than
+    /// a filtered tree so the enclosing LazyVStack only builds the visible rows —
+    /// the tree form expanded every root and built all of them.
+    @ViewBuilder
+    private var searchResults: some View {
+        sectionHeader("RESULTS")
+        if state.searchResults.isEmpty {
+            Text("No matching files")
+                .font(.system(size: 12))
+                .foregroundStyle(.tertiary)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 16)
+        }
+        ForEach(state.searchResults) { file in
+            SearchResultRow(file: file)
+        }
+    }
+
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
             .font(.system(size: 11, weight: .semibold))
@@ -149,10 +169,66 @@ struct SidebarView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var searchYieldsNothing: Bool {
-        let q = state.normalizedQuery
-        guard !q.isEmpty, !state.roots.isEmpty else { return false }
-        return !state.roots.contains { root in root.children.contains { $0.matches(q) } }
+}
+
+/// One sidebar filter hit: filename over its folder location. A flat list needs
+/// the location — indentation carried it in the tree, and README.md is everywhere.
+struct SearchResultRow: View {
+    @EnvironmentObject var state: AppState
+    let file: IndexedFile
+    @State private var hovering = false
+
+    private var isSelected: Bool { state.selectedFile?.id == file.node.id }
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "doc.text")
+                .font(.system(size: 12))
+                .foregroundStyle(isSelected ? Color.white : Color.secondary)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(file.node.name)
+                    .font(.system(size: 13))
+                    .foregroundStyle(isSelected ? Color.white : Color.primary)
+                    .lineLimit(1)
+                Text(file.locationLabel)
+                    .font(.system(size: 11))
+                    .foregroundStyle(isSelected ? Color.white.opacity(0.8) : Color.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.head)
+            }
+            Spacer(minLength: 4)
+            if let badge = state.gitStatus(for: file.node.url.path) {
+                Text(badge.rawValue)
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundStyle(isSelected ? Color.white : Color.secondary)
+            }
+        }
+        .padding(.vertical, 4)
+        .padding(.leading, 10)
+        .padding(.trailing, 7)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .fill(isSelected ? Color.accentColor
+                      : (hovering ? Color.primary.opacity(0.06) : Color.clear))
+        )
+        .contentShape(Rectangle())
+        .onHover { hovering = $0 }
+        .onTapGesture { state.open(file.node) }
+        .contextMenu {
+            if isSelected {
+                Button("Close") { state.closeFile() }
+            } else {
+                Button("Open") { state.open(file.node) }
+            }
+            Button("Reveal in Finder") {
+                NSWorkspace.shared.activateFileViewerSelecting([file.node.url])
+            }
+            Button("Copy Path") {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(file.node.url.path, forType: .string)
+            }
+        }
     }
 }
 
@@ -224,7 +300,6 @@ struct RootSectionView: View {
     @State private var hovering = false
 
     var body: some View {
-        let q = state.normalizedQuery
         VStack(alignment: .leading, spacing: 1) {
             HStack(spacing: 5) {
                 Image(systemName: "chevron.right")
@@ -310,9 +385,9 @@ struct RootSectionView: View {
                 }
             }
 
-            if expanded || !q.isEmpty {
-                ForEach(root.children.filter { $0.matches(q) }) { node in
-                    FileTreeRow(node: node, depth: 1, query: q)
+            if expanded {
+                ForEach(root.children) { node in
+                    FileTreeRow(node: node, depth: 1)
                 }
             }
         }

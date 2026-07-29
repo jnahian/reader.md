@@ -18,6 +18,7 @@ struct ReaderMdApp: App {
         WindowGroup("Reader.md") {
             ContentView()
                 .environmentObject(state)
+                .environmentObject(state.reading)
                 .frame(minWidth: 720, minHeight: 460)
                 .preferredColorScheme(state.theme.colorScheme)
                 .onOpenURL { url in

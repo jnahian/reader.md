@@ -6,7 +6,6 @@ struct FileTreeRow: View {
     @EnvironmentObject var state: AppState
     let node: FileNode
     let depth: Int
-    let query: String
 
     @State private var expanded = false
     @State private var hovering = false
@@ -19,7 +18,6 @@ struct FileTreeRow: View {
         }
     }
 
-    private var isSearching: Bool { !query.isEmpty }
     private var isSelected: Bool { state.selectedFile?.id == node.id }
 
     private func iconColor(selected: Bool) -> Color {
@@ -64,9 +62,9 @@ struct FileTreeRow: View {
                     Button("Copy Path") { copyPath() }
                 }
 
-            if expanded || isSearching {
-                ForEach(node.children.filter { $0.matches(query) }) { child in
-                    FileTreeRow(node: child, depth: depth + 1, query: query)
+            if expanded {
+                ForEach(node.children) { child in
+                    FileTreeRow(node: child, depth: depth + 1)
                 }
             }
         }
