@@ -17,8 +17,8 @@ final class FolderWatcher {
         let callback: FSEventStreamCallback = { _, info, _, eventPaths, _, _ in
             guard let info = info else { return }
             let watcher = Unmanaged<FolderWatcher>.fromOpaque(info).takeUnretainedValue()
-            // The rescan this fires is a main-thread walk of every root, so events that
-            // can't change the tree must not fire it — see FileScanner.affectsTree.
+            // The rescan this fires walks every root, so events that can't change the
+            // tree must not fire it — see FileScanner.affectsTree.
             let paths = unsafeBitCast(eventPaths, to: NSArray.self) as? [String] ?? []
             guard paths.isEmpty || paths.contains(where: FileScanner.affectsTree) else { return }
             watcher.fire()

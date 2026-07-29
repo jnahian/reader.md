@@ -194,7 +194,7 @@ private struct ReaderToolbar: ViewModifier {
             return "\(state.wordCount) words · \(state.readingMinutes) min read"
         }
         if state.selectedFile != nil { return "" }
-        let count = state.allFiles().count
+        let count = state.fileCount
         if count == 0 { return "No markdown files" }
         return "\(count) markdown \(count == 1 ? "file" : "files")"
     }
