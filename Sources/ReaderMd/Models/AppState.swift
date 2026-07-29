@@ -158,6 +158,11 @@ final class AppState: ObservableObject {
     // Overlays
     @Published var showQuickOpen: Bool = false
 
+    /// True while a Mermaid diagram is open fullscreen in the web view. The overlay
+    /// is CSS inside the web view, so it can't cover native chrome drawn on top of
+    /// it — the close-doc ✕ hides itself for the duration.
+    @Published var diagramFullscreen: Bool = false
+
     /// True while a file drag is over the web view. The web view consumes the drag
     /// before SwiftUI's `.onDrop` sees it, so it reports targeting separately from
     /// the chrome's `isTargeted`; ContentView shows the overlay when either is set.

@@ -82,7 +82,8 @@ struct MarkdownWebView: NSViewRepresentable {
         let config = WKWebViewConfiguration()
         let controller = WKUserContentController()
         let messageNames = ["ready", "toc", "activeHeading", "openExternal", "openFile", "wordCount", "progress",
-                             "rendered", "textSelected", "markClicked", "marksApplied", "findResult"]
+                             "rendered", "textSelected", "markClicked", "marksApplied", "findResult",
+                             "diagramFullscreen"]
         for name in messageNames {
             controller.add(context.coordinator, name: name)
         }
@@ -560,6 +561,12 @@ struct MarkdownWebView: NSViewRepresentable {
                 guard let p = message.body as? Double else { return }
                 Task { @MainActor in self.state.recordProgress(p) }
 
+            case "diagramFullscreen":
+                // The overlay is inside the web view, so it can't cover the native
+                // close-doc ✕ drawn above it — ContentView hides the button instead.
+                guard let open = message.body as? Bool else { return }
+                Task { @MainActor in self.state.diagramFullscreen = open }
+
             case "openExternal":
                 if let s = message.body as? String, let url = URL(string: s) {
                     NSWorkspace.shared.open(url)
@@ -572,7 +579,10 @@ struct MarkdownWebView: NSViewRepresentable {
 
             case "rendered":
                 // A fresh render wipes any <mark> wrapper spans — always re-apply.
+                // It also drops any fullscreen diagram without an exit event, so the
+                // flag has to clear here or the close-doc ✕ never comes back.
                 Task { @MainActor in
+                    self.state.diagramFullscreen = false
                     self.lastPushedMarks = self.state.marks
                     self.lastShowResolved = self.state.showResolvedThreads
                     self.applyMarks(json: self.state.marksJSON())

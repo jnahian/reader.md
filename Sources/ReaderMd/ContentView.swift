@@ -59,7 +59,7 @@ struct ContentView: View {
                 MarkdownWebView()
                     .opacity(state.selectedFile == nil ? 0 : 1)
 
-                if state.selectedFile != nil {
+                if state.selectedFile != nil && !state.diagramFullscreen {
                     CloseDocButton()
                         .padding(.top, 10)
                         .padding(.trailing, 14)

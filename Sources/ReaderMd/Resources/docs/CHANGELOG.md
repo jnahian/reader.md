@@ -6,6 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.14.1] - 2026-07-29
+
+### Fixed
+
+- The floating × that closes the document sat on top of a fullscreen Mermaid
+  diagram, overlapping its controls in the top-right corner. It now steps aside
+  while a diagram is fullscreen, and comes back when you leave.
+
 ## [1.14.0] - 2026-07-29
 
 ### Added

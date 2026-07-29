@@ -496,6 +496,9 @@ function enterFullscreen(view) {
   view.classList.add('fs');
   resetZoom(view);   // always opens fitted to the window
   setFullscreenButton(view, true);
+  // The overlay is inside the web view, so native chrome drawn above it stays
+  // visible — Swift hides the floating close-doc ✕ while this is open.
+  post('diagramFullscreen', true);
 }
 
 function exitFullscreen(view) {
@@ -507,6 +510,7 @@ function exitFullscreen(view) {
   view._zoom = view._saved || { s: 1, x: 0, y: 0 };
   applyZoom(view);
   setFullscreenButton(view, false);
+  post('diagramFullscreen', false);
 }
 
 function setFullscreenButton(view, open) {
