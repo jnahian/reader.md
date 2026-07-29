@@ -19,9 +19,21 @@ export interface Release {
 
 export const releasesLog: Release[] = [
   {
-    version: "1.14.0",
+    version: "1.14.1",
     date: "Jul 29, 2026",
     badge: "LATEST",
+    groups: [
+      {
+        tag: "FIXED",
+        items: [
+          "<strong>The close button covered a fullscreen diagram's controls</strong> — the floating × that closes the document sat on top of a fullscreen Mermaid diagram, overlapping its zoom controls in the top-right corner. It now steps aside while a diagram is fullscreen, and comes back when you leave.",
+        ],
+      },
+    ],
+  },
+  {
+    version: "1.14.0",
+    date: "Jul 29, 2026",
     groups: [
       {
         tag: "ADDED",
