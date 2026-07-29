@@ -201,6 +201,7 @@ struct SearchResultRow: View {
                 Text(badge.rawValue)
                     .font(.system(size: 10, weight: .bold, design: .monospaced))
                     .foregroundStyle(isSelected ? Color.white : Color.secondary)
+                    .dockTooltip(badge.help)
             }
         }
         .padding(.vertical, 4)

@@ -32,9 +32,10 @@ enum FileScanner {
 
     /// Whether a changed path could alter the scanned tree. The tree only ever holds
     /// markdown, so a write to a log, a .jsonl or a shell snapshot can't change it —
-    /// and rescanning for one is not free: it walks every root on the main thread. A
-    /// root over a directory that churns in non-markdown files (~/.claude, a repo mid
-    /// build) otherwise pins that thread and the window stops delivering mouse events.
+    /// and rescanning for one is not free: it walks every root (off the main thread,
+    /// but each scan still ends in a main-thread assignment that re-renders the
+    /// sidebar). A root over a directory that churns in non-markdown files
+    /// (~/.claude, a repo mid build) otherwise rescans continuously for nothing.
     /// Directories carry no extension, so they pass: a folder rename does change the tree.
     static func affectsTree(_ path: String) -> Bool {
         let parts = path.split(separator: "/")

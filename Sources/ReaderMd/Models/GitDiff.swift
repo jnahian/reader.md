@@ -453,6 +453,16 @@ enum GitFileStatus: String, Equatable {
     case added = "A"
     case conflicted = "U"
     case untracked = "?"
+
+    /// Tooltip for the one-letter badge shown on a sidebar row.
+    var help: String {
+        switch self {
+        case .modified:   return "Modified"
+        case .added:      return "Added"
+        case .untracked:  return "Untracked"
+        case .conflicted: return "Conflicted"
+        }
+    }
 }
 
 extension GitDiff {

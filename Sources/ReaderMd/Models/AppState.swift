@@ -115,6 +115,12 @@ final class AppState: ObservableObject {
     /// `matches()` over its subtree, and a non-empty query force-expanded every
     /// root — materializing ~3k rows into non-lazy VStacks on each edit.
     @Published private(set) var searchResults: [IndexedFile] = []
+
+    /// Total markdown files across all roots, for the window subtitle. Stored, not
+    /// computed: `children` fills in from a background scan and publishes on the
+    /// RootFolder, which the toolbar doesn't observe — a computed walk would show
+    /// the launch-time zero until some unrelated AppState publish redrew it.
+    @Published private(set) var fileCount: Int = 0
     @Published var theme: AppearanceMode = .light
     @Published var readingTheme: ReadingTheme = .standard
     @Published var showTOC: Bool = false
@@ -413,7 +419,7 @@ final class AppState: ObservableObject {
 
     private func addRoot(_ url: URL, persist: Bool) {
         guard !roots.contains(where: { $0.id == url.path }) else { return }
-        let root = RootFolder(url: url) { [weak self] in self?.refreshSearchResults() }
+        let root = RootFolder(url: url) { [weak self] in self?.didRescan() }
         roots.append(root)
         let watcher = FolderWatcher(path: url.path) { [weak self] in
             Task { @MainActor in self?.handleFolderChange() }
@@ -427,6 +433,7 @@ final class AppState: ObservableObject {
     func moveRoot(from: Int, to: Int) {
         guard from != to, roots.indices.contains(from) else { return }
         roots.move(fromOffsets: IndexSet(integer: from), toOffset: to)
+        didRescan()   // search results are ordered by root
         persistRoots()
         persistRemotes()
     }
@@ -440,6 +447,7 @@ final class AppState: ObservableObject {
             refreshDiff()
         }
         roots.removeAll { $0.id == root.id }
+        didRescan()
         rebuildWatchers()
         persistRoots()
         persistRemotes()
@@ -479,7 +487,7 @@ final class AppState: ObservableObject {
         // No objectWillChange.send() here: each RootFolder publishes its own
         // children, and only its own RootSectionView observes them. Sending on
         // AppState re-rendered the entire window instead.
-        for root in roots { root.rescan { [weak self] in self?.refreshSearchResults() } }
+        for root in roots { root.rescan { [weak self] in self?.didRescan() } }
         if let file = selectedFile {
             if FileManager.default.fileExists(atPath: file.url.path) {
                 // Open file may have been edited on disk → force a re-read.
@@ -533,7 +541,7 @@ final class AppState: ObservableObject {
     private func registerRemote(_ spec: RemoteSpec) {
         try? FileManager.default.createDirectory(at: spec.cacheURL, withIntermediateDirectories: true)
         roots.append(RootFolder(url: spec.cacheURL, remote: spec) { [weak self] in
-            self?.refreshSearchResults()
+            self?.didRescan()
         })
         let watcher = FolderWatcher(path: spec.cacheURL.path) { [weak self] in
             Task { @MainActor in self?.handleFolderChange() }
@@ -548,7 +556,7 @@ final class AppState: ObservableObject {
         let result = await RemoteSync.run(spec)
         if result.success {
             root.syncStatus = .idle
-            root.rescan { [weak self] in self?.refreshSearchResults() }
+            root.rescan { [weak self] in self?.didRescan() }
             if let file = selectedFile, file.url.path.hasPrefix(root.url.path + "/") {
                 reloadToken += 1
             }
@@ -769,6 +777,13 @@ final class AppState: ObservableObject {
             walk(root.children)
         }
         return result
+    }
+
+    /// The tree changed: refresh everything derived from it. Called when a scan
+    /// lands and when roots are added, removed or reordered.
+    func didRescan() {
+        fileCount = allFiles().count
+        refreshSearchResults()
     }
 
     /// Rebuilds `searchResults`. Called on each keystroke and after a rescan.

@@ -41,15 +41,6 @@ struct FileTreeRow: View {
         }
     }
 
-    private func badgeHelp(_ status: GitFileStatus) -> String {
-        switch status {
-        case .modified:   return "Modified"
-        case .added:      return "Added"
-        case .untracked:  return "Untracked"
-        case .conflicted: return "Conflicted"
-        }
-    }
-
     private var directoryRow: some View {
         VStack(alignment: .leading, spacing: 1) {
             row(icon: "folder.fill", chevron: true, selected: false)
@@ -129,7 +120,7 @@ struct FileTreeRow: View {
                 Text(badge.rawValue)
                     .font(.system(size: 10, weight: .bold, design: .monospaced))
                     .foregroundStyle(badgeColor(badge, selected: selected))
-                    .dockTooltip(badgeHelp(badge))
+                    .dockTooltip(badge.help)
             }
         }
         .padding(.vertical, 4)

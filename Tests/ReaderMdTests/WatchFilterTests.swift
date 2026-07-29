@@ -1,9 +1,11 @@
 import XCTest
 @testable import ReaderMd
 
-/// `FolderWatcher` fires a main-thread rescan of every root, so what it lets through
-/// is load-bearing: a root over a directory that churns in non-markdown files (a
-/// `~/.claude` full of .jsonl transcripts, a repo mid build) pinned that thread and
+/// `FolderWatcher` fires a rescan of every root, so what it lets through is
+/// load-bearing: a root over a directory that churns in non-markdown files (a
+/// `~/.claude` full of .jsonl transcripts, a repo mid build) rescans continuously
+/// for nothing, and each scan ends in a main-thread tree swap that re-renders the
+/// sidebar. Before the scan moved off the main thread this pinned it outright and
 /// the window stopped delivering mouse events — no `:hover`, so no on-hover chrome.
 final class WatchFilterTests: XCTestCase {
 
