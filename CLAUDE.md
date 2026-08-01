@@ -52,8 +52,9 @@ key actually does — check them rather than copying an existing table.
 
 A user-visible change updates the bundled docs first, then `docs/`, then the
 site data. `web/` is an Astro static site with its own `CLAUDE.md`, deployed by
-Cloudflare Pages on every push to `main` — so a site edit that merges is live,
-with no separate deploy step.
+Cloudflare Pages when a push to `main` touches `web/` — so a site edit that
+merges is live, with no separate deploy step, and a commit that doesn't touch
+`web/` builds nothing.
 
 ## Conventions
 

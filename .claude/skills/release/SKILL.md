@@ -165,10 +165,14 @@ The marketing site keeps its own hand-maintained copy of the release notes in
 - Move the `badge: "LATEST"` from the previous release onto the new one.
 - Run `cd web && npm run build` before pushing — `src/data/*.ts` is typed, so a
   malformed entry fails the build rather than rendering wrong.
-- **Pushing this is the deploy.** Cloudflare Pages builds `web/` on every push
-  to `main`, so the commit goes live on its own — there is no `wrangler` step to
-  run. See `web/DEPLOYMENT.md`, which keeps `wrangler pages deploy` only as a
-  fallback for republishing without a commit.
+- **Pushing this is the deploy** — because `changelog.ts` lives under `web/`.
+  Cloudflare Pages builds on a push to `main` *only when it touches `web/`*, so
+  this commit goes live on its own and there is no `wrangler` step to run. Note
+  the flip side: bundling the site edit into a commit is fine, but a release
+  commit that touches nothing under `web/` publishes nothing — if you sync the
+  changelog in a later commit, that later push is what deploys. See
+  `web/DEPLOYMENT.md`, which keeps `wrangler pages deploy` only as a fallback
+  for republishing without a commit.
 
 ## What goes missing if you skip a step
 
