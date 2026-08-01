@@ -100,7 +100,7 @@ private struct ReaderToolbar: ViewModifier {
                     Button { state.toggleTheme() } label: {
                         Image(systemName: state.theme.symbol)
                     }
-                    .dockTooltip(state.theme == .dark ? "Switch to light mode" : "Switch to dark mode")
+                    .dockTooltip(state.theme.tooltip)
                 }
 
                 ToolbarItem(placement: .primaryAction) { findField }

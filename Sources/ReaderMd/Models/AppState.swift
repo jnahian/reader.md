@@ -4,24 +4,45 @@ import Combine
 import UniformTypeIdentifiers
 
 enum AppearanceMode: String, CaseIterable {
-    case light, dark
+    case light, dark, system
 
+    /// `nil` inherits the system appearance.
     var colorScheme: ColorScheme? {
         switch self {
         case .light: return .light
         case .dark: return .dark
+        case .system: return nil
         }
     }
 
-    /// Icon reflects the mode you'd switch *to*.
+    /// Icon reflects the *current* mode (three states don't fit "next mode").
     var symbol: String {
         switch self {
-        case .light: return "moon"
-        case .dark: return "sun.max"
+        case .light: return "sun.max"
+        case .dark: return "moon"
+        case .system: return "circle.lefthalf.filled"
         }
     }
 
-    var toggled: AppearanceMode { self == .dark ? .light : .dark }
+    var displayName: String {
+        switch self {
+        case .light: return "Light"
+        case .dark: return "Dark"
+        case .system: return "System"
+        }
+    }
+
+    /// Names the current mode — the icon already implies it, so no verb.
+    var tooltip: String { self == .system ? "System" : "\(displayName) Mode" }
+
+    /// Light → Dark → System → Light.
+    var toggled: AppearanceMode {
+        switch self {
+        case .light: return .dark
+        case .dark: return .system
+        case .system: return .light
+        }
+    }
 }
 
 /// A curated content-pane theme: a palette + font stack + highlight.js
@@ -122,6 +143,9 @@ final class AppState: ObservableObject {
     /// the launch-time zero until some unrelated AppState publish redrew it.
     @Published private(set) var fileCount: Int = 0
     @Published var theme: AppearanceMode = .light
+    /// Live system appearance, tracked so `.system` can resolve to a concrete
+    /// scheme (see `colorScheme`). KVO'd in `init`.
+    @Published private var systemIsDark: Bool = AppState.systemIsDark
     @Published var readingTheme: ReadingTheme = .standard
     @Published var showTOC: Bool = false
     @Published var focusSearch: Bool = false   // toggled to request focus
@@ -231,7 +255,27 @@ final class AppState: ObservableObject {
 
     private var watchers: [FolderWatcher] = []
 
+    // MARK: - Appearance
+
+    static var systemIsDark: Bool {
+        NSApp?.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+    }
+
+    /// The scheme to hand `.preferredColorScheme` — never `nil`. Passing `nil`
+    /// for `.system` clears the window's appearance (so the native toolbar
+    /// repaints) but doesn't invalidate SwiftUI content, leaving the sidebar,
+    /// outline and web view on the old scheme until an unrelated redraw. So we
+    /// resolve `.system` ourselves and follow the system with KVO.
+    var colorScheme: ColorScheme {
+        theme.colorScheme ?? (systemIsDark ? .dark : .light)
+    }
+
+    private var appearanceObserver: NSKeyValueObservation?
+
     init() {
+        appearanceObserver = NSApp?.observe(\.effectiveAppearance) { [weak self] _, _ in
+            MainActor.assumeIsolated { self?.systemIsDark = AppState.systemIsDark }
+        }
         theme = Settings.loadTheme()
         readingTheme = Settings.loadReadingTheme()
         showTOC = Settings.loadShowTOC()
