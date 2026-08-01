@@ -7,7 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `swift run ReaderMd` — build and launch the app (unsandboxed executable; reads any folder you add).
 - `swift build` / `swift build -c release` — compile only.
 - `./make-app.sh` then `open "build/Reader.md.app"` — assemble a double-clickable `.app` (release binary + SwiftPM resource bundle + icns + Info.plist).
-- `swift test` — runs the `ReaderMdTests` target (pure logic only: ⌘P matching/recents, CLI routing, marks, stdin docs). Most of the app is UI/WKWebView/FSEvents; verify those by running the app.
+- `swift test` — runs the `ReaderMdTests` target (pure logic only: ⌘P matching/recents, CLI routing, marks, stdin docs, editor gates). Most of the app is UI/WKWebView/FSEvents; verify those by running the app.
+- `cd web && npm run build` — build the marketing site. See `web/CLAUDE.md`.
 
 **Build toolchain:** Requires Xcode 26 / Swift 6.2+ with the macOS 26 SDK, because the `glassEffect` (Liquid Glass) symbols only exist there. Deployment target stays macOS 13, so runtime code must guard 26-only APIs with availability checks and fall back to `NSVisualEffectView`.
 
@@ -19,7 +20,7 @@ Native macOS markdown viewer: SwiftUI/AppKit shell wrapping a single `WKWebView`
 - **Native shell** — `ContentView` (layout: resizable/collapsible sidebar, content, collapsible outline; find bar + quick-open as overlays) under the window's native toolbar (`Toolbar.swift`, applied as `.readerToolbar()`). `Sources/ReaderMd/Views/` holds the SwiftUI pieces.
 - **Web content** — `MarkdownWebView` (`NSViewRepresentable` over `WKWebView`) loads bundled assets from `Sources/ReaderMd/Resources/web/` (marked, highlight.js, KaTeX + fonts, Mermaid, `bridge.js`). Loaded via `Bundle.resources` (a helper: `Bundle.main` in a packaged `.app`, falling back to `Bundle.module` under `swift run`). `make-app.sh` copies the resources into `Contents/Resources` and ad-hoc code-signs the bundle — the SwiftPM `.bundle` can't live at the `.app` root (where `Bundle.module` looks) because codesign rejects contents there.
 
-**`AppState`** (`@MainActor ObservableObject`) is the single source of truth: roots, selection, theme, outline, typography, layout, history, find/export state. Persists to `UserDefaults`. Injected as `@EnvironmentObject`.
+**`AppState`** (`@MainActor ObservableObject`) is the single source of truth: roots, selection, theme, outline, typography, layout, history, find/export state, external-editor preference. Persists to `UserDefaults`. Injected as `@EnvironmentObject`.
 
 **Swift ↔ JS bridge** (`MarkdownWebView` ↔ `bridge.js`):
 - Swift → JS: `evaluateJavaScript` calling `window.ReaderMd.*` (`setTheme`, `loadMarkdown`, `reloadMarkdown`, font/width setters).
@@ -33,6 +34,23 @@ Native macOS markdown viewer: SwiftUI/AppKit shell wrapping a single `WKWebView`
 **Chrome / Liquid Glass:** `GlassPanel` applies `glassEffect` on macOS 26, falling back to `VisualEffectView` (an `NSVisualEffectView` wrapper) on 13–15. Glass is applied only to navigation layers (sidebar, outline, find bar, quick-open) — never behind scrolling content. The window chrome is the **native toolbar** (`.toolbar` in `Toolbar.swift`), so AppKit draws its glass and groups items into capsules: use `ToolbarItemGroup` for a cluster rather than styling one yourself.
 
 **`reader` CLI** (`Sources/ReaderCLI/`, a second executable target, ships at `Reader.md.app/Contents/MacOS/reader`) — never touches `UserDefaults` directly. `reader ls` reads the app's saved folders directly (`Prefs.swift`, read-only); every other verb (`open`, `remote`, `rm`, `-` for piped stdin) turns argv into a `readermd://` URL (`Route.swift`) and hands it to the running/launched app via `NSWorkspace` (`Dispatch.swift`), which does the actual work, including any preference writes. The app is the single writer of its own preferences — the CLI never writes them, to avoid racing `AppState`'s in-memory `roots` re-persisting over a CLI write.
+
+## Documentation
+
+Three places describe the same features and drift when only one is touched (the
+README and the site have both carried shortcuts that were plain wrong). The
+`.keyboardShortcut` bindings in `ReaderMdApp.swift` are the authority for what a
+key actually does — check them rather than copying an existing table.
+
+- `Sources/ReaderMd/Resources/docs/` — `FAQ.md`, `SHORTCUTS.md`, `CHANGELOG.md`.
+  Bundled into the app and opened from the Help menu, so they ship to users; the
+  changelog also drives Sparkle's release notes (below).
+- `README.md` — the repo's feature list and shortcut table.
+- `web/src/data/content.ts` — mirrors `README.md` for the site.
+
+A user-visible change updates the bundled docs first, then the README, then the
+site data. `web/` is an Astro static site with its own `CLAUDE.md` and a manual
+deploy, so nothing there reaches production on merge.
 
 ## Conventions
 
