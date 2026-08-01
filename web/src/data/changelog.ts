@@ -19,9 +19,36 @@ export interface Release {
 
 export const releasesLog: Release[] = [
   {
+    version: "1.15.0",
+    date: "Aug 1, 2026",
+    badge: "LATEST",
+    groups: [
+      {
+        tag: "ADDED",
+        items: [
+          "<strong>Clone a git repository as a folder</strong> — the Add Remote sheet now offers <strong>Git</strong> alongside SSH: paste a clone URL and Reader.md clones it read-only into a local cache, fast-forwarding it on every launch the same way SSH folders re-sync. It uses your existing git credentials and never prompts, so a repository you can't authenticate to fails with git's own message instead of hanging.",
+          "<strong>Diff against a branch</strong> — the diff scope control is now a menu, and below <code>Unstaged</code> / <code>Staged</code> / <code>All</code> it lists the repository's branches. Picking one compares your working copy — uncommitted edits included — against that branch's tip, which is the view for \"what does this doc branch actually change?\".",
+          "<strong>Hand a file to your editor with ⇧⌘E</strong> — Reader.md stays a reader, but editing is now one keystroke away. Pick your editor once (<strong>File → Set Default Editor…</strong>, or right-click any file → <strong>Always Open With</strong>) and from then on the menu reads <em>Open in Zed</em> and ⇧⌘E sends the open document straight there. Reader.md re-renders the moment you save, so your editor on one side and Reader.md on the other reads like a live preview.",
+          "<strong>An appearance mode that follows macOS</strong> — the toolbar button now cycles Light → Dark → System, and in System mode Reader.md switches the moment macOS does, including on a schedule. New installs start in System, and the button's icon shows the mode you're <em>in</em> rather than the one you'd switch to.",
+        ],
+      },
+      {
+        tag: "IMPROVED",
+        items: [
+          "<strong>Folders inside a git repository respect <code>.gitignore</code></strong> — vendored and generated markdown stays out of the sidebar the way <code>node_modules</code> always has.",
+        ],
+      },
+      {
+        tag: "FIXED",
+        items: [
+          "<strong>A tooltip kept its old text when the button beneath it changed label</strong> — clicking the appearance button left the previous mode's tooltip on screen until you moved away and came back. It now re-renders in place.",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.14.1",
     date: "Jul 29, 2026",
-    badge: "LATEST",
     groups: [
       {
         tag: "FIXED",
