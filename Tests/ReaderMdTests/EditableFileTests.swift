@@ -38,6 +38,21 @@ final class EditableFileTests: XCTestCase {
         XCTAssertFalse(ids.contains("com.nahian.reader-md"))
     }
 
+    /// An editor that's been uninstalled clears itself, so the menu stops
+    /// offering a name that resolves to nothing and ⇧⌘E can ask for a new one.
+    func testUninstalledEditorClearsItself() {
+        let saved = Settings.loadEditorBundleID()
+        defer { Settings.saveEditorBundleID(saved) }
+
+        Settings.saveEditorBundleID("com.nonexistent.editor")
+        let state = AppState()
+        XCTAssertEqual(state.editorBundleID, "com.nonexistent.editor")
+        XCTAssertNil(state.resolvedEditor())
+        XCTAssertNil(state.editorBundleID)
+        XCTAssertNil(state.editorDisplayName)
+        XCTAssertNil(Settings.loadEditorBundleID())
+    }
+
     /// A local root is not a remote — the remote check must key off `remote`,
     /// not merely off being a root.
     func testFileInsideALocalRootIsEditable() {

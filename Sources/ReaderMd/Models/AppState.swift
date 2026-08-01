@@ -35,6 +35,12 @@ enum AppearanceMode: String, CaseIterable {
     /// Names the current mode — the icon already implies it, so no verb.
     var tooltip: String { self == .system ? "System" : "\(displayName) Mode" }
 
+    /// VoiceOver has no icon to read the current mode from, and a button's label
+    /// has to say what pressing it does — so state *and* action, unlike `tooltip`.
+    var accessibilityLabel: String {
+        "Appearance: \(displayName). Switch to \(toggled.displayName)."
+    }
+
     /// Light → Dark → System → Light.
     var toggled: AppearanceMode {
         switch self {
@@ -812,15 +818,31 @@ final class AppState: ObservableObject {
     /// whatever ranks next (Xcode on the author's Mac) — an arbitrary choice
     /// worse than none. Until Open With has been used, ⇧⌘E stays disabled.
     func openInEditor(_ url: URL) {
-        guard let id = editorBundleID,
-              let editor = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) else {
-            editorBundleID = nil      // editor uninstalled — fall back to Open With
-            editorDisplayName = nil
-            Settings.saveEditorBundleID(nil)
+        guard let editor = resolvedEditor() else {
+            // The editor is gone. `canOpenInEditor` can't catch that — it stays off
+            // LaunchServices by design — so the menu item was enabled and ⇧⌘E would
+            // otherwise be a dead keystroke. Ask for a replacement instead.
+            // ponytail: no auto-retry of the open — the user presses ⇧⌘E again.
+            // Re-entering here on a bundle id LaunchServices won't resolve would loop.
+            pickDefaultEditor()
             return
         }
         NSWorkspace.shared.open([url], withApplicationAt: editor,
                                 configuration: NSWorkspace.OpenConfiguration())
+    }
+
+    /// The stored editor, or `nil` after clearing a bundle id that no longer
+    /// resolves (the editor was uninstalled). Split from `openInEditor` so the
+    /// clearing is reachable in tests without `pickDefaultEditor`'s modal panel.
+    func resolvedEditor() -> URL? {
+        guard let id = editorBundleID,
+              let app = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) else {
+            editorBundleID = nil
+            editorDisplayName = nil
+            Settings.saveEditorBundleID(nil)
+            return nil
+        }
+        return app
     }
 
     /// Opens in `app` and remembers it as the editor for ⇧⌘E.

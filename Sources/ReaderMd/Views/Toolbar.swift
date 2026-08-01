@@ -100,7 +100,8 @@ private struct ReaderToolbar: ViewModifier {
                     Button { state.toggleTheme() } label: {
                         Image(systemName: state.theme.symbol)
                     }
-                    .dockTooltip(state.theme.tooltip)
+                    .dockTooltip(state.theme.tooltip,
+                                 accessibility: state.theme.accessibilityLabel)
                 }
 
                 ToolbarItem(placement: .primaryAction) { findField }
