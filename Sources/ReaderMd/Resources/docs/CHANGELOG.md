@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.15.0] - 2026-08-01
+
 ### Added
 
 - **Clone a git repository as a folder.** The Add Remote sheet now offers **Git**
@@ -18,17 +20,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   compares your working copy — uncommitted edits included — against that
   branch's tip, which is the view for "what does this doc branch actually
   change?".
-
-### Changed
-
-- Folders inside a git repository no longer list files that `.gitignore` covers,
-  so vendored and generated markdown stays out of the sidebar the way
-  `node_modules` always has.
-
-## [1.15.0] - 2026-08-01
-
-### Added
-
 - **Hand a file to your editor with ⇧⌘E.** Reader.md stays a reader, but editing
   is now one keystroke away. Pick your editor once — **File → Set Default
   Editor…**, or right-click any file → **Always Open With** — and from then on
@@ -44,6 +35,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   in System. The button's icon now shows the mode you're *in* rather than the
   one you'd switch to, since three states don't fit "next mode", and the ⌘P
   palette names the mode you'd move to.
+
+### Changed
+
+- Folders inside a git repository no longer list files that `.gitignore` covers,
+  so vendored and generated markdown stays out of the sidebar the way
+  `node_modules` always has.
 
 ### Fixed
 
