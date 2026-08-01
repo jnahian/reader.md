@@ -24,22 +24,17 @@ final class GitIgnoreParseTests: XCTestCase {
         XCTAssertTrue(GitDiff.parseIgnored("").isEmpty)
     }
 
-    /// A root added below the repo root: git's paths are relative to the repo,
-    /// the scan's are relative to the folder, and everything outside that folder
-    /// is none of its business.
-    func testPathsAreRebasedOntoTheScannedFolder() {
-        XCTAssertEqual(GitDiff.parseIgnored("docs/build/\nsrc/x.md\ndocs/n.md\n", prefix: "docs/"),
-                       ["build", "n.md"])
+    /// A folder that is itself ignored reports "./" — git's way of saying "all of
+    /// this". Pruning it would blank the sidebar for a root the user explicitly
+    /// added, so it must not become a key.
+    func testTheScannedFolderBeingIgnoredPrunesNothing() {
+        XCTAssertTrue(GitDiff.parseIgnored("./\n").isEmpty)
     }
 
-    func testTheScannedFolderItselfIsNotAnEntry() {
-        XCTAssertTrue(GitDiff.parseIgnored("docs\n", prefix: "docs/").isEmpty)
-    }
-
-    func testPrefixIsEmptyAtTheRepoRoot() {
-        let repo = URL(fileURLWithPath: "/repo")
-        XCTAssertEqual(GitDiff.relativePrefix(of: repo, under: repo), "")
-        XCTAssertEqual(GitDiff.relativePrefix(of: repo.appendingPathComponent("docs"), under: repo), "docs/")
+    /// Nested paths stay nested: `scan` matches against `prefix + name`, so a key
+    /// has to keep the shape git printed.
+    func testNestedPathsKeepTheirShape() {
+        XCTAssertEqual(GitDiff.parseIgnored("docs/build/\nn.md\n"), ["docs/build", "n.md"])
     }
 }
 
@@ -92,14 +87,18 @@ final class GitIgnoreRepoTests: XCTestCase {
 
     override func setUpWithError() throws {
         let fm = FileManager.default
+        // Under the temp dir on purpose: it is /var/… symlinked to /private/var/…,
+        // the shape that used to make git's paths and FileManager's disagree.
         repo = fm.temporaryDirectory.appendingPathComponent("git-ignore-\(UUID().uuidString)")
-        try fm.createDirectory(at: repo.appendingPathComponent("vendor"), withIntermediateDirectories: true)
+        for dir in ["vendor", "docs/build"] {
+            try fm.createDirectory(at: repo.appendingPathComponent(dir), withIntermediateDirectories: true)
+        }
         guard case .output = GitDiff.run(["init"], in: repo) else {
             throw XCTSkip("git init failed in this environment")
         }
-        try "vendor/\nskip.md\n".write(to: repo.appendingPathComponent(".gitignore"),
-                                       atomically: true, encoding: .utf8)
-        for path in ["keep.md", "skip.md", "vendor/v.md"] {
+        try "vendor/\nskip.md\ndocs/build/\n".write(to: repo.appendingPathComponent(".gitignore"),
+                                                    atomically: true, encoding: .utf8)
+        for path in ["keep.md", "skip.md", "vendor/v.md", "docs/d.md", "docs/build/b.md"] {
             try "x".write(to: repo.appendingPathComponent(path), atomically: true, encoding: .utf8)
         }
         wasAvailable = GitDiff.available
@@ -113,7 +112,35 @@ final class GitIgnoreRepoTests: XCTestCase {
 
     func testIgnoredMarkdownStaysOutOfTheTree() {
         let ignored = FileScanner.ignoredPaths(under: repo)
-        XCTAssertEqual(FileScanner.scan(repo, ignoring: ignored).map(\.name), ["keep.md"])
+        XCTAssertEqual(FileScanner.scan(repo, ignoring: ignored).map(\.name), ["docs", "keep.md"])
+    }
+
+    /// A root added *below* the repo root — the case that only had synthetic
+    /// coverage. Git is run in the folder, so its paths already start there:
+    /// "build", not "docs/build".
+    func testARootBelowTheRepoRootPrunesItsOwnIgnores() {
+        let docs = repo.appendingPathComponent("docs")
+        XCTAssertEqual(FileScanner.ignoredPaths(under: docs), ["build"])
+        XCTAssertEqual(FileScanner.scan(docs, ignoring: FileScanner.ignoredPaths(under: docs)).map(\.name),
+                       ["d.md"])
+    }
+
+    /// A root added *at* an ignored folder still shows its files. Git answers
+    /// "./" — everything — and pruning the root the user explicitly added would
+    /// leave them staring at an empty sidebar with no explanation.
+    func testARootAtAnIgnoredFolderStillShowsItsFiles() {
+        let vendor = repo.appendingPathComponent("vendor")
+        XCTAssertTrue(FileScanner.ignoredPaths(under: vendor).isEmpty)
+        XCTAssertEqual(FileScanner.scan(vendor, ignoring: FileScanner.ignoredPaths(under: vendor)).map(\.name),
+                       ["v.md"])
+    }
+
+    /// Git is run in the scanned folder, not the repo root, so it never walks
+    /// outside it — the reason a root inside a monorepo (or under a $HOME that is
+    /// itself a repo) doesn't re-enumerate the whole thing on every rescan.
+    func testIgnoresOutsideTheScannedFolderAreNeverReported() {
+        XCTAssertFalse(FileScanner.ignoredPaths(under: repo.appendingPathComponent("docs"))
+            .contains { $0.contains("skip.md") || $0.contains("vendor") })
     }
 
     /// Without the probe having run, the scan must not shell out to git at all —
@@ -121,5 +148,15 @@ final class GitIgnoreRepoTests: XCTestCase {
     func testNoIgnoresAreLookedUpWhileGitIsUnavailable() {
         GitDiff.available = false
         XCTAssertTrue(FileScanner.ignoredPaths(under: repo).isEmpty)
+    }
+
+    /// A folder outside any repo answers with a git failure, which is also how
+    /// "not a repo" is detected now that there's no separate `rev-parse`.
+    func testAFolderOutsideAnyRepoHasNoIgnores() throws {
+        let plain = FileManager.default.temporaryDirectory
+            .appendingPathComponent("plain-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: plain, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: plain) }
+        XCTAssertTrue(FileScanner.ignoredPaths(under: plain).isEmpty)
     }
 }

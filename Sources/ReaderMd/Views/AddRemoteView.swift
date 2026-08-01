@@ -59,7 +59,9 @@ struct AddRemoteView: View {
                 Spacer()
                 Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
                 Button(existing == nil ? "Add" : "Save") {
-                    let spec = edited(id: existing?.id)
+                    let spec = Self.spec(id: existing?.id, name: name, isGit: isGit,
+                                         gitURL: gitURL, destination: destination,
+                                         remotePath: remotePath)
                     if existing != nil {
                         // Keep the same id so cacheURL (and marks) are preserved.
                         state.updateRemote(spec)
@@ -79,7 +81,12 @@ struct AddRemoteView: View {
     /// The fields for the kind that isn't showing are dropped, so switching an
     /// existing remote from SSH to git (or back) doesn't leave the old one behind
     /// — `isGit` is derived from `gitURL` being present.
-    private func edited(id: String?) -> RemoteSpec {
+    ///
+    /// Static and taking the fields rather than reading `self`: this is the one
+    /// piece of the sheet that breaks silently (a leftover `sshDestination` sends
+    /// a git remote down the rsync path), and a view's `@State` can't be tested.
+    static func spec(id: String?, name: String, isGit: Bool,
+                     gitURL: String, destination: String, remotePath: String) -> RemoteSpec {
         func trimmed(_ s: String) -> String { s.trimmingCharacters(in: .whitespaces) }
         var spec = RemoteSpec(id: id ?? UUID().uuidString, name: trimmed(name))
         if isGit {

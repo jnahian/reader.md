@@ -131,6 +131,22 @@ final class GitRemoteSyncRunTests: XCTestCase {
         XCTAssertFalse(fm.fileExists(atPath: spec.cacheURL.appendingPathComponent("old.md").path))
     }
 
+    /// `cacheURL` with an empty id is the shared `remotes/` parent, and the clone
+    /// path wipes its destination first — so this would delete every other
+    /// remote's cache. Reachable only from a hand-edited defaults plist, which is
+    /// exactly why it can't be left to the callers.
+    func testAnEmptyIDIsRefusedRatherThanWipingEveryCache() async throws {
+        let fm = FileManager.default
+        let sibling = RemoteSpec(id: "bystander-\(UUID().uuidString)", name: "Other",
+                                 gitURL: origin.path)
+        try fm.createDirectory(at: sibling.cacheURL, withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: sibling.cacheURL) }
+
+        let result = await RemoteSync.run(RemoteSpec(id: "", name: "Broken", gitURL: origin.path))
+        XCTAssertFalse(result.success)
+        XCTAssertTrue(fm.fileExists(atPath: sibling.cacheURL.path), "a sibling remote's cache was deleted")
+    }
+
     func testAFailedCloneReportsGitsOwnError() async {
         let bad = RemoteSpec(id: "clone-fail-\(UUID().uuidString)", name: "Nope",
                              gitURL: "/nonexistent-\(UUID().uuidString)")

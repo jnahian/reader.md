@@ -232,6 +232,12 @@ final class AppState: ObservableObject {
     /// Repo root per root folder. Roots may be different repos, or not repos.
     private var repoRootCache: [String: URL] = [:]
 
+    /// Branch list per repo root. `refreshDiff` runs on every file open and every
+    /// window activation, and `diffMode` persists across launches, so without this
+    /// merely clicking back into the window costs two git subprocesses. Branches
+    /// change rarely; toggling diff mode off and on clears it.
+    private var branchCache: [String: [String]] = [:]
+
     /// Generation counters guarding against out-of-order async completions:
     /// bumped at dispatch, captured by the in-flight task, checked back before
     /// the result is applied — a stale completion (an older refresh landing
@@ -323,8 +329,12 @@ final class AppState: ObservableObject {
                 self.refreshDiff()
                 self.refreshGitStatus()
                 // The roots above scanned before this answer landed, so they were
-                // built without git's ignores. Rescan once, now that they apply.
-                for root in self.roots { root.rescan { [weak self] in self?.didRescan() } }
+                // built without git's ignores. Rescan once, now that they apply —
+                // `onlyIfIgnored` so a root with nothing to prune (most of them)
+                // doesn't pay a second full walk at launch.
+                for root in self.roots {
+                    root.rescan(onlyIfIgnored: true) { [weak self] in self?.didRescan() }
+                }
             }
         }
     }
@@ -339,6 +349,9 @@ final class AppState: ObservableObject {
     func toggleDiffMode() {
         diffMode.toggle()
         Settings.saveDiffMode(diffMode)
+        // Turning diff mode on is the branch list's refresh affordance — see
+        // `branchCache`. Cheap: the very next refreshDiff repopulates it.
+        if diffMode { branchCache.removeAll() }
         refreshDiff()
     }
 
@@ -393,6 +406,7 @@ final class AppState: ObservableObject {
         let scope = diffScope
         let wantDiff = diffMode
         let cached = repoRootCache[url.deletingLastPathComponent().path]
+        let cachedBranches = cached.flatMap { branchCache[$0.path] }
         diffRequest += 1
         let generation = diffRequest
 
@@ -404,8 +418,10 @@ final class AppState: ObservableObject {
                 computed = GitDiff.diff(file: url, scope: scope, repoRoot: root)
                 // Inside the `wantDiff` branch on purpose: refreshDiff also runs
                 // on every file open and every window activation, and the menu
-                // these fill only exists in diff mode.
-                branches = GitDiff.branches(root: root)
+                // these fill only exists in diff mode. Cached beyond that, since
+                // even in diff mode those two triggers are far more frequent than
+                // a branch ever appearing.
+                branches = cachedBranches ?? GitDiff.branches(root: root)
             } else {
                 computed = nil
                 branches = []
@@ -416,6 +432,7 @@ final class AppState: ObservableObject {
                 // refreshes for the SAME file completing out of order.
                 guard let self, self.diffRequest == generation, self.selectedFile?.url == url else { return }
                 if let root { self.repoRootCache[url.deletingLastPathComponent().path] = root }
+                if wantDiff, let root { self.branchCache[root.path] = branches }
                 self.diffAvailable = root != nil
                 self.diffBranches = branches
                 self.diffFile = computed

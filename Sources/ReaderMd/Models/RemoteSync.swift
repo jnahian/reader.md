@@ -73,17 +73,22 @@ extension RemoteSync {
         let process = Process()
 
         if spec.isGit {
+            // The id is what makes cacheURL a per-remote directory; with an empty
+            // one it is the shared `remotes/` parent, and the wipe below would take
+            // every other remote's cache with it. In-app ids are UUIDs, but the
+            // defaults plist this is decoded from is user-writable.
+            guard !spec.id.isEmpty else {
+                return RemoteSyncResult(success: false, message: "Remote has no id")
+            }
             let cloned = fm.fileExists(atPath: spec.cacheURL.appendingPathComponent(".git").path)
-            // `git clone` demands an empty directory. The cache is non-empty and
-            // not a repo when an rsync remote was edited into a git one — without
-            // this the remote would be wedged for good. Only ever our own cache
-            // directory, keyed by the spec's UUID.
+            // `git clone` demands an empty directory, and creates it itself. The
+            // cache is non-empty and not a repo when an rsync remote was edited
+            // into a git one — without this the remote would be wedged for good.
+            // Only ever our own cache directory, keyed by the spec's UUID.
             if !cloned { try? fm.removeItem(at: spec.cacheURL) }
             process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
             process.arguments = gitArguments(for: spec, cloned: cloned)
             process.environment = gitEnvironment()
-            // `git clone` creates the destination itself.
-            if cloned { try? fm.createDirectory(at: spec.cacheURL, withIntermediateDirectories: true) }
         } else {
             try? fm.createDirectory(at: spec.cacheURL, withIntermediateDirectories: true)
             process.executableURL = URL(fileURLWithPath: "/usr/bin/rsync")

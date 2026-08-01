@@ -982,6 +982,17 @@ final class GitBranchListTests: XCTestCase {
     func testEmptyOutputYieldsNoBranches() {
         XCTAssertTrue(GitDiff.parseBranches("", current: nil).isEmpty)
     }
+
+    /// The cap is silent — a branch past it is simply absent from the menu with no
+    /// way to reach it — so it has to sit past where real repos land. Local and
+    /// `origin/*` refs share the budget, and most branches have both.
+    func testTheCapLeavesRoomForBothLocalAndRemoteRefs() {
+        let many = (0..<40).flatMap { ["b\($0)", "origin/b\($0)"] }.joined(separator: "\n")
+        let branches = GitDiff.parseBranches(many, current: nil)
+        XCTAssertEqual(branches.count, 50)
+        // 25 distinct branches survive, not 10.
+        XCTAssertTrue(branches.contains("b24"), "\(branches.suffix(4))")
+    }
 }
 
 /// In diff mode the outline lists hunks, not headings. The ids must match the

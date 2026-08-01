@@ -47,11 +47,10 @@ enum FileScanner {
     /// Paths git ignores under `directory`, for `scan(_:ignoring:)`. Empty when
     /// git is missing or the folder isn't a repo. Shells out — off the main actor.
     static func ignoredPaths(under directory: URL) -> Set<String> {
-        // isDirectory: true because `repoRoot(for:)` walks up from a file, and a
-        // URL rebuilt from a saved path doesn't always know it's a folder.
-        let dir = URL(fileURLWithPath: directory.path, isDirectory: true)
-        guard GitDiff.available, let root = GitDiff.repoRoot(for: dir) else { return [] }
-        return GitDiff.ignoredPaths(root: root, relativeTo: dir)
+        // isDirectory: true because a URL rebuilt from a saved path doesn't always
+        // know it's a folder, and git is run *in* this directory.
+        guard GitDiff.available else { return [] }
+        return GitDiff.ignoredPaths(in: URL(fileURLWithPath: directory.path, isDirectory: true))
     }
 
     /// Recursively build a pruned tree containing only markdown files.
@@ -120,12 +119,19 @@ final class RootFolder: Identifiable, ObservableObject {
     var name: String { remote?.name ?? url.lastPathComponent }
     var isRemote: Bool { remote != nil }
 
-    func rescan(then completion: (@MainActor () -> Void)? = nil) {
+    /// `onlyIfIgnored` is for the one caller that re-scans a root already scanned
+    /// this launch: the git probe lands after `loadSavedRoots()`, so the first
+    /// scan ran without git's ignores. Re-walking a root that turns out to have
+    /// none is pure cost — and the walk is the expensive part, ~1.3s across seven
+    /// roots — so the cheap `ls-files` runs first and decides.
+    func rescan(onlyIfIgnored: Bool = false, then completion: (@MainActor () -> Void)? = nil) {
         let url = self.url
         Task.detached(priority: .userInitiated) {
-            // One `git ls-files` per scan, alongside the walk that is already the
-            // expensive part. Roots that aren't repos pay a single `rev-parse`.
-            let scanned = FileScanner.scan(url, ignoring: FileScanner.ignoredPaths(under: url))
+            // One `git ls-files` per scan, alongside the walk. It is also the
+            // is-a-repo test, so a root outside one pays a single failed git call.
+            let ignoring = FileScanner.ignoredPaths(under: url)
+            if onlyIfIgnored && ignoring.isEmpty { return }
+            let scanned = FileScanner.scan(url, ignoring: ignoring)
             await MainActor.run {
                 self.children = scanned
                 completion?()

@@ -145,7 +145,14 @@ enum GitDiff {
 
     /// The cached answer, for callers that aren't on the main actor and so can't
     /// read `AppState.gitAvailable` — the folder scan. Written once by the launch
-    /// probe before any scan can read it; never written again.
+    /// probe, never again.
+    ///
+    /// `nonisolated(unsafe)` and genuinely racy: `loadSavedRoots()` runs earlier in
+    /// the same `init` and starts detached scans that read this while the probe is
+    /// writing it. Benign in the one direction it can go — a scan that reads a
+    /// stale `false` just skips git's ignores, and the probe rescans every affected
+    /// root once it lands. Do not add a second writer; this only holds because
+    /// `false → true` happens once.
     nonisolated(unsafe) static var available = false
 }
 
@@ -592,47 +599,52 @@ extension GitDiff {
     /// `origin/HEAD` is a symbolic alias for whatever `origin`'s default branch
     /// is, already listed under its real name; the checked-out branch is dropped
     /// because diffing the working tree against its own tip is what `.all` is.
-    /// ponytail: capped at 20 — a menu, not a branch browser.
+    /// ponytail: capped at 50 — a menu, not a branch browser. The cap is silent,
+    /// so it has to sit past where real repos land: `origin/*` shares the budget,
+    /// and most branches have a matching remote ref, so 20 was ~10 distinct
+    /// branches and a repo could hide the one you wanted with no way to reach it.
+    /// A 50-row pull-down still scrolls fine.
     static func parseBranches(_ output: String, current: String?) -> [String] {
         Array(output.components(separatedBy: "\n")
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty && $0 != current && $0 != "origin/HEAD" }
-            .prefix(20))
+            .prefix(50))
     }
 
-    /// Paths git ignores, relative to `folder` — which is the folder the user
-    /// added, and may sit below the repo root. `--directory` collapses a wholly
-    /// ignored directory to one entry, so the scan prunes the subtree instead of
-    /// testing every file in it. Callers must be off the main actor.
+    /// Paths git ignores under `folder`, named relative to it. `--directory`
+    /// collapses a wholly ignored directory to one entry, so the scan prunes the
+    /// subtree instead of testing every file in it. Callers must be off the main
+    /// actor.
     ///
-    /// Relative rather than absolute on purpose: `FileManager` hands the scan
-    /// fully resolved URLs (`/private/var/…`) while `canonical` maps the same
-    /// path the other way (`/var/…`), so absolute keys from the two sides never
-    /// meet. Relative paths have no such namespace to reconcile.
-    static func ignoredPaths(root: URL, relativeTo folder: URL) -> Set<String> {
+    /// Run *in `folder`*, not in the repo root, for two reasons: git limits the
+    /// walk to the working directory — a root added inside a monorepo, or under a
+    /// `$HOME` that is itself a repo, otherwise re-enumerates the whole thing on
+    /// every rescan — and it already names its output relative to that directory,
+    /// so nothing has to re-base repo-relative paths onto the scanned folder.
+    /// That re-basing was the one place absolute paths from the two sides could
+    /// meet: `FileManager` hands the scan fully resolved URLs (`/private/var/…`)
+    /// while `canonical` maps the same path the other way (`/var/…`).
+    ///
+    /// Empty (git exits non-zero) when `folder` isn't in a repo, so this doubles
+    /// as the is-a-repo test — no separate `rev-parse`.
+    static func ignoredPaths(in folder: URL) -> Set<String> {
         guard case .output(let out) = run(
-            ["ls-files", "--others", "--ignored", "--exclude-standard", "--directory"], in: root)
+            ["ls-files", "--others", "--ignored", "--exclude-standard", "--directory"], in: folder)
         else { return [] }
-        return parseIgnored(out, prefix: relativePrefix(of: folder, under: root))
+        return parseIgnored(out)
     }
 
-    /// "" when the scanned folder is the repo root itself, else "docs/".
-    static func relativePrefix(of folder: URL, under root: URL) -> String {
-        let f = canonical(folder), r = canonical(root)
-        guard f != r, f.hasPrefix(r + "/") else { return "" }
-        return String(f.dropFirst(r.count + 1)) + "/"
-    }
-
-    /// Git's paths are relative to the repo root; `prefix` re-bases them onto the
-    /// scanned folder, dropping anything outside it.
-    static func parseIgnored(_ output: String, prefix: String = "") -> Set<String> {
+    static func parseIgnored(_ output: String) -> Set<String> {
         var paths: Set<String> = []
         for line in output.components(separatedBy: "\n") where !line.isEmpty {
             // Unquote first: git wraps the whole entry, trailing slash included.
             var path = unquote(line)
             if path.hasSuffix("/") { path.removeLast() }
-            guard path.hasPrefix(prefix), path.count > prefix.count else { continue }
-            paths.insert(String(path.dropFirst(prefix.count)))
+            // "." is what a folder that is *itself* ignored reports. Pruning the
+            // root the user explicitly added would blank the sidebar; `ignoredDirs`
+            // doesn't do that either.
+            guard !path.isEmpty, path != "." else { continue }
+            paths.insert(path)
         }
         return paths
     }
