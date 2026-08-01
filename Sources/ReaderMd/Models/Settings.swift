@@ -144,7 +144,8 @@ enum Settings {
     }
 
     /// External editor for "Open in Editor", stored as a bundle id so it survives
-    /// the app being moved or updated. Set from Set Default Editor… or Open With.
+    /// the app being moved or updated. Set from Set Default Editor… or the
+    /// Always Open With submenu.
     static func loadEditorBundleID() -> String? {
         defaults.string(forKey: editorBundleIDKey)
     }

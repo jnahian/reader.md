@@ -810,13 +810,13 @@ final class AppState: ObservableObject {
     // MARK: - External editor
 
     /// Reader.md stays a reader: editing is handed off to the editor the user
-    /// picks from Open With. `FolderWatcher` re-renders on save, so the pair
+    /// picks from Always Open With. `FolderWatcher` re-renders on save, so the pair
     /// behaves like a split editor/preview without this app owning an editor.
     ///
     /// There is deliberately no LaunchServices fallback. We register as a `.md`
     /// handler ourselves, so we're usually *the* default and the runner-up is
     /// whatever ranks next (Xcode on the author's Mac) — an arbitrary choice
-    /// worse than none. Until Open With has been used, ⇧⌘E stays disabled.
+    /// worse than none. Until an editor has been chosen, ⇧⌘E stays disabled.
     func openInEditor(_ url: URL) {
         guard let editor = resolvedEditor() else {
             // The editor is gone. `canOpenInEditor` can't catch that — it stays off

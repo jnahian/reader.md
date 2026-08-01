@@ -10,9 +10,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **Hand a file to your editor with ⇧⌘E.** Reader.md stays a reader, but editing
   is now one keystroke away. Pick your editor once — **File → Set Default
-  Editor…**, or right-click any file → **Open With** — and from then on the menu
-  reads *Open in Zed* (or whichever you chose) and ⇧⌘E sends the open document
-  straight there. Also in the sidebar context menus and the ⌘P command palette.
+  Editor…**, or right-click any file → **Always Open With** — and from then on
+  the menu reads *Open in Zed* (or whichever you chose) and ⇧⌘E sends the open
+  document straight there. Also in the sidebar context menus and the ⌘P palette.
   Reader.md re-renders the moment you save, so your editor on one side and
   Reader.md on the other reads like a live preview. Files with nothing to edit —
   the built-in help docs, piped `reader -` documents, and read-only remote
