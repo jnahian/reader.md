@@ -55,10 +55,11 @@ shipped belongs in the app's `CHANGELOG.md` only.
   place. A hard-coded hex in a component is a mistake.
 - **Motion is optional.** Scroll-reveal, parallax, and typing effects must stay
   behind `prefers-reduced-motion`.
-- **Deploys are automatic** — Cloudflare Pages builds and publishes on every
-  push to `main`, so a site edit that lands goes live on its own. Treat
-  anything you push under `web/` as published. `wrangler pages deploy` remains
-  as a fallback for republishing without a commit, per
+- **Deploys are automatic** — Cloudflare Pages builds and publishes when a push
+  to `main` touches `web/`, so a site edit that lands goes live on its own.
+  Treat anything you push under this directory as published; a commit outside it
+  deploys nothing, and no branch other than `main` deploys at all. `wrangler
+  pages deploy` remains as a fallback for republishing without a commit, per
   [DEPLOYMENT.md](./DEPLOYMENT.md).
 
 ## Verify

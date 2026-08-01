@@ -3,20 +3,45 @@
 The site is a static Astro build (`dist/`) hosted on Cloudflare Pages, served at
 [reader-md.jnahian.me](https://reader-md.jnahian.me) (the `site` value in `astro.config.mjs`).
 
-## Deploys are automatic
+## Deploys are automatic — on `main`, when `web/` changes
 
 The GitHub repo is connected to the Pages project, so **Cloudflare rebuilds and
-publishes on every push to `main`** — pushing a change under `web/` is the
-deploy. Nothing to run by hand.
+publishes when a push to `main` touches `web/`** — that push is the deploy,
+nothing to run by hand. A commit that changes only Swift sources, `docs/`, or
+the README builds nothing.
 
-The dashboard settings that make it work, since the site lives in a
-subdirectory (**Pages → reader-md-web → Settings → Builds**):
+Because the site lives in a subdirectory (**Pages → reader-md-web → Settings →
+Build**):
 
-| Setting | Value |
-|---|---|
-| Root directory | `web` |
-| Build command | `npm run build` |
-| Build output directory | `dist` |
+| Setting | Value | Why |
+|---|---|---|
+| Root directory | `web` | the site isn't at the repo root |
+| Build command | `npm run build` | |
+| Build output directory | `dist` | |
+| Build watch paths — include | `web/*` | app-only commits don't rebuild the site |
+| Build watch paths — exclude | *(empty)* | |
+| Preview deployments | None | `main` is the only branch that deploys |
+
+Watch paths are matched against repo-root-relative paths, so the prefix is
+`web/`, not `src/` — even though **Root directory** is `web`. A wildcard `*`
+spans `/`, so `web/*` covers `web/src/data/changelog.ts`; there is no `**` form.
+
+These live in the Pages project, not in this repo, so nothing here will tell you
+they changed. They are also settable through the API — `path_includes`,
+`path_excludes`, and `preview_deployment_setting` under `source.config` of
+`PATCH /accounts/{id}/pages/projects/reader-md-web`. PATCH the whole
+`source.config` object; sending a partial one drops the sibling keys.
+
+**Preview deployments are off**, so a PR touching `web/` gets no preview URL.
+To bring them back for specific branches, set `preview_deployment_setting` to
+`custom` and list them in `preview_branch_includes`.
+
+### When it builds anyway
+
+Watch paths are skipped — and the build runs regardless of what changed — when a
+push carries **0 changed files, 3,000+ changed files, or 20+ commits**. A big
+merge or a force-push can therefore deploy on its own; that's Cloudflare working
+as documented, not the setting being broken.
 
 Run `npm run build` locally before pushing anyway: `src/data/*.ts` is typed, so a
 malformed entry fails there rather than in Cloudflare's build.
