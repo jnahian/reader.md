@@ -17,6 +17,7 @@ enum Settings {
     private static let positionsKey = "reader.md.positions"
     private static let diffModeKey = "reader.md.diffMode"
     private static let diffScopeKey = "reader.md.diffScope"
+    private static let editorBundleIDKey = "reader.md.editorBundleID"
 
     private static var defaults: UserDefaults { .standard }
 
@@ -140,5 +141,15 @@ enum Settings {
     }
     static func saveDiffScope(_ value: DiffScope) {
         defaults.set(value.rawValue, forKey: diffScopeKey)
+    }
+
+    /// External editor for "Open in Editor", stored as a bundle id so it survives
+    /// the app being moved or updated. Set from Set Default Editor… or the
+    /// Always Open With submenu.
+    static func loadEditorBundleID() -> String? {
+        defaults.string(forKey: editorBundleIDKey)
+    }
+    static func saveEditorBundleID(_ id: String?) {
+        defaults.set(id, forKey: editorBundleIDKey)
     }
 }

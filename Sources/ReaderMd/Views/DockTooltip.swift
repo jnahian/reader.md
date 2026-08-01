@@ -7,10 +7,14 @@ extension View {
     /// A Dock-style tooltip: a pill bubble with a pointer aimed at the control, shown on
     /// hover. Drop-in replacement for `.help(_:)` (which renders the yellow system tooltip).
     /// Also sets the accessibility label so VoiceOver keeps the hint text.
-    func dockTooltip(_ text: String) -> some View {
+    ///
+    /// Pass `accessibility` where the bubble names a *state* rather than an action: the
+    /// icon conveys that state to sighted users, but a button's VoiceOver label has to say
+    /// what pressing it does.
+    func dockTooltip(_ text: String, accessibility: String? = nil) -> some View {
         self
             .background(TooltipTracker(text: text))
-            .accessibilityLabel(text)
+            .accessibilityLabel(accessibility ?? text)
     }
 }
 

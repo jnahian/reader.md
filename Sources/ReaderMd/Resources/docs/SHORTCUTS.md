@@ -8,6 +8,7 @@
 | ⇧⌘A | Add Folder… |
 | ⌥⌘A | Add Remote Folder… |
 | ⌘P | Quick Open (files, `>` commands, `#` headings) |
+| ⇧⌘E | Open in Editor (pick one first via File → Set Default Editor…) |
 | ⌘E | Export as PDF… |
 | ⌘R | Reload |
 

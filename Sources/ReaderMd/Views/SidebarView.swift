@@ -222,6 +222,7 @@ struct SearchResultRow: View {
             } else {
                 Button("Open") { state.open(file.node) }
             }
+            OpenWithMenu(state: state, url: file.node.url)
             Button("Reveal in Finder") {
                 NSWorkspace.shared.activateFileViewerSelecting([file.node.url])
             }
@@ -279,6 +280,7 @@ struct RecentRow: View {
             } else {
                 Button("Open") { state.openPath(path) }
             }
+            OpenWithMenu(state: state, url: URL(fileURLWithPath: path))
             Button("Reveal in Finder") {
                 NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
             }
