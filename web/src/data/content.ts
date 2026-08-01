@@ -70,7 +70,7 @@ export const featureRows: FeatureRow[] = [
   },
   {
     name: "Quick open & find",
-    body: "⌘P fuzzy file switcher across all roots, ⌘F live tree filter, and ⇧⌘F native in-page find with match highlighting (⌘G / ⇧⌘G for next/prev).",
+    body: "⌘P fuzzy file switcher across all roots, ⇧⌘F live tree filter, and ⌘F native in-page find with match highlighting (⌘G / ⇧⌘G for next/prev).",
   },
   {
     name: "Outline",
@@ -86,7 +86,15 @@ export const featureRows: FeatureRow[] = [
   },
   {
     name: "Reading themes",
-    body: "Standard, Editorial, Terminal, and GitHub — each with its own typography, accent, and syntax highlighting. Resume where you stopped in long documents.",
+    body: "Standard, Editorial, and Terminal — each with its own typography, accent, and syntax highlighting. Resume where you stopped in long documents.",
+  },
+  {
+    name: "External editor",
+    body: 'Reader.md stays a reader and hands editing off. Pick an editor once — <strong>File → Set Default Editor…</strong>, or right-click a file → <strong>Always Open With</strong> — and ⇧⌘E sends the open document there. The watcher re-renders on save, so an editor beside Reader.md reads as a live preview.',
+  },
+  {
+    name: "Appearance",
+    body: "A light → dark → system cycle applied to both native chrome and web content. System follows macOS live, including on a schedule.",
   },
   {
     name: "Liquid Glass chrome",
@@ -94,7 +102,7 @@ export const featureRows: FeatureRow[] = [
   },
   {
     name: "Live reload & export",
-    body: "The open file re-renders (scroll preserved) and the tree refreshes on disk changes. Export to PDF (⌘E), manual reload (⌘R), dark mode, and Sparkle auto-update.",
+    body: "The open file re-renders (scroll preserved) and the tree refreshes on disk changes. Export to PDF (⌘E), manual reload (⌘R), and Sparkle auto-update.",
   },
 ];
 
@@ -109,16 +117,19 @@ export const shortcuts: Shortcut[] = [
   { action: "Quick open", keys: "⌘P" },
   { action: "Add folder", keys: "⇧⌘A" },
   { action: "Add remote folder", keys: "⌥⌘A" },
-  { action: "Filter files", keys: "⌘F" },
-  { action: "Find in page", keys: "⇧⌘F" },
+  { action: "Find in page", keys: "⌘F" },
+  { action: "Filter files", keys: "⇧⌘F" },
   { action: "Find next / previous", keys: "⌘G / ⇧⌘G" },
   { action: "Back / forward", keys: "⌘[ / ⌘]" },
   { action: "Toggle sidebar", keys: "⌘B" },
   { action: "Toggle outline", keys: "⇧⌘B" },
+  { action: "Toggle diff", keys: "⇧⌘D" },
   { action: "Text bigger / smaller / reset", keys: "⌘+ / ⌘− / ⌘0" },
   { action: "Column width", keys: "⇧⌘\\" },
+  { action: "Open in editor", keys: "⇧⌘E" },
   { action: "Export PDF", keys: "⌘E" },
   { action: "Reload", keys: "⌘R" },
+  { action: "Keyboard shortcuts", keys: "⌘/" },
 ];
 
 // A compact subset for the landing "keyboard & CLI" strip.
