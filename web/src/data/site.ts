@@ -9,7 +9,6 @@ export const brewTap = "brew tap jnahian/reader.md https://github.com/jnahian/re
 export const brewTrust = "brew trust --cask jnahian/reader.md/reader.md";
 export const brewInstall = "brew install --cask reader-md";
 export const author = "Julkar Naen Nahian";
-export const currentVersion = "1.10.0";
 
 export type Page = "home" | "docs" | "changelog";
 

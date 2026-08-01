@@ -1,8 +1,8 @@
 ---
 import Base from "../layouts/Base.astro";
 import ChangelogEntry from "../components/ChangelogEntry.astro";
-import { releasesLog } from "../data/changelog";
-import { releasesLatest, releases, currentVersion } from "../data/site";
+import { releasesLog, latestVersion } from "../data/changelog";
+import { releasesLatest, releases } from "../data/site";
 ---
 
 <Base title="Changelog — Reader.md" page="changelog">
@@ -15,7 +15,7 @@ import { releasesLatest, releases, currentVersion } from "../data/site";
     </p>
     <div class="chead__pills">
       <span class="pill chead__latest">
-        <span class="chead__dot"></span>v{currentVersion} · latest
+        <span class="chead__dot"></span>v{latestVersion} · latest
       </span>
       <a href={releases} class="pill">All releases on GitHub ↗</a>
     </div>

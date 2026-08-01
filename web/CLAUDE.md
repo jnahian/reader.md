@@ -34,7 +34,10 @@ Keep-a-Changelog headings map onto the site's three buckets:
 | `### Changed` | `IMPROVED` |
 | `### Fixed` | `FIXED` |
 
-Move the `badge: "LATEST"` to the new entry and drop it from the previous one.
+Put the new entry **first** — the list is ordered newest-first, and the "latest"
+pill in the changelog header reads `releasesLog[0].version`, so a misordered list
+mislabels the header. Move the `badge: "LATEST"` to the new entry and drop it
+from the previous one.
 `items` are HTML strings rendered with `set:html` — a bolded lead-in, then an
 em dash, then the prose (see any existing entry).
 

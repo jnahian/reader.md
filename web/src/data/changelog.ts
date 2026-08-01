@@ -326,3 +326,9 @@ export const releasesLog: Release[] = [
     ],
   },
 ];
+
+// The version shown in the changelog header's "latest" pill. Derived from the
+// list rather than kept alongside it — a hand-maintained copy went four
+// releases stale. The list is ordered newest-first, which the page's timeline
+// makes self-evident.
+export const latestVersion = releasesLog[0].version;
