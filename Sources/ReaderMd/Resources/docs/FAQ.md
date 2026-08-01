@@ -8,7 +8,9 @@ access is the auto-update check.
 **How do I open a folder?**
 Drag a folder onto the window, or **File → Add Folder…**. Reader.md scans it
 recursively for markdown files (skipping `node_modules`, `.git`, and friends)
-and watches it for changes — edits re-render live.
+and watches it for changes — edits re-render live. In a git repository it also
+skips anything your `.gitignore` covers, so vendored and generated markdown
+stays out of the sidebar.
 
 **How do I open a single file?**
 **File → Open File…** (⌘O), or drag a `.md` file onto the window. Single files
@@ -67,11 +69,29 @@ to the file, but are lost if the file is renamed or moved.
 Find in Page (⌘F) highlights every match and shows a live "N of M" count; step
 through matches with ⌘G / ⇧⌘G. To filter the file list in the sidebar, use ⇧⌘F.
 
+## Git
+
+**Does it know about git?**
+Yes, for any folder inside a repository. Changed files get a badge in the
+sidebar (`M`, `A`, `?`, `U`), and ⇧⌘D shows the document as a side-by-side diff
+with the outline listing hunks instead of headings.
+
+**What can I diff against?**
+The menu beside the diff button picks: **Unstaged**, **Staged**, **All** (since
+the last commit), or any branch in the repo — "vs main" compares your working
+copy, uncommitted edits included, against that branch's tip.
+
 ## Remote folders
 
 **Can I read markdown on a remote server?**
 Yes — add a remote (SSH) folder. Reader.md syncs it read-only to a local cache
 via rsync, so browsing stays fast and offline-friendly.
+
+**Can I read a git repository I haven't checked out?**
+Yes — choose **Git** in the Add Remote sheet and paste a clone URL. Reader.md
+clones it read-only into a local cache and fast-forwards it on launch, using
+your existing git credentials. It never prompts, so a repository you can't
+authenticate to fails with git's own error instead of hanging.
 
 ## Updates
 

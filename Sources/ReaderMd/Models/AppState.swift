@@ -218,6 +218,9 @@ final class AppState: ObservableObject {
     @Published var diffScope: DiffScope = .all
     @Published var diffFile: DiffFile?
     @Published var diffAvailable: Bool = false          // open file is inside a repo
+    /// Refs the open file's repo offers as diff scopes. Only filled while diff
+    /// mode is on — the menu that reads it can't be reached otherwise.
+    @Published var diffBranches: [String] = []
     @Published var gitStatuses: [String: GitFileStatus] = [:]
     @Published var diffToken: Int = 0
 
@@ -313,11 +316,15 @@ final class AppState: ObservableObject {
         // so it can't run during loadSavedRoots() in the init body above.
         Task.detached(priority: .utility) {
             guard GitDiff.isAvailable() else { return }
+            GitDiff.available = true
             await MainActor.run { [weak self] in
                 guard let self else { return }
                 self.gitAvailable = true
                 self.refreshDiff()
                 self.refreshGitStatus()
+                // The roots above scanned before this answer landed, so they were
+                // built without git's ignores. Rescan once, now that they apply.
+                for root in self.roots { root.rescan { [weak self] in self?.didRescan() } }
             }
         }
     }
@@ -343,6 +350,20 @@ final class AppState: ObservableObject {
     }
 
     func gitStatus(for path: String) -> GitFileStatus? { gitStatuses[path] }
+
+    /// What the scope menu lists: the three fixed scopes, then one per branch.
+    /// A selected ref that the repo no longer offers (the open file moved to
+    /// another repo) is kept in the list — a Picker whose selection has no
+    /// matching tag renders blank.
+    var diffScopeChoices: [DiffScope] {
+        Self.scopeChoices(branches: diffBranches, selected: diffScope)
+    }
+
+    nonisolated static func scopeChoices(branches: [String], selected: DiffScope) -> [DiffScope] {
+        var choices = DiffScope.fixed + branches.map { DiffScope.ref($0) }
+        if !choices.contains(selected) { choices.append(selected) }
+        return choices
+    }
 
     /// The outline in diff mode: one row per hunk, labelled by its enclosing
     /// heading. `id` must be the hunk's element id — TOCView taps route through
@@ -378,10 +399,16 @@ final class AppState: ObservableObject {
         Task.detached(priority: .userInitiated) {
             let root = cached ?? GitDiff.repoRoot(for: url)
             let computed: DiffFile?
+            let branches: [String]
             if wantDiff, let root {
                 computed = GitDiff.diff(file: url, scope: scope, repoRoot: root)
+                // Inside the `wantDiff` branch on purpose: refreshDiff also runs
+                // on every file open and every window activation, and the menu
+                // these fill only exists in diff mode.
+                branches = GitDiff.branches(root: root)
             } else {
                 computed = nil
+                branches = []
             }
             await MainActor.run { [weak self] in
                 // Both checks matter: the URL check catches navigation to a
@@ -390,6 +417,7 @@ final class AppState: ObservableObject {
                 guard let self, self.diffRequest == generation, self.selectedFile?.url == url else { return }
                 if let root { self.repoRootCache[url.deletingLastPathComponent().path] = root }
                 self.diffAvailable = root != nil
+                self.diffBranches = branches
                 self.diffFile = computed
                 self.diffToken += 1
                 if wantDiff {

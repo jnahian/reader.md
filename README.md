@@ -11,7 +11,8 @@ no native equivalent.
 ## Highlights
 
 - **Multi-folder browser** with ⌘P fuzzy quick-open across every root
-- **Remote (SSH) folders** — `rsync`'d read-only from a VPS, reusing your `~/.ssh` config, storing no credentials
+- **Remote folders** — `rsync`'d read-only from a VPS or cloned from a git URL, reusing your existing SSH and git credentials, storing none
+- **Git-aware** — status badges in the sidebar, ⇧⌘D for a side-by-side diff against unstaged / staged / the last commit / any branch, and `.gitignore`d files kept out of the tree
 - **Mermaid, LaTeX, and syntax highlighting** from bundled engines — no network access
 - **Live reload** — the open file re-renders with scroll preserved the moment it changes on disk
 - **Hand off to your editor** with ⇧⌘E, which turns an editor beside Reader.md into a live preview

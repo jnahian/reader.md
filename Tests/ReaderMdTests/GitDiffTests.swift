@@ -10,18 +10,26 @@ final class GitDiffScopeTests: XCTestCase {
         XCTAssertEqual(DiffScope.unstaged.arguments, ["diff"])
         XCTAssertEqual(DiffScope.staged.arguments, ["diff", "--cached"])
         XCTAssertEqual(DiffScope.all.arguments, ["diff", "HEAD"])
+        XCTAssertEqual(DiffScope.ref("main").arguments, ["diff", "main"])
     }
 
-    /// Order matters — it's the order the segmented control offers them in.
+    /// Order matters — it's the order the scope menu offers them in.
     func testScopeOrder() {
-        XCTAssertEqual(DiffScope.allCases, [.unstaged, .staged, .all])
+        XCTAssertEqual(DiffScope.fixed, [.unstaged, .staged, .all])
     }
 
     func testEveryScopeHasDistinctCopy() {
-        let names = Set(DiffScope.allCases.map(\.displayName))
-        let messages = Set(DiffScope.allCases.map(\.emptyMessage))
+        let names = Set(DiffScope.fixed.map(\.displayName))
+        let messages = Set(DiffScope.fixed.map(\.emptyMessage))
         XCTAssertEqual(names.count, 3)
         XCTAssertEqual(messages.count, 3)
+    }
+
+    /// A ref scope names its ref everywhere the user sees it, or the menu shows
+    /// three identical rows once a repo has branches.
+    func testRefScopeCopyNamesTheRef() {
+        XCTAssertEqual(DiffScope.ref("origin/main").displayName, "vs origin/main")
+        XCTAssertEqual(DiffScope.ref("origin/main").emptyMessage, "No changes vs origin/main")
     }
 
     func testExitZeroIsOutputEvenWhenEmpty() {
@@ -731,6 +739,70 @@ final class GitDiffUntrackedFallbackTests: XCTestCase {
     }
 }
 
+/// Diffing against a branch, against a real repo: `parseBranches` and the scope's
+/// argument vector can both be right while `for-each-ref`'s format string or the
+/// `git diff <ref> -- <path>` invocation is wrong.
+final class GitDiffRefScopeTests: XCTestCase {
+    private var repo: URL!
+    private var base: String!   // whatever git named the first branch
+
+    override func setUpWithError() throws {
+        let fm = FileManager.default
+        repo = fm.temporaryDirectory.appendingPathComponent("git-ref-\(UUID().uuidString)")
+        try fm.createDirectory(at: repo, withIntermediateDirectories: true)
+        guard case .output = GitDiff.run(["init"], in: repo) else {
+            throw XCTSkip("git init failed in this environment")
+        }
+        try "# One\n".write(to: repo.appendingPathComponent("a.md"), atomically: true, encoding: .utf8)
+        commit("one")
+        // Not hardcoded "main": the default branch name is a git config setting.
+        guard case .output(let name) = GitDiff.run(["rev-parse", "--abbrev-ref", "HEAD"], in: repo) else {
+            throw XCTSkip("could not read the default branch name")
+        }
+        base = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        _ = GitDiff.run(["checkout", "-b", "feature"], in: repo)
+        try "# One\n\nsecond line\n".write(to: repo.appendingPathComponent("a.md"),
+                                           atomically: true, encoding: .utf8)
+        commit("two")
+    }
+
+    override func tearDownWithError() throws {
+        try? FileManager.default.removeItem(at: repo)
+    }
+
+    private func commit(_ message: String) {
+        _ = GitDiff.run(["add", "-A"], in: repo)
+        _ = GitDiff.run(["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-m", message], in: repo)
+    }
+
+    /// `.all` sees nothing — the change is committed — while the branch scope
+    /// does, which is the whole point of the scope.
+    func testRefScopeSeesWhatTheBranchChanged() throws {
+        XCTAssertNil(GitDiff.diff(file: repo.appendingPathComponent("a.md"), scope: .all, repoRoot: repo))
+
+        let diff = try XCTUnwrap(GitDiff.diff(file: repo.appendingPathComponent("a.md"),
+                                              scope: .ref(base), repoRoot: repo))
+        XCTAssertGreaterThan(diff.additions, 0)
+    }
+
+    /// Uncommitted edits count too — the scope diffs the working tree, not HEAD.
+    func testRefScopeIncludesUncommittedEdits() throws {
+        try "# One\n\nsecond line\nthird line\n".write(to: repo.appendingPathComponent("a.md"),
+                                                       atomically: true, encoding: .utf8)
+        let diff = try XCTUnwrap(GitDiff.diff(file: repo.appendingPathComponent("a.md"),
+                                              scope: .ref(base), repoRoot: repo))
+        XCTAssertGreaterThan(diff.additions, 1)
+    }
+
+    /// The menu's list comes from `for-each-ref`; a wrong format string yields
+    /// nothing, and no parse test would notice.
+    func testBranchesListsTheOtherBranchButNotTheCurrentOne() {
+        let branches = GitDiff.branches(root: repo)
+        XCTAssertTrue(branches.contains(base), "\(branches)")
+        XCTAssertFalse(branches.contains("feature"), "\(branches)")
+    }
+}
+
 /// A repo reached through a symlinked path — the shape of anything under /tmp
 /// on macOS. `git rev-parse --show-toplevel` answers with every symlink already
 /// resolved, while the open file and the sidebar are named the way the user
@@ -852,11 +924,63 @@ final class DiffSettingsTests: XCTestCase {
         XCTAssertEqual(Settings.loadDiffScope(), .staged)
     }
 
+    /// The ref has to survive a relaunch, not just the enum case.
+    func testRefScopeRoundTrips() {
+        Settings.saveDiffScope(.ref("origin/main"))
+        XCTAssertEqual(Settings.loadDiffScope(), .ref("origin/main"))
+    }
+
     /// A scope removed in some future version must not crash startup.
     func testUnknownScopeFallsBackToAll() {
         UserDefaults.standard.set("nonexistent", forKey: "reader.md.diffScope")
         XCTAssertEqual(Settings.loadDiffScope(), .all)
         UserDefaults.standard.removeObject(forKey: "reader.md.diffScope")
+    }
+
+    /// `arguments` hands the ref to git ahead of the `--` separator, so a ref
+    /// starting with a dash would be read as an option. Git won't create one,
+    /// but the defaults plist is user-writable.
+    func testRefStartingWithADashIsRejected() {
+        XCTAssertNil(DiffScope(persisted: "ref:--exec=rm"))
+        XCTAssertNil(DiffScope(persisted: "ref:"))
+    }
+}
+
+/// The scope menu is a Picker: a selection with no matching tag renders blank,
+/// so the list has to contain whatever is selected.
+final class DiffScopeChoiceTests: XCTestCase {
+
+    func testBranchesFollowTheFixedScopes() {
+        XCTAssertEqual(AppState.scopeChoices(branches: ["main", "dev"], selected: .all),
+                       [.unstaged, .staged, .all, .ref("main"), .ref("dev")])
+    }
+
+    func testSelectedRefTheRepoNoLongerOffersIsKept() {
+        let choices = AppState.scopeChoices(branches: ["main"], selected: .ref("gone"))
+        XCTAssertEqual(choices.last, .ref("gone"))
+    }
+
+    func testSelectedRefIsNotListedTwice() {
+        let choices = AppState.scopeChoices(branches: ["main"], selected: .ref("main"))
+        XCTAssertEqual(choices.filter { $0 == .ref("main") }.count, 1)
+    }
+}
+
+/// Refs offered by the scope menu.
+final class GitBranchListTests: XCTestCase {
+
+    func testDropsTheCheckedOutBranchAndOriginHEAD() {
+        let out = "main\ndev\norigin/HEAD\norigin/main\n"
+        XCTAssertEqual(GitDiff.parseBranches(out, current: "main"), ["dev", "origin/main"])
+    }
+
+    /// A detached HEAD reports "HEAD" as the current branch, which matches no ref.
+    func testDetachedHeadKeepsEveryBranch() {
+        XCTAssertEqual(GitDiff.parseBranches("main\ndev\n", current: "HEAD"), ["main", "dev"])
+    }
+
+    func testEmptyOutputYieldsNoBranches() {
+        XCTAssertTrue(GitDiff.parseBranches("", current: nil).isEmpty)
     }
 }
 

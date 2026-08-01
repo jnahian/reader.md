@@ -1,10 +1,16 @@
 import Foundation
 
-/// Which pair of trees a diff compares. Raw values are persisted in UserDefaults.
-enum DiffScope: String, CaseIterable {
+/// Which pair of trees a diff compares. Persisted in UserDefaults via `persisted`.
+enum DiffScope: Hashable {
     case unstaged
     case staged
     case all
+    /// The working tree against a named ref — "what this branch changed vs main".
+    case ref(String)
+
+    /// The scopes that exist in every repo, in the order the scope menu lists
+    /// them. Refs are appended per repo (see `GitDiff.branches`).
+    static let fixed: [DiffScope] = [.unstaged, .staged, .all]
 
     /// Argument vector after the program name. `.all` is `git diff HEAD` —
     /// everything changed since the last commit, staged or not.
@@ -13,6 +19,10 @@ enum DiffScope: String, CaseIterable {
         case .unstaged: return ["diff"]
         case .staged:   return ["diff", "--cached"]
         case .all:      return ["diff", "HEAD"]
+        // ponytail: two-dot `git diff <ref>`, so uncommitted edits count. On a
+        // branch that is behind the ref this also shows the ref's own commits
+        // reversed; diff against `merge-base ref HEAD` if that noise matters.
+        case .ref(let r): return ["diff", r]
         }
     }
 
@@ -21,6 +31,7 @@ enum DiffScope: String, CaseIterable {
         case .unstaged: return "Unstaged"
         case .staged:   return "Staged"
         case .all:      return "All"
+        case .ref(let r): return "vs \(r)"
         }
     }
 
@@ -30,6 +41,34 @@ enum DiffScope: String, CaseIterable {
         case .unstaged: return "No unstaged changes"
         case .staged:   return "No staged changes"
         case .all:      return "No changes since the last commit"
+        case .ref(let r): return "No changes vs \(r)"
+        }
+    }
+
+    /// UserDefaults form. Not `RawRepresentable`: an enum with an associated
+    /// value can't carry a `String` raw type.
+    var persisted: String {
+        switch self {
+        case .unstaged: return "unstaged"
+        case .staged:   return "staged"
+        case .all:      return "all"
+        case .ref(let r): return "ref:\(r)"
+        }
+    }
+
+    /// Rejects a ref starting with `-`: `arguments` passes it to git before the
+    /// `--` separator, where it would read as an option. Git won't create such a
+    /// branch, but the persisted string is user-writable.
+    init?(persisted raw: String) {
+        switch raw {
+        case "unstaged": self = .unstaged
+        case "staged":   self = .staged
+        case "all":      self = .all
+        default:
+            guard raw.hasPrefix("ref:") else { return nil }
+            let ref = String(raw.dropFirst(4))
+            guard !ref.isEmpty, !ref.hasPrefix("-") else { return nil }
+            self = .ref(ref)
         }
     }
 }
@@ -103,6 +142,11 @@ enum GitDiff {
         if case .output = run(["--version"], in: URL(fileURLWithPath: "/")) { return true }
         return false
     }
+
+    /// The cached answer, for callers that aren't on the main actor and so can't
+    /// read `AppState.gitAvailable` — the folder scan. Written once by the launch
+    /// probe before any scan can read it; never written again.
+    nonisolated(unsafe) static var available = false
 }
 
 // MARK: - Model
@@ -529,6 +573,68 @@ extension GitDiff {
             map[key(path)] = status(forCode: code)
         }
         return map
+    }
+
+    /// Refs the diff scope menu offers, most recently committed first. Two git
+    /// calls, so it is only run when diff mode is actually on.
+    /// Callers must be off the main actor.
+    static func branches(root: URL) -> [String] {
+        guard case .output(let refs) = run(
+            ["for-each-ref", "--sort=-committerdate", "--format=%(refname:short)",
+             "refs/heads", "refs/remotes/origin"], in: root) else { return [] }
+        var current: String?
+        if case .output(let name) = run(["rev-parse", "--abbrev-ref", "HEAD"], in: root) {
+            current = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return parseBranches(refs, current: current)
+    }
+
+    /// `origin/HEAD` is a symbolic alias for whatever `origin`'s default branch
+    /// is, already listed under its real name; the checked-out branch is dropped
+    /// because diffing the working tree against its own tip is what `.all` is.
+    /// ponytail: capped at 20 — a menu, not a branch browser.
+    static func parseBranches(_ output: String, current: String?) -> [String] {
+        Array(output.components(separatedBy: "\n")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty && $0 != current && $0 != "origin/HEAD" }
+            .prefix(20))
+    }
+
+    /// Paths git ignores, relative to `folder` — which is the folder the user
+    /// added, and may sit below the repo root. `--directory` collapses a wholly
+    /// ignored directory to one entry, so the scan prunes the subtree instead of
+    /// testing every file in it. Callers must be off the main actor.
+    ///
+    /// Relative rather than absolute on purpose: `FileManager` hands the scan
+    /// fully resolved URLs (`/private/var/…`) while `canonical` maps the same
+    /// path the other way (`/var/…`), so absolute keys from the two sides never
+    /// meet. Relative paths have no such namespace to reconcile.
+    static func ignoredPaths(root: URL, relativeTo folder: URL) -> Set<String> {
+        guard case .output(let out) = run(
+            ["ls-files", "--others", "--ignored", "--exclude-standard", "--directory"], in: root)
+        else { return [] }
+        return parseIgnored(out, prefix: relativePrefix(of: folder, under: root))
+    }
+
+    /// "" when the scanned folder is the repo root itself, else "docs/".
+    static func relativePrefix(of folder: URL, under root: URL) -> String {
+        let f = canonical(folder), r = canonical(root)
+        guard f != r, f.hasPrefix(r + "/") else { return "" }
+        return String(f.dropFirst(r.count + 1)) + "/"
+    }
+
+    /// Git's paths are relative to the repo root; `prefix` re-bases them onto the
+    /// scanned folder, dropping anything outside it.
+    static func parseIgnored(_ output: String, prefix: String = "") -> Set<String> {
+        var paths: Set<String> = []
+        for line in output.components(separatedBy: "\n") where !line.isEmpty {
+            // Unquote first: git wraps the whole entry, trailing slash included.
+            var path = unquote(line)
+            if path.hasSuffix("/") { path.removeLast() }
+            guard path.hasPrefix(prefix), path.count > prefix.count else { continue }
+            paths.insert(String(path.dropFirst(prefix.count)))
+        }
+        return paths
     }
 
     private static func status(forCode code: String) -> GitFileStatus {

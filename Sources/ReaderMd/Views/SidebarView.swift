@@ -83,7 +83,7 @@ struct SidebarView: View {
                         .padding(.vertical, 8)
                         .contentShape(Rectangle())
                     }
-                    .dockTooltip("Add a remote (SSH) folder")
+                    .dockTooltip("Add a remote folder over SSH, or clone a git repository")
                 }
                 .buttonStyle(ToolbarIconButtonStyle(width: nil, height: nil, glass: false))
                 .fixedSize()
@@ -316,10 +316,10 @@ struct RootSectionView: View {
                     .font(.system(size: 13, weight: .semibold))
                     .lineLimit(1)
                 if root.isRemote {
-                    Image(systemName: "cloud")
+                    Image(systemName: root.remote?.isGit == true ? "arrow.triangle.branch" : "cloud")
                         .font(.system(size: 10))
                         .foregroundStyle(.secondary)
-                        .dockTooltip("Remote folder")
+                        .dockTooltip(root.remote?.isGit == true ? "Cloned git repository" : "Remote folder")
                     switch root.syncStatus {
                     case .syncing:
                         ProgressView().controlSize(.small).scaleEffect(0.7)

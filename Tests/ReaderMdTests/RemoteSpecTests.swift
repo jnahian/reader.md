@@ -19,4 +19,21 @@ final class RemoteSpecTests: XCTestCase {
         let back = try JSONDecoder().decode(RemoteSpec.self, from: data)
         XCTAssertEqual(s, back)
     }
+
+    func testGitSpecRoundTrips() throws {
+        let s = RemoteSpec(id: "id2", name: "Repo", gitURL: "https://example.com/docs.git")
+        let back = try JSONDecoder().decode(RemoteSpec.self, from: JSONEncoder().encode(s))
+        XCTAssertEqual(s, back)
+        XCTAssertTrue(back.isGit)
+    }
+
+    /// Specs saved before git remotes existed have no `gitURL` key. If decoding
+    /// one threw, the whole saved array would fail and every remote would vanish
+    /// on upgrade — which is why the field is optional.
+    func testSpecSavedBeforeGitRemotesStillDecodes() throws {
+        let json = Data(#"{"id":"old","name":"Docs","sshDestination":"me@vps","remotePath":"/srv"}"#.utf8)
+        let back = try JSONDecoder().decode(RemoteSpec.self, from: json)
+        XCTAssertFalse(back.isGit)
+        XCTAssertEqual(back.sshDestination, "me@vps")
+    }
 }

@@ -44,8 +44,23 @@ enum FileScanner {
         return ext.isEmpty || markdownExtensions.contains(ext)
     }
 
+    /// Paths git ignores under `directory`, for `scan(_:ignoring:)`. Empty when
+    /// git is missing or the folder isn't a repo. Shells out — off the main actor.
+    static func ignoredPaths(under directory: URL) -> Set<String> {
+        // isDirectory: true because `repoRoot(for:)` walks up from a file, and a
+        // URL rebuilt from a saved path doesn't always know it's a folder.
+        let dir = URL(fileURLWithPath: directory.path, isDirectory: true)
+        guard GitDiff.available, let root = GitDiff.repoRoot(for: dir) else { return [] }
+        return GitDiff.ignoredPaths(root: root, relativeTo: dir)
+    }
+
     /// Recursively build a pruned tree containing only markdown files.
-    static func scan(_ directory: URL, depth: Int = 0) -> [FileNode] {
+    /// `ignoring` holds paths relative to the scanned root — git's ignores, so a
+    /// repo's build output and vendored docs stay out of the tree the way
+    /// `ignoredDirs` keeps node_modules out. ponytail: no "show ignored files"
+    /// toggle, matching `ignoredDirs`, which has always pruned silently.
+    static func scan(_ directory: URL, ignoring: Set<String> = [],
+                     relativeTo prefix: String = "", depth: Int = 0) -> [FileNode] {
         guard depth <= 12 else { return [] }
         let fm = FileManager.default
         // Note: hidden (dot-prefixed) entries are included so folders like
@@ -59,10 +74,13 @@ enum FileScanner {
         var nodes: [FileNode] = []
         for entry in entries {
             let name = entry.lastPathComponent
+            let relative = prefix + name
+            if ignoring.contains(relative) { continue }
             let isDir = (try? entry.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
             if isDir {
                 if ignoredDirs.contains(name) { continue }
-                let children = scan(entry, depth: depth + 1)
+                let children = scan(entry, ignoring: ignoring,
+                                    relativeTo: relative + "/", depth: depth + 1)
                 if !children.isEmpty {
                     nodes.append(FileNode(url: entry, isDirectory: true, children: children))
                 }
@@ -105,7 +123,9 @@ final class RootFolder: Identifiable, ObservableObject {
     func rescan(then completion: (@MainActor () -> Void)? = nil) {
         let url = self.url
         Task.detached(priority: .userInitiated) {
-            let scanned = FileScanner.scan(url)
+            // One `git ls-files` per scan, alongside the walk that is already the
+            // expensive part. Roots that aren't repos pay a single `rev-parse`.
+            let scanned = FileScanner.scan(url, ignoring: FileScanner.ignoredPaths(under: url))
             await MainActor.run {
                 self.children = scanned
                 completion?()
