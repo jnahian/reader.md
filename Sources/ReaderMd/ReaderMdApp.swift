@@ -20,7 +20,7 @@ struct ReaderMdApp: App {
                 .environmentObject(state)
                 .environmentObject(state.reading)
                 .frame(minWidth: 720, minHeight: 460)
-                .preferredColorScheme(state.theme.colorScheme)
+                .preferredColorScheme(state.colorScheme)
                 .onOpenURL { url in
                     if url.isFileURL {
                         state.open(FileNode(url: url, isDirectory: false))

@@ -1,5 +1,4 @@
 import Foundation
-import AppKit
 
 /// Lightweight persistence via UserDefaults.
 enum Settings {
@@ -42,13 +41,8 @@ enum Settings {
 
     // Theme
     static func loadTheme() -> AppearanceMode {
-        if let raw = defaults.string(forKey: themeKey), let theme = AppearanceMode(rawValue: raw) {
-            return theme
-        }
-        // First launch: match the current system appearance.
-        let isDark = NSApp?.effectiveAppearance
-            .bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-        return isDark ? .dark : .light
+        // First launch (or an unrecognized value): follow the system appearance.
+        AppearanceMode(rawValue: defaults.string(forKey: themeKey) ?? "") ?? .system
     }
     static func saveTheme(_ theme: AppearanceMode) {
         defaults.set(theme.rawValue, forKey: themeKey)

@@ -217,9 +217,9 @@ struct PaletteCommand: Identifiable {
 func paletteCommands(_ state: AppState) -> [PaletteCommand] {
     var cmds: [PaletteCommand] = [
         PaletteCommand(id: "theme",
-                       title: state.theme == .dark ? "Switch to Light Appearance" : "Switch to Dark Appearance",
+                       title: "Switch to \(state.theme.toggled.displayName) Appearance",
                        subtitle: "Appearance",
-                       systemImage: state.theme == .dark ? "sun.max" : "moon") { $0.toggleTheme() },
+                       systemImage: state.theme.toggled.symbol) { $0.toggleTheme() },
         PaletteCommand(id: "sidebar", title: "Toggle Sidebar", subtitle: "Layout",
                        systemImage: "sidebar.left") { $0.toggleSidebar() },
         PaletteCommand(id: "outline", title: "Toggle Outline", subtitle: "Layout",
