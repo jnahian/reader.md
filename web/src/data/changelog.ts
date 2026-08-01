@@ -1,6 +1,9 @@
 // Release history — mirrors Sources/ReaderMd/Resources/docs/CHANGELOG.md,
 // grouped into the changelog design's ADDED / IMPROVED / FIXED buckets.
 // `items` are HTML strings (rendered with set:html) so lead-ins can be bold.
+//
+// Pushing a change here to `main` publishes the site: this file is under `web/`,
+// which is what Cloudflare's build watch paths match. See web/DEPLOYMENT.md.
 
 export type Tag = "ADDED" | "IMPROVED" | "FIXED";
 
