@@ -17,6 +17,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Reader.md on the other reads like a live preview. Files with nothing to edit —
   the built-in help docs, piped `reader -` documents, and read-only remote
   folders — don't offer it.
+- **An appearance mode that follows macOS.** The toolbar button now cycles
+  Light → Dark → System, and in System mode Reader.md switches the moment macOS
+  does — including on a schedule, without touching the app. New installs start
+  in System. The button's icon now shows the mode you're *in* rather than the
+  one you'd switch to, since three states don't fit "next mode", and the ⌘P
+  palette names the mode you'd move to.
+
+### Fixed
+
+- A tooltip already showing under the pointer kept its old text when the button
+  beneath it changed label — clicking the appearance button left the previous
+  mode's tooltip on screen until you moved away and came back. It now re-renders
+  in place.
 
 ## [1.14.1] - 2026-07-29
 
