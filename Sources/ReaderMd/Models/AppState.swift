@@ -237,6 +237,11 @@ final class AppState: ObservableObject {
     private let markStore = MarkStore()
     private var currentMarkDoc: MarkDocument?
 
+    /// The editor ⇧⌘E hands files to. Stored as a bundle id; the name is kept
+    /// alongside it so menu labels don't have to resolve it.
+    @Published private(set) var editorBundleID: String?
+    @Published private(set) var editorDisplayName: String?
+
     // Navigation history
     @Published private(set) var recentFiles: [String] = []
 
@@ -286,6 +291,10 @@ final class AppState: ObservableObject {
         // Drop help-doc paths saved by builds that recorded them.
         recentFiles = Settings.loadRecents().filter { !Self.isBundledDoc(URL(fileURLWithPath: $0)) }
         showResolvedThreads = Settings.loadShowResolvedThreads()
+        editorBundleID = Settings.loadEditorBundleID()
+        editorDisplayName = editorBundleID
+            .flatMap { NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) }
+            .map { FileManager.default.displayName(atPath: $0.path) }
         // Drop positions for files that are gone, so the dictionary can't grow forever.
         positions = Settings.loadPositions().filter { FileManager.default.fileExists(atPath: $0.key) }
         loadSavedRoots()
@@ -790,6 +799,98 @@ final class AppState: ObservableObject {
     func clearRecents() {
         recentFiles = []
         Settings.saveRecents([])
+    }
+
+    // MARK: - External editor
+
+    /// Reader.md stays a reader: editing is handed off to the editor the user
+    /// picks from Open With. `FolderWatcher` re-renders on save, so the pair
+    /// behaves like a split editor/preview without this app owning an editor.
+    ///
+    /// There is deliberately no LaunchServices fallback. We register as a `.md`
+    /// handler ourselves, so we're usually *the* default and the runner-up is
+    /// whatever ranks next (Xcode on the author's Mac) — an arbitrary choice
+    /// worse than none. Until Open With has been used, ⇧⌘E stays disabled.
+    func openInEditor(_ url: URL) {
+        guard let id = editorBundleID,
+              let editor = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) else {
+            editorBundleID = nil      // editor uninstalled — fall back to Open With
+            editorDisplayName = nil
+            Settings.saveEditorBundleID(nil)
+            return
+        }
+        NSWorkspace.shared.open([url], withApplicationAt: editor,
+                                configuration: NSWorkspace.OpenConfiguration())
+    }
+
+    /// Opens in `app` and remembers it as the editor for ⇧⌘E.
+    func openInEditor(_ url: URL, using app: URL) {
+        rememberEditor(app)
+        NSWorkspace.shared.open([url], withApplicationAt: app,
+                                configuration: NSWorkspace.OpenConfiguration())
+    }
+
+    /// Set the editor outright, without a document open — File → Set Default
+    /// Editor…. Restricted to applications, starting in /Applications.
+    func pickDefaultEditor() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowedContentTypes = [.application]
+        panel.directoryURL = URL(fileURLWithPath: "/Applications")
+        panel.prompt = "Choose"
+        panel.message = "Choose the editor Reader.md hands markdown files to."
+        if panel.runModal() == .OK, let app = panel.url { rememberEditor(app) }
+    }
+
+    /// The display name is resolved here, once per change, rather than in the
+    /// menu label — that would be a LaunchServices hit on every render.
+    private func rememberEditor(_ app: URL) {
+        guard let id = Bundle(url: app)?.bundleIdentifier else { return }
+        editorBundleID = id
+        editorDisplayName = FileManager.default.displayName(atPath: app.path)
+        Settings.saveEditorBundleID(id)
+    }
+
+    /// "Open in Cursor" once an editor is set, so the menu says which one.
+    var openInEditorTitle: String {
+        editorDisplayName.map { "Open in \($0)" } ?? "Open in Editor"
+    }
+
+    /// Apps that can open this file, minus ourselves and minus duplicate
+    /// registrations (LaunchServices lists VS Code once per installed copy).
+    /// A LaunchServices query — call it when a menu opens, never from a row body.
+    nonisolated func editorCandidates(for url: URL) -> [URL] {
+        let mine = Bundle.main.bundleIdentifier ?? "com.nahian.reader-md"
+        var seen = Set<String>()
+        return NSWorkspace.shared.urlsForApplications(toOpen: url)
+            .filter { app in
+                guard let id = Bundle(url: app)?.bundleIdentifier, id != mine else { return false }
+                return seen.insert(id).inserted
+            }
+            .sorted { $0.lastPathComponent < $1.lastPathComponent }
+    }
+
+    func editorName(_ app: URL) -> String {
+        FileManager.default.displayName(atPath: app.path)
+    }
+
+    /// Files worth handing to an editor. Bundled help docs are app resources,
+    /// stdin docs are reaped temp files, and remote roots are sync caches whose
+    /// edits the next pull would overwrite.
+    /// ponytail: no writability probe — the editor reports read-only itself.
+    func isEditable(_ url: URL) -> Bool {
+        guard !Self.isBundledDoc(url), !Self.isStdinTemp(url) else { return false }
+        let path = url.standardizedFileURL.path
+        return !roots.contains {
+            $0.remote != nil && path.hasPrefix($0.url.standardizedFileURL.path + "/")
+        }
+    }
+
+    /// Enabled state for the ⇧⌘E menu item — cheap by design, no LaunchServices.
+    var canOpenInEditor: Bool {
+        guard let url = selectedFile?.url else { return false }
+        return editorBundleID != nil && isEditable(url)
     }
 
     /// Flat list of every markdown file across all roots, for quick-open.

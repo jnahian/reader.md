@@ -84,6 +84,12 @@ struct ReaderMdApp: App {
                 Button("Quick Open…") { state.showQuickOpen = true }
                     .keyboardShortcut("p", modifiers: .command)
                 Divider()
+                Button(state.openInEditorTitle) {
+                    if let url = state.selectedFile?.url { state.openInEditor(url) }
+                }
+                .keyboardShortcut("e", modifiers: [.command, .shift])
+                .disabled(!state.canOpenInEditor)
+                Button("Set Default Editor…") { state.pickDefaultEditor() }
                 Button("Export as PDF…") { state.triggerExport() }
                     .keyboardShortcut("e", modifiers: .command)
                     .disabled(state.selectedFile == nil || state.canShowDiff)

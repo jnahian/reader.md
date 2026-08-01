@@ -18,6 +18,14 @@ open without adding a folder to the sidebar.
 Yes — in Finder, right-click a `.md` file → **Get Info** → **Open with** →
 choose Reader.md → **Change All…**.
 
+**Can I edit files in Reader.md?**
+No — Reader.md is a reader, and it hands editing to your editor. Choose one with
+**File → Set Default Editor…** (or right-click any file → **Open With**), then
+⇧⌘E sends the open document straight there. The folder watcher re-renders on
+save, so your editor on one side and Reader.md on the other behaves like a live
+preview. ⇧⌘E stays greyed out until you've picked an editor, and for documents
+there's nothing to edit — the help pages, `reader -` input, and remote folders.
+
 ## Reading
 
 **How do I jump between files quickly?**

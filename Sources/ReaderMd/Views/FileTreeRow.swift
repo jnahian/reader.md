@@ -83,6 +83,7 @@ struct FileTreeRow: View {
                 } else {
                     Button("Open") { state.open(node) }
                 }
+                OpenWithMenu(state: state, url: node.url)
                 Button("Reveal in Finder") { revealInFinder() }
                 Button("Copy Path") { copyPath() }
             }
