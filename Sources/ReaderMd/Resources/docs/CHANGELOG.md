@@ -8,6 +8,27 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Clone a git repository as a folder.** The Add Remote sheet now offers **Git**
+  alongside SSH: paste a clone URL and Reader.md clones it read-only into a local
+  cache, fast-forwarding it on every launch the same way SSH folders re-sync. It
+  uses your existing git credentials and never prompts, so a repository you can't
+  authenticate to fails with git's own message instead of hanging.
+- **Diff against a branch.** The diff scope control is now a menu, and below
+  Unstaged / Staged / All it lists the repository's branches. Picking one
+  compares your working copy — uncommitted edits included — against that
+  branch's tip, which is the view for "what does this doc branch actually
+  change?".
+
+### Changed
+
+- Folders inside a git repository no longer list files that `.gitignore` covers,
+  so vendored and generated markdown stays out of the sidebar the way
+  `node_modules` always has.
+
+## [1.15.0] - 2026-08-01
+
+### Added
+
 - **Hand a file to your editor with ⇧⌘E.** Reader.md stays a reader, but editing
   is now one keystroke away. Pick your editor once — **File → Set Default
   Editor…**, or right-click any file → **Always Open With** — and from then on

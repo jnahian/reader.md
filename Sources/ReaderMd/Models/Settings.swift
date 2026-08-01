@@ -137,10 +137,10 @@ enum Settings {
     /// Falls back to `.all` for an absent or unrecognized value, so a scope
     /// removed in a future version can't break startup.
     static func loadDiffScope() -> DiffScope {
-        DiffScope(rawValue: defaults.string(forKey: diffScopeKey) ?? "") ?? .all
+        DiffScope(persisted: defaults.string(forKey: diffScopeKey) ?? "") ?? .all
     }
     static func saveDiffScope(_ value: DiffScope) {
-        defaults.set(value.rawValue, forKey: diffScopeKey)
+        defaults.set(value.persisted, forKey: diffScopeKey)
     }
 
     /// External editor for "Open in Editor", stored as a bundle id so it survives

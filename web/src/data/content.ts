@@ -15,8 +15,8 @@ export const highlights: HighlightCard[] = [
   {
     glyph: "☁",
     hue: 205,
-    title: "Remote SSH folders",
-    body: 'Add a folder from any VPS. Reader.md <code class="tok">rsync</code>s it read-only into a local cache and shows it like any root — reusing your <code class="tok">~/.ssh</code> config, storing no credentials.',
+    title: "Remote & cloned folders",
+    body: 'Add a folder from any VPS or a git repository by URL. Reader.md <code class="tok">rsync</code>s or <code class="tok">git clone</code>s it read-only into a local cache and shows it like any root — reusing the SSH and git credentials you already have, storing none.',
   },
   {
     glyph: "∑",
@@ -68,6 +68,14 @@ export const featureRows: FeatureRow[] = [
   {
     name: "Remote SSH folders",
     body: 'Add a folder from a VPS: Reader.md <code class="tok">rsync</code>s it read-only into a local cache. Auto-syncs on launch, manual re-sync, edit-in-place, and a cloud badge with sync/error state. Reuses your <code class="tok">~/.ssh</code> config — no credentials stored.',
+  },
+  {
+    name: "Cloned git repositories",
+    body: 'The same sheet takes a clone URL instead: Reader.md <code class="tok">git clone</code>s the repository read-only into a local cache and <code class="tok">pull --ff-only</code>s it on launch. Uses the git credentials you already have and never prompts — an unauthenticated repository fails with git\'s own error rather than hanging.',
+  },
+  {
+    name: "Git-aware",
+    body: 'Inside a repository, changed markdown gets a sidebar badge (<code class="tok">M</code> · <code class="tok">A</code> · <code class="tok">?</code> · <code class="tok">U</code>) and ⇧⌘D shows the document as a side-by-side diff with word-level highlighting and hunks in the outline. The scope menu compares against unstaged, staged, everything since the last commit, or any branch — "vs main" diffs your working copy, uncommitted edits included. <code class="tok">.gitignore</code>d files stay out of the tree.',
   },
   {
     name: "Quick open & find",
@@ -179,7 +187,12 @@ export const archCards: ArchCard[] = [
   {
     name: "RemoteSync",
     hue: 205,
-    body: 'A remote folder is <code class="tok">rsync</code>\'d read-only into a stable local cache dir that registers as an ordinary root. Credentials come from your <code class="tok">~/.ssh</code> config/keys — none are stored in-app.',
+    body: 'A remote folder is synced read-only into a stable local cache dir that registers as an ordinary root — <code class="tok">rsync</code> for an SSH destination, <code class="tok">git clone</code> / <code class="tok">pull --ff-only</code> for a repository URL. Credentials come from your <code class="tok">~/.ssh</code> config/keys and git\'s own configuration — none are stored in-app.',
+  },
+  {
+    name: "GitDiff",
+    hue: 205,
+    body: 'Every git invocation in the app, through one <code class="tok">Process</code> runner: sidebar status badges, the split diff (unstaged, staged, since the last commit, or against a branch), the branch list the scope menu offers, and the ignore set the folder scan prunes with.',
   },
   {
     name: "MarkdownWebView",
