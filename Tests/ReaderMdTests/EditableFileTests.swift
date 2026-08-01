@@ -29,13 +29,39 @@ final class EditableFileTests: XCTestCase {
     }
 
     /// We register as a `.md` handler ourselves and LaunchServices lists an app
-    /// once per installed copy, so the candidate list must drop both.
-    func testEditorCandidatesExcludeSelfAndDuplicates() {
-        let candidates = AppState().editorCandidates(for: URL(fileURLWithPath: #filePath))
-        let ids = candidates.compactMap { Bundle(url: $0)?.bundleIdentifier }
-        XCTAssertEqual(ids.count, candidates.count)
-        XCTAssertEqual(Set(ids).count, ids.count)
-        XCTAssertFalse(ids.contains("com.nahian.reader-md"))
+    /// once per installed copy, so the candidate list must drop both. Driven off
+    /// fixture bundles rather than a real query: what `urlsForApplications`
+    /// returns depends on what happens to be installed, so a test over it either
+    /// asserts nothing or fails on someone else's Mac.
+    func testEditorCandidatesExcludeSelfAndDuplicates() throws {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("editor-candidates-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let mine = "com.nahian.reader-md"
+        let apps = [
+            try appBundle("Reader.md.app", id: mine, in: dir),
+            try appBundle("Zed.app", id: "dev.zed.Zed", in: dir),
+            try appBundle("Code.app", id: "com.microsoft.VSCode", in: dir),
+            // A second copy of VS Code, as LaunchServices reports one per install.
+            try appBundle("Code copy.app", id: "com.microsoft.VSCode", in: dir),
+        ]
+
+        let names = AppState.editorCandidates(from: apps, excluding: mine)
+            .map(\.lastPathComponent)
+        XCTAssertEqual(names, ["Code.app", "Zed.app"])   // self dropped, dupe collapsed, sorted
+    }
+
+    /// Minimal on-disk app bundle — `Bundle(url:)` only needs Contents/Info.plist
+    /// to report a bundle identifier.
+    private func appBundle(_ name: String, id: String, in dir: URL) throws -> URL {
+        let app = dir.appendingPathComponent(name)
+        let contents = app.appendingPathComponent("Contents")
+        try FileManager.default.createDirectory(at: contents, withIntermediateDirectories: true)
+        let plist = try PropertyListSerialization.data(
+            fromPropertyList: ["CFBundleIdentifier": id], format: .xml, options: 0)
+        try plist.write(to: contents.appendingPathComponent("Info.plist"))
+        return app
     }
 
     /// An editor that's been uninstalled clears itself, so the menu stops

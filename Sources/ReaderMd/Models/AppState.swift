@@ -879,13 +879,25 @@ final class AppState: ObservableObject {
         editorDisplayName.map { "Open in \($0)" } ?? "Open in Editor"
     }
 
+    /// Our own bundle id. The literal is the `swift run` fallback — a bare
+    /// executable has no Info.plist — and must match `BUNDLE_ID` in make-app.sh.
+    nonisolated static var ownBundleID: String {
+        Bundle.main.bundleIdentifier ?? "com.nahian.reader-md"
+    }
+
     /// Apps that can open this file, minus ourselves and minus duplicate
     /// registrations (LaunchServices lists VS Code once per installed copy).
     /// A LaunchServices query — call it when a menu opens, never from a row body.
     nonisolated func editorCandidates(for url: URL) -> [URL] {
-        let mine = Bundle.main.bundleIdentifier ?? "com.nahian.reader-md"
+        Self.editorCandidates(from: NSWorkspace.shared.urlsForApplications(toOpen: url),
+                              excluding: Self.ownBundleID)
+    }
+
+    /// The filtering half, split from the query above: what LaunchServices
+    /// returns depends on what's installed, so only this part can be tested.
+    nonisolated static func editorCandidates(from apps: [URL], excluding mine: String) -> [URL] {
         var seen = Set<String>()
-        return NSWorkspace.shared.urlsForApplications(toOpen: url)
+        return apps
             .filter { app in
                 guard let id = Bundle(url: app)?.bundleIdentifier, id != mine else { return false }
                 return seen.insert(id).inserted
