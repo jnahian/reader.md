@@ -23,7 +23,12 @@ private struct TooltipTracker: NSViewRepresentable {
     func makeNSView(context: Context) -> TrackerNSView { TrackerNSView() }
 
     func updateNSView(_ view: TrackerNSView, context: Context) {
+        guard view.text != text else { return }
         view.text = text
+        // The label can change while its bubble is already up — clicking the
+        // appearance button relabels it under the cursor. Without this the
+        // bubble keeps the old text until the next hover.
+        TooltipController.shared.relabel(text, owner: view)
     }
 }
 
@@ -135,6 +140,26 @@ final class TooltipController {
 
     func show(text: String, anchorScreenFrame anchor: NSRect, owner: TrackerNSView) {
         self.owner = owner
+        layout(text: text, anchorScreenFrame: anchor)
+
+        panel.alphaValue = 0
+        panel.orderFront(nil)
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.1
+            panel.animator().alphaValue = 1
+        }
+    }
+
+    /// Re-render the visible bubble in place when its control's label changed.
+    /// Re-measures the control too: a relabel usually comes with a new icon, so
+    /// the button's width — and the pointer's target — shifts with it.
+    func relabel(_ text: String, owner view: TrackerNSView) {
+        guard owner === view, panel.isVisible, let window = view.window else { return }
+        layout(text: text,
+               anchorScreenFrame: window.convertToScreen(view.convert(view.bounds, to: nil)))
+    }
+
+    private func layout(text: String, anchorScreenFrame anchor: NSRect) {
         label.stringValue = text
         label.sizeToFit()
         let labelSize = label.frame.size
@@ -162,13 +187,6 @@ final class TooltipController {
         let capsuleBottom = p.pointerOnTop ? 0 : pointerH
         label.frame = NSRect(x: hPad, y: capsuleBottom + vPad,
                              width: ceil(labelSize.width), height: ceil(labelSize.height))
-
-        panel.alphaValue = 0
-        panel.orderFront(nil)
-        NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = 0.1
-            panel.animator().alphaValue = 1
-        }
     }
 
     func hide() {
