@@ -163,8 +163,12 @@ The marketing site keeps its own hand-maintained copy of the release notes in
   Changelog's headings: `Added` → `ADDED`, `Fixed` → `FIXED`, everything else
   (`Changed`, `Removed`, `Deprecated`, `Security`) → `IMPROVED`.
 - Move the `badge: "LATEST"` from the previous release onto the new one.
-- Deploying the site is a separate step — see `web/DEPLOYMENT.md` (`wrangler
-  pages deploy`); it is not part of the app release.
+- Run `cd web && npm run build` before pushing — `src/data/*.ts` is typed, so a
+  malformed entry fails the build rather than rendering wrong.
+- **Pushing this is the deploy.** Cloudflare Pages builds `web/` on every push
+  to `main`, so the commit goes live on its own — there is no `wrangler` step to
+  run. See `web/DEPLOYMENT.md`, which keeps `wrangler pages deploy` only as a
+  fallback for republishing without a commit.
 
 ## What goes missing if you skip a step
 
@@ -175,4 +179,4 @@ The marketing site keeps its own hand-maintained copy of the release notes in
 | Changelog `Unreleased` not renamed | Release Notes still say "Unreleased" |
 | Bump not committed/pushed before release | Tag points at old source; DMG ≠ tag |
 | `release.sh` cask commit not pushed | `brew install --cask` serves the previous version |
-| `web/src/data/changelog.ts` not synced | The marketing site's changelog lags the release |
+| `web/src/data/changelog.ts` not synced, or synced but not pushed | The marketing site's changelog lags the release — the push to `main` *is* the site deploy |

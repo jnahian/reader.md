@@ -51,8 +51,9 @@ key actually does — check them rather than copying an existing table.
 - `web/src/data/content.ts` — mirrors `docs/features.md` and `docs/cli.md` for the site.
 
 A user-visible change updates the bundled docs first, then `docs/`, then the
-site data. `web/` is an Astro static site with its own `CLAUDE.md` and a manual
-deploy, so nothing there reaches production on merge.
+site data. `web/` is an Astro static site with its own `CLAUDE.md`, deployed by
+Cloudflare Pages on every push to `main` — so a site edit that merges is live,
+with no separate deploy step.
 
 ## Conventions
 
