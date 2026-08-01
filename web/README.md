@@ -32,7 +32,7 @@ web/
 │  ├─ styles/global.css       design tokens, base styles, keyframes, shared utilities
 │  ├─ data/
 │  │  ├─ site.ts              links, commands, nav config
-│  │  ├─ content.ts           feature/shortcut/CLI/architecture data (from README.md)
+│  │  ├─ content.ts           feature/shortcut/CLI/architecture data (from ../docs/)
 │  │  └─ changelog.ts         release history (from Sources/.../docs/CHANGELOG.md)
 │  ├─ layouts/Base.astro      <head>, nav, footer, background blobs, shared scripts
 │  ├─ components/             Nav, Footer, Hero, FeatureGrid, showcases, ChangelogEntry, …
@@ -50,7 +50,7 @@ web/
   `.tok`, chips, and syntax-token colours — are defined there once and shared.
 - **Component styles** are scoped `<style>` blocks that reference those tokens, so
   a colour or radius changes in exactly one place.
-- **Content** is data-driven: prose from the repo `README.md` lives in `data/content.ts`
+- **Content** is data-driven: prose from the repo's `docs/` lives in `data/content.ts`
   and release notes in `data/changelog.ts`, kept in sync with the app's bundled changelog.
 - **Motion** (scroll-reveal, parallax, typing) is progressive and fully disabled under
   `prefers-reduced-motion`.

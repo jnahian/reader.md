@@ -1,6 +1,7 @@
 // Landing feature cards, docs feature rows, keyboard shortcuts, CLI commands,
-// and architecture notes — all sourced from README.md so the site stays in
-// sync with the app's own description.
+// and architecture notes — all sourced from the repo's docs/ (features.md,
+// cli.md, architecture.md) so the site stays in sync with the app's own
+// description.
 
 // --- Landing: highlight cards (glyph + blurb) ---------------------------------
 export interface HighlightCard {

@@ -45,10 +45,12 @@ key actually does — check them rather than copying an existing table.
 - `Sources/ReaderMd/Resources/docs/` — `FAQ.md`, `SHORTCUTS.md`, `CHANGELOG.md`.
   Bundled into the app and opened from the Help menu, so they ship to users; the
   changelog also drives Sparkle's release notes (below).
-- `README.md` — the repo's feature list and shortcut table.
-- `web/src/data/content.ts` — mirrors `README.md` for the site.
+- `docs/` — `features.md` (feature list + shortcut table), `install.md`, `cli.md`,
+  `architecture.md`, `building.md`. `README.md` is only an index and highlights;
+  detail belongs in `docs/`, not back in the README.
+- `web/src/data/content.ts` — mirrors `docs/features.md` and `docs/cli.md` for the site.
 
-A user-visible change updates the bundled docs first, then the README, then the
+A user-visible change updates the bundled docs first, then `docs/`, then the
 site data. `web/` is an Astro static site with its own `CLAUDE.md` and a manual
 deploy, so nothing there reaches production on merge.
 

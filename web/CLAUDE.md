@@ -11,7 +11,7 @@ repo above, so **edit the source first, then mirror it down**:
 
 | Site file | Mirrors |
 |---|---|
-| `src/data/content.ts` | the root `README.md` (features, shortcuts, CLI, architecture) |
+| `src/data/content.ts` | `docs/features.md`, `docs/cli.md`, `docs/architecture.md` in the repo root |
 | `src/data/changelog.ts` | `Sources/ReaderMd/Resources/docs/CHANGELOG.md` |
 
 A feature described on the site but not in the app's own docs is a bug in the
