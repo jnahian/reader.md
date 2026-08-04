@@ -6,6 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Opening a folder no longer shows a blank pane.** File-URL opens
+  (`open -a Reader.md.app ~/docs`, Finder, drops) and Recents taps now route
+  directories into the sidebar as roots the same way **Add Folder** does, instead of
+  treating them as markdown documents. Stale folder paths already in Recents are
+  dropped on launch.
+
 ## [1.15.0] - 2026-08-01
 
 ### Added
