@@ -303,8 +303,10 @@ final class AppState: ObservableObject {
         contentWidth = Settings.loadContentWidth()
         showSidebar = Settings.loadShowSidebar()
         sidebarWidth = Settings.loadSidebarWidth()
-        // Drop help-doc paths saved by builds that recorded them.
-        recentFiles = Settings.loadRecents().filter { !Self.isBundledDoc(URL(fileURLWithPath: $0)) }
+        // Drop help-doc paths and directories. Folder paths land here when a
+        // file-URL open (Finder / `open -a`) used to treat them as documents —
+        // clicking one then opened a blank pane. See `openPath` / `onOpenURL`.
+        recentFiles = Settings.loadRecents().filter { Self.shouldKeepRecent($0) }
         showResolvedThreads = Settings.loadShowResolvedThreads()
         editorBundleID = Settings.loadEditorBundleID()
         editorDisplayName = editorBundleID
@@ -738,8 +740,21 @@ final class AppState: ObservableObject {
             forwardStack.removeAll()
         }
         setCurrent(node)
-        // Help docs are app resources, not the user's documents — keep them out of recents.
-        if !Self.isBundledDoc(node.url), !Self.isStdinTemp(node.url) { pushRecent(node.url.path) }
+        // Help docs / stdin temps / directories aren't documents worth remembering.
+        if !node.isDirectory, !Self.isBundledDoc(node.url), !Self.isStdinTemp(node.url) {
+            pushRecent(node.url.path)
+        }
+    }
+
+    /// Recents is a file list. Bundled help docs and directories (left over from an
+    /// older file-URL open path) don't belong there.
+    nonisolated static func shouldKeepRecent(_ path: String) -> Bool {
+        if isBundledDoc(URL(fileURLWithPath: path)) { return false }
+        var isDir: ObjCBool = false
+        if FileManager.default.fileExists(atPath: path, isDirectory: &isDir), isDir.boolValue {
+            return false
+        }
+        return true
     }
 
     /// True for anything inside the app's own resource bundle — the help docs
@@ -768,8 +783,12 @@ final class AppState: ObservableObject {
         refreshDiff()
     }
 
+    /// Open a path from Recents, relative links, or the CLI. Folders become
+    /// roots (same as a drop); markdown files open. Using `openDropped` rather
+    /// than always building a file node — a directory opened as a file shows a
+    /// blank pane and used to pollute Recents with folder paths.
     func openPath(_ path: String) {
-        open(FileNode(url: URL(fileURLWithPath: path), isDirectory: false))
+        openDropped(URL(fileURLWithPath: path))
     }
 
     /// Open a bundled help document (FAQ / SHORTCUTS / CHANGELOG) in the reader.
