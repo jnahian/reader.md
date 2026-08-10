@@ -154,8 +154,9 @@ private struct ReaderToolbar: ViewModifier {
     }
 
     /// Search stays inline in the toolbar, like Preview. Enter finds the next
-    /// match, Escape clears; ⌘G / ⇧⌘G step the matches. Not `.searchable`: that
-    /// can't show the match count, and focusing it programmatically (⌘F) is macOS 14+.
+    /// match, Escape clears; the chevrons and ⌘G / ⇧⌘G (or ⌘↩ / ⇧⌘↩) step the
+    /// matches. Not `.searchable`: that can't show the match count, and focusing
+    /// it programmatically (⌘F) is macOS 14+.
     private var findField: some View {
         HStack(spacing: 6) {
             Image(systemName: "magnifyingglass")
@@ -175,6 +176,27 @@ private struct ReaderToolbar: ViewModifier {
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
+
+                // Step the matches without leaving the mouse — the same actions
+                // the ⌘↩ / ⇧⌘↩ and ⌘G / ⇧⌘G shortcuts fire.
+                HStack(spacing: 2) {
+                    Button { state.triggerFindPrev() } label: {
+                        Image(systemName: "chevron.up")
+                            .font(.system(size: 10, weight: .semibold))
+                    }
+                    .dockTooltip("Previous match (⇧⌘↩)")
+
+                    Button { state.triggerFindNext() } label: {
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 10, weight: .semibold))
+                    }
+                    .dockTooltip("Next match (⌘↩)")
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                // `.plain` buttons don't dim themselves when disabled.
+                .opacity(state.findCount > 0 ? 1 : 0.4)
+                .disabled(state.findCount == 0)
 
                 Button { state.findQuery = "" } label: {
                     Image(systemName: "xmark.circle.fill")

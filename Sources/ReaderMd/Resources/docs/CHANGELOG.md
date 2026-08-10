@@ -6,6 +6,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Step find matches from the toolbar.** The find field now has up/down chevrons
+  beside the "N of M" count that jump to the previous/next match, and ⌘↩ / ⇧⌘↩
+  step the matches as aliases for ⌘G / ⇧⌘G — so you can walk the results without
+  leaving the search field or moving your hands.
+
 ## [1.15.0] - 2026-08-01
 
 ### Added
