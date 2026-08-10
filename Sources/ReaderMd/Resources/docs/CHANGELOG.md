@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.16.0] - 2026-08-11
+
 ### Added
 
 - **Page-by-page PDF export.** The ⌘E save dialog now has a Layout control:
@@ -34,8 +36,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   "Column Width") moved out of the text-size menu into a dedicated ↔ button,
   and is now called **Canvas Width** everywhere. Wide is the new default for
   fresh installs; an existing choice is kept.
-- The diff scope control in the topbar is now a popover instead of a pull-down
-  menu. It names the current scope on the button, groups the branches under
+- **Picking what to diff against is a popover now.** The topbar's scope control
+  replaces its pull-down menu. It names the current scope on the button, groups the branches under
   their own scrolling section, filters them by name in repos with many
   branches, and opens scrolled to the branch you're comparing against.
 
@@ -50,6 +52,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Links to files with spaces in the name open again.** A relative link such as
   `[notes](<My Note.md>)` reaches the app percent-encoded; it now resolves to the
   real file instead of opening an empty document.
+- **Tooltips no longer stay on screen after you click.** A hover bubble hung
+  around once the click landed — and one that opened a menu or popover could
+  strand it there entirely. Clicking now dismisses it.
 
 ## [1.15.0] - 2026-08-01
 
