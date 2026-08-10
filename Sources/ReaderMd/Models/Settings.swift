@@ -12,12 +12,14 @@ enum Settings {
     private static let showSidebarKey = "reader.md.showSidebar"
     private static let sidebarWidthKey = "reader.md.sidebarWidth"
     private static let recentsKey = "reader.md.recents"
+    private static let favoritesKey = "reader.md.favorites"
     private static let showResolvedThreadsKey = "reader.md.showResolvedThreads"
     private static let readingThemeKey = "reader.md.readingTheme"
     private static let positionsKey = "reader.md.positions"
     private static let diffModeKey = "reader.md.diffMode"
     private static let diffScopeKey = "reader.md.diffScope"
     private static let editorBundleIDKey = "reader.md.editorBundleID"
+    private static let exportLayoutKey = "reader.md.exportLayout"
 
     private static var defaults: UserDefaults { .standard }
 
@@ -57,6 +59,14 @@ enum Settings {
         defaults.set(theme.rawValue, forKey: readingThemeKey)
     }
 
+    // Export
+    static func loadExportLayout() -> ExportLayout {
+        ExportLayout.named(defaults.string(forKey: exportLayoutKey))
+    }
+    static func saveExportLayout(_ value: ExportLayout) {
+        defaults.set(value.rawValue, forKey: exportLayoutKey)
+    }
+
     // Outline
     static func loadShowTOC() -> Bool {
         defaults.object(forKey: showTOCKey) as? Bool ?? false
@@ -79,7 +89,8 @@ enum Settings {
     static func loadContentWidth() -> ContentWidth {
         if let raw = defaults.string(forKey: contentWidthKey),
            let w = ContentWidth(rawValue: raw) { return w }
-        return (defaults.object(forKey: wideKey) as? Bool ?? false) ? .wide : .narrow
+        if let wide = defaults.object(forKey: wideKey) as? Bool { return wide ? .wide : .narrow }
+        return .wide
     }
     static func saveContentWidth(_ value: ContentWidth) {
         defaults.set(value.rawValue, forKey: contentWidthKey)
@@ -107,6 +118,14 @@ enum Settings {
     }
     static func saveRecents(_ paths: [String]) {
         defaults.set(paths, forKey: recentsKey)
+    }
+
+    // Favorites: user-pinned files, in the order they were pinned (or dragged).
+    static func loadFavorites() -> [String] {
+        defaults.stringArray(forKey: favoritesKey) ?? []
+    }
+    static func saveFavorites(_ paths: [String]) {
+        defaults.set(paths, forKey: favoritesKey)
     }
 
     // Reading positions: path -> scroll fraction (0...1)

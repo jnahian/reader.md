@@ -224,7 +224,7 @@ func paletteCommands(_ state: AppState) -> [PaletteCommand] {
                        systemImage: "sidebar.left") { $0.toggleSidebar() },
         PaletteCommand(id: "outline", title: "Toggle Outline", subtitle: "Layout",
                        systemImage: "list.bullet.indent") { $0.setShowTOC(!$0.showTOC) },
-        PaletteCommand(id: "width", title: "Cycle Content Width", subtitle: "Layout",
+        PaletteCommand(id: "width", title: "Cycle Canvas Width", subtitle: "Layout",
                        systemImage: "arrow.left.and.right") { $0.cycleContentWidth() },
         PaletteCommand(id: "addFolder", title: "Add Folder…", subtitle: "Files",
                        systemImage: "folder.badge.plus") { $0.pickFolders() },
@@ -244,6 +244,12 @@ func paletteCommands(_ state: AppState) -> [PaletteCommand] {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(file.url.path, forType: .string)
         })
+        if state.canFavoriteCurrentFile {
+            cmds.append(PaletteCommand(id: "favorite", title: state.favoriteMenuTitle, subtitle: "Document",
+                                       systemImage: state.currentFileIsFavorite ? "star.slash" : "star") {
+                $0.toggleFavoriteCurrentFile()
+            })
+        }
         if state.canOpenInEditor {
             cmds.append(PaletteCommand(id: "editor", title: state.openInEditorTitle, subtitle: "Document",
                                        systemImage: "square.and.pencil") { s in

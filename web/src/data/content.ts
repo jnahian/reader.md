@@ -75,11 +75,15 @@ export const featureRows: FeatureRow[] = [
   },
   {
     name: "Git-aware",
-    body: 'Inside a repository, changed markdown gets a sidebar badge (<code class="tok">M</code> · <code class="tok">A</code> · <code class="tok">?</code> · <code class="tok">U</code>) and ⇧⌘D shows the document as a side-by-side diff with word-level highlighting and hunks in the outline. The scope menu compares against unstaged, staged, everything since the last commit, or any branch — "vs main" diffs your working copy, uncommitted edits included. <code class="tok">.gitignore</code>d files stay out of the tree.',
+    body: 'Inside a repository, changed markdown gets a sidebar badge (<code class="tok">M</code> · <code class="tok">A</code> · <code class="tok">?</code> · <code class="tok">U</code>) and ⇧⌘D shows the document as a side-by-side diff with word-level highlighting and hunks in the outline. The scope popover beside it compares against unstaged, staged, everything since the last commit, or any branch — "vs main" diffs your working copy, uncommitted edits included, and a filter field finds a branch by name in a repo with a lot of them. <code class="tok">.gitignore</code>d files stay out of the tree.',
+  },
+  {
+    name: "Favorites",
+    body: "Pin the files you keep coming back to. They sit in a FAVORITES section between Recents and your folders, in the order you arranged them — star a file from the tree, any context menu, ⌘D for the open document, or the ⌘P palette; drag to reorder, hover × to unpin.",
   },
   {
     name: "Quick open & find",
-    body: "⌘P fuzzy file switcher across all roots, ⇧⌘F live tree filter, and ⌘F native in-page find with match highlighting (⌘G / ⇧⌘G for next/prev).",
+    body: "⌘P fuzzy file switcher across all roots, ⇧⌘F live tree filter, and ⌘F native in-page find with match highlighting — step matches with the chevrons beside the count, ⌘G / ⇧⌘G, or ⌘↩ / ⇧⌘↩.",
   },
   {
     name: "Outline",
@@ -87,7 +91,7 @@ export const featureRows: FeatureRow[] = [
   },
   {
     name: "Typography",
-    body: 'Font size (⌘+ / ⌘− / ⌘0) and a narrow / wide / full-width reading column (⇧⌘\\), both persisted.',
+    body: 'Font size (⌘+ / ⌘− / ⌘0) and a narrow / wide / full-width canvas (⇧⌘\\, wide by default), both persisted.',
   },
   {
     name: "Rendering",
@@ -111,7 +115,7 @@ export const featureRows: FeatureRow[] = [
   },
   {
     name: "Live reload & export",
-    body: "The open file re-renders (scroll preserved) and the tree refreshes on disk changes. Export to PDF (⌘E), manual reload (⌘R), and Sparkle auto-update.",
+    body: "The open file re-renders (scroll preserved) and the tree refreshes on disk changes. Export to PDF (⌘E) — page-by-page or continuous — manual reload (⌘R), and Sparkle auto-update.",
   },
 ];
 
@@ -124,17 +128,18 @@ export interface Shortcut {
 export const shortcuts: Shortcut[] = [
   { action: "Open file", keys: "⌘O" },
   { action: "Quick open", keys: "⌘P" },
+  { action: "Add to / remove from Favorites", keys: "⌘D" },
   { action: "Add folder", keys: "⇧⌘A" },
   { action: "Add remote folder", keys: "⌥⌘A" },
   { action: "Find in page", keys: "⌘F" },
   { action: "Filter files", keys: "⇧⌘F" },
-  { action: "Find next / previous", keys: "⌘G / ⇧⌘G" },
+  { action: "Find next / previous", keys: "⌘G / ⇧⌘G or ⌘↩ / ⇧⌘↩" },
   { action: "Back / forward", keys: "⌘[ / ⌘]" },
   { action: "Toggle sidebar", keys: "⌘B" },
   { action: "Toggle outline", keys: "⇧⌘B" },
   { action: "Toggle diff", keys: "⇧⌘D" },
   { action: "Text bigger / smaller / reset", keys: "⌘+ / ⌘− / ⌘0" },
-  { action: "Column width", keys: "⇧⌘\\" },
+  { action: "Canvas width", keys: "⇧⌘\\" },
   { action: "Open in editor", keys: "⇧⌘E" },
   { action: "Export PDF", keys: "⌘E" },
   { action: "Reload", keys: "⌘R" },
@@ -192,7 +197,7 @@ export const archCards: ArchCard[] = [
   {
     name: "GitDiff",
     hue: 205,
-    body: 'Every git invocation in the app, through one <code class="tok">Process</code> runner: sidebar status badges, the split diff (unstaged, staged, since the last commit, or against a branch), the branch list the scope menu offers, and the ignore set the folder scan prunes with.',
+    body: 'Every git invocation in the app, through one <code class="tok">Process</code> runner: sidebar status badges, the split diff (unstaged, staged, since the last commit, or against a branch), the branch list the scope popover offers, and the ignore set the folder scan prunes with.',
   },
   {
     name: "MarkdownWebView",

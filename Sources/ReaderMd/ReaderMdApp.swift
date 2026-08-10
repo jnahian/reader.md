@@ -87,6 +87,9 @@ struct ReaderMdApp: App {
                 .keyboardShortcut("a", modifiers: [.command, .option])
                 Button("Quick Open…") { state.showQuickOpen = true }
                     .keyboardShortcut("p", modifiers: .command)
+                Button(state.favoriteMenuTitle) { state.toggleFavoriteCurrentFile() }
+                    .keyboardShortcut("d", modifiers: .command)
+                    .disabled(!state.canFavoriteCurrentFile)
                 Divider()
                 Button(state.openInEditorTitle) {
                     if let url = state.selectedFile?.url { state.openInEditor(url) }
@@ -134,7 +137,7 @@ struct ReaderMdApp: App {
                     .keyboardShortcut("-", modifiers: .command)
                 Button("Actual Size") { state.resetFontScale() }
                     .keyboardShortcut("0", modifiers: .command)
-                Picker("Column Width", selection: Binding(
+                Picker("Canvas Width", selection: Binding(
                     get: { state.contentWidth },
                     set: { state.setContentWidth($0) }
                 )) {
@@ -142,7 +145,7 @@ struct ReaderMdApp: App {
                         Text(width.displayName).tag(width)
                     }
                 }
-                Button("Cycle Column Width") { state.cycleContentWidth() }
+                Button("Cycle Canvas Width") { state.cycleContentWidth() }
                     .keyboardShortcut("\\", modifiers: [.command, .shift])
                 Divider()
             }

@@ -20,18 +20,24 @@ final class RecentPathTests: XCTestCase {
     func testMarkdownFileIsKept() throws {
         let file = tempDir.appendingPathComponent("notes.md")
         try "# hi\n".write(to: file, atomically: true, encoding: .utf8)
-        XCTAssertTrue(AppState.shouldKeepRecent(file.path))
+        XCTAssertTrue(AppState.shouldKeepListed(file.path))
     }
 
     func testDirectoryIsDropped() {
-        XCTAssertFalse(AppState.shouldKeepRecent(tempDir.path))
+        XCTAssertFalse(AppState.shouldKeepListed(tempDir.path))
+    }
+
+    /// A folder that reached Recents could have been pinned from its context menu,
+    /// and a pinned folder row would open as a root rather than a document.
+    func testDirectoryCannotBeFavorited() {
+        XCTAssertFalse(AppState.canFavorite(tempDir))
     }
 
     /// Missing paths stay — Recents already keeps deleted files until the user
     /// clears them; this filter only rejects directories and bundled help docs.
     func testMissingPathIsKept() {
         let gone = tempDir.appendingPathComponent("gone.md")
-        XCTAssertTrue(AppState.shouldKeepRecent(gone.path))
+        XCTAssertTrue(AppState.shouldKeepListed(gone.path))
     }
 
     /// marked percent-encodes hrefs, so a link to a file with a space in its name

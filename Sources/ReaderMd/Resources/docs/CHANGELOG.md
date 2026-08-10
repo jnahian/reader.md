@@ -6,6 +6,38 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Page-by-page PDF export.** The ⌘E save dialog now has a Layout control:
+  **Page by Page** (the default) paginates the document onto real pages at your
+  system paper size, with diagrams and images kept whole across page breaks,
+  long code lines wrapped rather than cut off at the page edge, and the page
+  painted in the reading theme's color; **Continuous** keeps the old single long
+  page. Links stay clickable either way. Your last choice is remembered.
+- **Step find matches from the toolbar.** The find field now has up/down chevrons
+  beside the "N of M" count that jump to the previous/next match, and ⌘↩ / ⇧⌘↩
+  step the matches as aliases for ⌘G / ⇧⌘G — so you can walk the results without
+  leaving the search field or moving your hands.
+- **Favorites in the sidebar.** Pin the files you keep coming back to and they
+  sit in a **FAVORITES** section between Recents and your folders, in the order
+  you arranged them — drag to reorder, hover **×** to unpin. Star a file from its
+  hover control in the tree, from any file's context menu (tree, Recents, or
+  filter results), with ⌘D for the open document, or from the ⌘P palette. Recents
+  churns as you read; Favorites stay until you remove them. The bundled help
+  pages and piped `reader -` documents aren't pinnable, the same way they stay
+  out of Recents.
+
+### Changed
+
+- **Canvas width has its own topbar button.** The width picker (formerly
+  "Column Width") moved out of the text-size menu into a dedicated ↔ button,
+  and is now called **Canvas Width** everywhere. Wide is the new default for
+  fresh installs; an existing choice is kept.
+- The diff scope control in the topbar is now a popover instead of a pull-down
+  menu. It names the current scope on the button, groups the branches under
+  their own scrolling section, filters them by name in repos with many
+  branches, and opens scrolled to the branch you're comparing against.
+
 ### Fixed
 
 - **Opening a folder no longer shows a blank pane.** File-URL opens
@@ -13,7 +45,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and Recents taps now route directories into the sidebar as roots the same way
   **Add Folder** does, instead of treating them as markdown documents — and the
   sidebar reveals itself if it was collapsed. Stale folder paths already in Recents
-  are dropped on launch.
+  or Favorites are dropped on launch, and a folder can no longer be pinned.
 - **Links to files with spaces in the name open again.** A relative link such as
   `[notes](<My Note.md>)` reaches the app percent-encoded; it now resolves to the
   real file instead of opening an empty document.

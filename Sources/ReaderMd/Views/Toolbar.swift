@@ -39,9 +39,10 @@ private struct ReaderToolbar: ViewModifier {
                     OrphanedMarksBadge()
                 }
 
-                // View: typography + outline.
+                // View: reading style + canvas width + outline.
                 ToolbarItemGroup(placement: .primaryAction) {
-                    typographyMenu
+                    readingStyleMenu
+                    canvasWidthMenu
 
                     if !state.toc.isEmpty {
                         Button { state.setShowTOC(!state.showTOC) } label: {
@@ -68,20 +69,11 @@ private struct ReaderToolbar: ViewModifier {
                         .dockTooltip(state.diffMode
                                      ? "Show rendered view (⇧⌘D)" : "Show diff (⇧⌘D)")
 
-                        // A pull-down rather than a segmented control: the branch
-                        // scopes are per repo, so the list has no fixed width.
+                        // A popover rather than a segmented control or a
+                        // pull-down: the branch scopes are per repo, so the list
+                        // has neither a fixed width nor a bounded length.
                         if state.canShowDiff {
-                            Picker("", selection: Binding(
-                                get: { state.diffScope },
-                                set: { state.setDiffScope($0) }
-                            )) {
-                                ForEach(state.diffScopeChoices, id: \.self) { scope in
-                                    Text(scope.displayName).tag(scope)
-                                }
-                            }
-                            .pickerStyle(.menu)
-                            .fixedSize()
-                            .dockTooltip("What the diff compares against")
+                            DiffScopePicker()
                         }
                     }
                 }
@@ -120,7 +112,7 @@ private struct ReaderToolbar: ViewModifier {
         }
     }
 
-    private var typographyMenu: some View {
+    private var readingStyleMenu: some View {
         Menu {
             Picker("Theme", selection: Binding(
                 get: { state.readingTheme },
@@ -132,12 +124,21 @@ private struct ReaderToolbar: ViewModifier {
             }
             .pickerStyle(.inline)
 
-            Divider()
-            Button("Increase Text  ⌘+") { state.adjustFontScale(0.1) }
-            Button("Decrease Text  ⌘−") { state.adjustFontScale(-0.1) }
-            Button("Actual Size  ⌘0") { state.resetFontScale() }
-            Divider()
-            Picker("Column Width", selection: Binding(
+            Section("Text Size") {
+                Button("Increase Text (⌘+)") { state.adjustFontScale(0.1) }
+                Button("Decrease Text (⌘−)") { state.adjustFontScale(-0.1) }
+                Button("Actual Size (⌘0)") { state.resetFontScale() }
+            }
+        } label: {
+            Image(systemName: "textformat.size")
+        }
+        .menuIndicator(.hidden)
+        .dockTooltip("Reading style")
+    }
+
+    private var canvasWidthMenu: some View {
+        Menu {
+            Picker("Canvas Width", selection: Binding(
                 get: { state.contentWidth },
                 set: { state.setContentWidth($0) }
             )) {
@@ -147,15 +148,16 @@ private struct ReaderToolbar: ViewModifier {
             }
             .pickerStyle(.inline)
         } label: {
-            Image(systemName: "textformat.size")
+            Image(systemName: "arrow.left.and.right")
         }
         .menuIndicator(.hidden)
-        .dockTooltip("Text size & width")
+        .dockTooltip("Canvas width (⇧⌘\\)")
     }
 
     /// Search stays inline in the toolbar, like Preview. Enter finds the next
-    /// match, Escape clears; ⌘G / ⇧⌘G step the matches. Not `.searchable`: that
-    /// can't show the match count, and focusing it programmatically (⌘F) is macOS 14+.
+    /// match, Escape clears; the chevrons and ⌘G / ⇧⌘G (or ⌘↩ / ⇧⌘↩) step the
+    /// matches. Not `.searchable`: that can't show the match count, and focusing
+    /// it programmatically (⌘F) is macOS 14+.
     private var findField: some View {
         HStack(spacing: 6) {
             Image(systemName: "magnifyingglass")
@@ -175,6 +177,27 @@ private struct ReaderToolbar: ViewModifier {
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
+
+                // Step the matches without leaving the mouse — the same actions
+                // the ⌘↩ / ⇧⌘↩ and ⌘G / ⇧⌘G shortcuts fire.
+                HStack(spacing: 2) {
+                    Button { state.triggerFindPrev() } label: {
+                        Image(systemName: "chevron.up")
+                            .font(.system(size: 10, weight: .semibold))
+                    }
+                    .dockTooltip("Previous match (⇧⌘↩)")
+
+                    Button { state.triggerFindNext() } label: {
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 10, weight: .semibold))
+                    }
+                    .dockTooltip("Next match (⌘↩)")
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                // `.plain` buttons don't dim themselves when disabled.
+                .opacity(state.findCount > 0 ? 1 : 0.4)
+                .disabled(state.findCount == 0)
 
                 Button { state.findQuery = "" } label: {
                     Image(systemName: "xmark.circle.fill")

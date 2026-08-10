@@ -252,6 +252,23 @@
     td.diff-text.new .w { background: var(--diff-add-word); border-radius: 2px; }
     td.diff-text.old .w { background: var(--diff-del-word); border-radius: 2px; }
     .diff-empty { padding: 60px 0; text-align: center; color: var(--blockquote); font-size: 14px; }
+
+    /* ⌘E page-by-page export renders through the print engine. Pages bring
+       their own width, so the canvas cap comes off; diagrams and images must
+       not be sawn in half at a page boundary; hover-only chrome (zoom
+       controls, copy buttons, heading anchors) is hidden outright rather
+       than trusted to be un-hovered. */
+    @media print {
+      /* The print margins provide the page's whitespace — keeping the screen
+         padding (40px sides, 160px scroll tail) would double it on paper. */
+      .markdown-body { max-width: none; padding: 0; }
+      /* The page column is narrower than any canvas width, and a scrollbar is
+         no use on paper — long code lines wrap instead of being cut off at the
+         right edge. */
+      pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+      .mermaid, img { break-inside: avoid; }
+      .mm-controls, .copy-btn, .anchor { display: none; }
+    }
   </style>
 </head>
 <body>

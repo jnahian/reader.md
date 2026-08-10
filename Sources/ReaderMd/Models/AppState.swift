@@ -95,6 +95,24 @@ enum ContentWidth: String, CaseIterable {
     }
 }
 
+/// How ⌘E lays out the PDF: real pages via the print engine, or one
+/// continuous page the height of the whole document.
+enum ExportLayout: String, CaseIterable {
+    case pageByPage, continuous
+
+    var displayName: String {
+        switch self {
+        case .pageByPage: return "Page by Page"
+        case .continuous: return "Continuous"
+        }
+    }
+
+    /// Absent or unrecognized persisted values fall back to the default.
+    static func named(_ raw: String?) -> ExportLayout {
+        raw.flatMap(ExportLayout.init(rawValue:)) ?? .pageByPage
+    }
+}
+
 /// A heading in the currently open document, used for the outline. In diff mode
 /// the same type carries one entry per hunk instead, with `detail` holding the
 /// hunk's counts.
@@ -173,7 +191,7 @@ final class AppState: ObservableObject {
 
     // Reading / typography
     @Published var fontScale: Double = 1.0     // 0.7 ... 1.6
-    @Published var contentWidth: ContentWidth = .narrow
+    @Published var contentWidth: ContentWidth = .wide
 
     // Chrome layout
     @Published var showSidebar: Bool = true
@@ -260,6 +278,9 @@ final class AppState: ObservableObject {
     // Navigation history
     @Published private(set) var recentFiles: [String] = []
 
+    /// Pinned files, newest last — Recents churns as you read, Favorites don't.
+    @Published private(set) var favoriteFiles: [String] = []
+
     /// Saved scroll fraction per file path. Not @Published — nothing in the UI
     /// renders it; it's read once at load time to resume the document.
     private var positions: [String: Double] = [:]
@@ -303,10 +324,13 @@ final class AppState: ObservableObject {
         contentWidth = Settings.loadContentWidth()
         showSidebar = Settings.loadShowSidebar()
         sidebarWidth = Settings.loadSidebarWidth()
-        // Drop help-doc paths and directories. Folder paths land here when a
-        // file-URL open (Finder / `open -a`) used to treat them as documents —
-        // clicking one then opened a blank pane. See `openPath` / `onOpenURL`.
-        recentFiles = Settings.loadRecents().filter { Self.shouldKeepRecent($0) }
+        // Drop help-doc paths and directories. Folder paths land in both lists when
+        // a file-URL open (`open -a`) used to treat them as documents — clicking one
+        // then opened a blank pane. See `openPath` / `onOpenURL`. Neither list is
+        // pruned to files that still exist, unlike positions: an entry on an
+        // unmounted volume should come back with the volume, not vanish silently.
+        recentFiles = Settings.loadRecents().filter { Self.shouldKeepListed($0) }
+        favoriteFiles = Settings.loadFavorites().filter { Self.shouldKeepListed($0) }
         showResolvedThreads = Settings.loadShowResolvedThreads()
         editorBundleID = Settings.loadEditorBundleID()
         editorDisplayName = editorBundleID
@@ -749,9 +773,9 @@ final class AppState: ObservableObject {
         }
     }
 
-    /// Recents is a file list. Bundled help docs and directories (left over from an
-    /// older file-URL open path) don't belong there.
-    nonisolated static func shouldKeepRecent(_ path: String) -> Bool {
+    /// Recents and Favorites are file lists. Bundled help docs and directories (left
+    /// over from an older file-URL open path) don't belong in either.
+    nonisolated static func shouldKeepListed(_ path: String) -> Bool {
         if isBundledDoc(URL(fileURLWithPath: path)) { return false }
         var isDir: ObjCBool = false
         if FileManager.default.fileExists(atPath: path, isDirectory: &isDir), isDir.boolValue {
@@ -891,6 +915,67 @@ final class AppState: ObservableObject {
     func clearRecents() {
         recentFiles = []
         Settings.saveRecents([])
+    }
+
+    // MARK: - Favorites
+
+    func isFavorite(_ path: String) -> Bool {
+        favoriteFiles.contains(path)
+    }
+
+    /// A file can be pinned unless it isn't really the user's document: the
+    /// bundled help docs and piped `reader -` temporaries are both transient in a
+    /// way a pin implies they aren't — same rule that keeps them out of Recents,
+    /// which also rules out folders (a pinned row opens as a document).
+    nonisolated static func canFavorite(_ url: URL) -> Bool {
+        shouldKeepListed(url.path) && !isStdinTemp(url)
+    }
+
+    /// New favorites append rather than insert: a pinned list that reshuffled on
+    /// every pin would lose the order the user arranged it in.
+    func addFavorite(_ path: String) {
+        guard Self.canFavorite(URL(fileURLWithPath: path)), !favoriteFiles.contains(path) else { return }
+        favoriteFiles.append(path)
+        Settings.saveFavorites(favoriteFiles)
+    }
+
+    func removeFavorite(_ path: String) {
+        guard favoriteFiles.contains(path) else { return }
+        favoriteFiles.removeAll { $0 == path }
+        Settings.saveFavorites(favoriteFiles)
+    }
+
+    func toggleFavorite(_ path: String) {
+        isFavorite(path) ? removeFavorite(path) : addFavorite(path)
+    }
+
+    /// Drag-reorder, matching how roots move. `to` is an insertion index in the
+    /// pre-move list, the way SwiftUI's `move(fromOffsets:toOffset:)` counts.
+    func moveFavorite(from: Int, to: Int) {
+        guard from != to, favoriteFiles.indices.contains(from),
+              to >= 0, to <= favoriteFiles.count else { return }
+        favoriteFiles.move(fromOffsets: IndexSet(integer: from), toOffset: to)
+        Settings.saveFavorites(favoriteFiles)
+    }
+
+    /// The open document, for the menu item and the ⌘P command.
+    var canFavoriteCurrentFile: Bool {
+        guard let url = selectedFile?.url else { return false }
+        return Self.canFavorite(url)
+    }
+
+    var currentFileIsFavorite: Bool {
+        guard let path = selectedFile?.url.path else { return false }
+        return isFavorite(path)
+    }
+
+    var favoriteMenuTitle: String {
+        currentFileIsFavorite ? "Remove from Favorites" : "Add to Favorites"
+    }
+
+    func toggleFavoriteCurrentFile() {
+        guard let path = selectedFile?.url.path else { return }
+        toggleFavorite(path)
     }
 
     // MARK: - External editor
