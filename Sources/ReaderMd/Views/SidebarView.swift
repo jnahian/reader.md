@@ -110,17 +110,9 @@ struct SidebarView: View {
         }
     }
 
-    /// The normal (unfiltered) sidebar: favorites, recents, then the folder tree.
+    /// The normal (unfiltered) sidebar: recents, favorites, then the folder tree.
     @ViewBuilder
     private var tree: some View {
-        if !state.favoriteFiles.isEmpty {
-            sectionHeader("FAVORITES")
-            ForEach(state.favoriteFiles, id: \.self) { path in
-                FavoriteRow(path: path, draggingFavorite: $draggingFavorite)
-            }
-            Spacer().frame(height: 10)
-        }
-
         if !state.recentFiles.isEmpty {
             HStack {
                 sectionHeader("RECENTS")
@@ -133,6 +125,14 @@ struct SidebarView: View {
             }
             ForEach(state.recentFiles.prefix(6), id: \.self) { path in
                 RecentRow(path: path)
+            }
+            Spacer().frame(height: 10)
+        }
+
+        if !state.favoriteFiles.isEmpty {
+            sectionHeader("FAVORITES")
+            ForEach(state.favoriteFiles, id: \.self) { path in
+                FavoriteRow(path: path, draggingFavorite: $draggingFavorite)
             }
             Spacer().frame(height: 10)
         }

@@ -38,9 +38,9 @@ to a heading in the document you're reading.
 **Can I pin the files I keep coming back to?**
 Yes — **Favorites**. Click the star that appears when you hover a file in the
 sidebar, right-click any file → **Add to Favorites**, or press ⌘D for the open
-document. Pinned files sit in a **FAVORITES** section at the top of the sidebar,
-above Recents, and stay there until you unpin them — drag to reorder, and the
-hover **×** (or the context menu) removes one. Recents churns as you read;
+document. Pinned files sit in a **FAVORITES** section in the sidebar, below
+Recents and above your folders, and stay there until you unpin them — drag to
+reorder, and the hover **×** (or the context menu) removes one. Recents churns as you read;
 Favorites don't. The bundled help pages and `reader -` documents can't be pinned.
 
 **Where's the document outline?**

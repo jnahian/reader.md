@@ -79,7 +79,7 @@ export const featureRows: FeatureRow[] = [
   },
   {
     name: "Favorites",
-    body: "Pin the files you keep coming back to. They sit in a FAVORITES section above Recents, in the order you arranged them — star a file from the tree, any context menu, ⌘D for the open document, or the ⌘P palette; drag to reorder, hover × to unpin.",
+    body: "Pin the files you keep coming back to. They sit in a FAVORITES section between Recents and your folders, in the order you arranged them — star a file from the tree, any context menu, ⌘D for the open document, or the ⌘P palette; drag to reorder, hover × to unpin.",
   },
   {
     name: "Quick open & find",

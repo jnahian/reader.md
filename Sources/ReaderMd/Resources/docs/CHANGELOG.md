@@ -9,7 +9,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - **Favorites in the sidebar.** Pin the files you keep coming back to and they
-  sit in a **FAVORITES** section above Recents, in the order you arranged them —
+  sit in a **FAVORITES** section between Recents and your folders, in the order
+  you arranged them —
   drag to reorder, hover **×** to unpin. Star a file from its hover control in
   the tree, from any file's context menu (tree, Recents, or filter results), with
   ⌘D for the open document, or from the ⌘P palette. Recents churns as you read;
