@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import WebKit
+import PDFKit
 import UniformTypeIdentifiers
 
 extension Bundle {
@@ -503,8 +504,9 @@ struct MarkdownWebView: NSViewRepresentable {
 
             // Find highlights and diagram zoom would both bake into the PDF.
             // beforeExport() resets them; wait for that JS to finish, render,
-            // then afterExport() puts them back. Both halves no-op when nothing
+            // then endExport() puts them back. Both halves no-op when nothing
             // is active, so there is no state to branch on here.
+            activeExports += 1
             webView.evaluateJavaScript("window.ReaderMd.beforeExport();") { [weak self] _, _ in
                 switch layout {
                 case .continuous: self?.exportContinuous(to: url)
@@ -513,24 +515,44 @@ struct MarkdownWebView: NSViewRepresentable {
             }
         }
 
+        /// Exports that have run beforeExport() and not yet finished rendering.
+        /// The find highlights and diagram zoom are document-wide, so they can
+        /// only be restored once the last one is done — ⌘E is live again while
+        /// an export renders, and restoring after the first would bake the
+        /// highlights into a second export still in flight.
+        private var activeExports = 0
+
+        private func endExport() {
+            activeExports -= 1
+            // Restores the exact find match the user was on; find() would scroll
+            // them back to match 1 as a side effect of exporting.
+            if activeExports == 0 { webView?.evaluateJavaScript("window.ReaderMd.afterExport();") }
+        }
+
         private func exportContinuous(to url: URL) {
-            guard let webView else { return }
+            guard let webView else { return endExport() }
             webView.createPDF(configuration: WKPDFConfiguration()) { [weak self] result in
-                // afterExport() restores the exact find match the user was on;
-                // find() would scroll them back to match 1 as a side effect of
-                // exporting.
-                self?.webView?.evaluateJavaScript("window.ReaderMd.afterExport();")
+                self?.endExport()
                 guard case let .success(data) = result else { return }
                 try? data.write(to: url)
             }
         }
 
-        /// The paginated export in flight: where it saves, and the page color to
-        /// paint under it once the print operation is done.
-        private var pendingExport: (url: URL, pageColor: CGColor?)?
+        /// Carried through the print operation's `contextInfo` so concurrent
+        /// exports don't share one slot: ⌘E is live again the moment
+        /// `runModal(for:)` returns, so a second export can start before the
+        /// first finishes painting.
+        private final class PendingExport {
+            let url: URL
+            let pageColor: CGColor?
+            init(url: URL, pageColor: CGColor?) {
+                self.url = url
+                self.pageColor = pageColor
+            }
+        }
 
         private func exportPaginated(to url: URL) {
-            guard let webView else { return }
+            guard let webView else { return endExport() }
             // The print engine leaves the paper margins unpainted, which reads
             // as a white frame around any non-white theme. Fetch the document
             // background so the finished PDF can be repainted edge to edge.
@@ -540,8 +562,9 @@ struct MarkdownWebView: NSViewRepresentable {
         }
 
         private func runPrintOperation(to url: URL, pageColor: CGColor?) {
-            guard let webView, let window = webView.window else { return }
-            pendingExport = (url, pageColor)
+            // Nothing to print into: beforeExport() has already stripped the find
+            // highlights and diagram zoom, so endExport() has to put them back.
+            guard let webView, let window = webView.window else { return endExport() }
             let info = NSPrintInfo()   // copies the shared defaults: system paper size + margins
             info.jobDisposition = .save
             info.dictionary()[NSPrintInfo.AttributeKey.jobSavingURL] = url
@@ -555,19 +578,21 @@ struct MarkdownWebView: NSViewRepresentable {
             // WKWebView print operations only work through runModal(for:...) —
             // a bare run() silently produces nothing. Panels are hidden, so
             // nothing modal is actually shown.
+            let pending = PendingExport(url: url, pageColor: pageColor)
             op.runModal(for: window, delegate: self,
                         didRun: #selector(printOperationDidRun(_:success:contextInfo:)),
-                        contextInfo: nil)
+                        contextInfo: Unmanaged.passRetained(pending).toOpaque())
         }
 
         @objc private func printOperationDidRun(_ printOperation: NSPrintOperation,
                                                 success: Bool,
                                                 contextInfo: UnsafeMutableRawPointer?) {
-            webView?.evaluateJavaScript("window.ReaderMd.afterExport();")
-            if success, let (url, color) = pendingExport, let color {
-                Self.paintPageBackground(url: url, color: color)
+            endExport()
+            guard let contextInfo else { return }
+            let pending = Unmanaged<PendingExport>.fromOpaque(contextInfo).takeRetainedValue()
+            if success, let color = pending.pageColor {
+                Self.paintPageBackground(url: pending.url, color: color)
             }
-            pendingExport = nil
         }
 
         /// "rgb(13, 17, 23)" / "rgba(…)" → CGColor. Nil for anything else,
@@ -582,12 +607,23 @@ struct MarkdownWebView: NSViewRepresentable {
         }
 
         /// Rewrite the PDF with `color` filled under every page, so the paper
-        /// margins match the theme instead of staying printer-white.
+        /// margins match the theme instead of staying printer-white. (The print
+        /// engine paints the CSS background only inside the page area; neither
+        /// canvas propagation nor `@page { background }` reaches the margins.)
         private static func paintPageBackground(url: URL, color: CGColor) {
             guard let data = try? Data(contentsOf: url),
                   let provider = CGDataProvider(data: data as CFData),
                   let doc = CGPDFDocument(provider), doc.numberOfPages > 0,
                   let firstPage = doc.page(at: 1) else { return }
+            // drawPDFPage copies a page's content stream but not its /Annots,
+            // so the rewrite alone would kill every link in the document. Lift
+            // the annotations off the original before it's overwritten and
+            // re-attach them below; moving the objects (rather than rebuilding
+            // them) keeps internal heading jumps as well as external URLs.
+            let links = PDFDocument(data: data).map { source in
+                (0..<source.pageCount).map { source.page(at: $0)?.annotations ?? [] }
+            } ?? []
+
             var mediaBox = firstPage.getBoxRect(.mediaBox)
             guard let ctx = CGContext(url as CFURL, mediaBox: &mediaBox, nil) else { return }
             for i in 1...doc.numberOfPages {
@@ -599,6 +635,13 @@ struct MarkdownWebView: NSViewRepresentable {
                 ctx.endPDFPage()
             }
             ctx.closePDF()
+
+            guard links.contains(where: { !$0.isEmpty }),
+                  let painted = PDFDocument(url: url) else { return }
+            for (i, annotations) in links.enumerated() where i < painted.pageCount {
+                for annotation in annotations { painted.page(at: i)?.addAnnotation(annotation) }
+            }
+            painted.write(to: url)
         }
 
         /// JSON-encode a string into a safe JS string literal.
