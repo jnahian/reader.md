@@ -528,7 +528,9 @@ final class AppState: ObservableObject {
     func addDroppedFolder(_ url: URL) {
         // Reveal the sidebar first: `addRoot` no-ops on a folder that's already a
         // root, so with the sidebar collapsed the whole gesture would look inert.
+        // Persisted like the toggle, or the state would silently revert next launch.
         showSidebar = true
+        Settings.saveShowSidebar(true)
         addRoot(url, persist: true)
     }
 
