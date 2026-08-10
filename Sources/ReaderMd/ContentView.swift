@@ -29,6 +29,7 @@ struct ContentView: View {
             }
         }
         .readerToolbar()
+        .background(findStepShortcuts)
         .animation(.easeInOut(duration: 0.15), value: state.showSidebar)
         .animation(.easeInOut(duration: 0.15), value: state.showTOC)
         .animation(.easeInOut(duration: 0.12), value: state.showQuickOpen)
@@ -42,6 +43,25 @@ struct ContentView: View {
                 .environmentObject(state)
                 .id(state.pendingRemote?.id)
         }
+    }
+
+    /// ⌘↩ / ⇧⌘↩ as aliases for Find Next / Find Previous. They can't live in the
+    /// Find menu beside ⌘G / ⇧⌘G — a menu item carries one key equivalent, and a
+    /// second "Find Next" row reads as a bug — so they ride on invisible buttons
+    /// in the window instead; the find field's chevrons are what advertise them.
+    /// `.opacity(0)` rather than `.hidden()`: a hidden view stops matching key
+    /// equivalents. Sitting in `.background`, they're covered by opaque content,
+    /// so they never take a click either.
+    private var findStepShortcuts: some View {
+        ZStack {
+            Button("Find Next") { state.triggerFindNext() }
+                .keyboardShortcut(.return, modifiers: .command)
+            Button("Find Previous") { state.triggerFindPrev() }
+                .keyboardShortcut(.return, modifiers: [.command, .shift])
+        }
+        .disabled(state.findQuery.isEmpty)
+        .opacity(0)
+        .accessibilityHidden(true)
     }
 
     private var contentRow: some View {

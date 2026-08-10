@@ -16,7 +16,7 @@ the same bindings.
 - **Quick open** — ⌘P fuzzy file switcher across all roots, with keyboard navigation
 - **History & recents** — back/forward (⌘[ / ⌘]) plus a managed recent-files list in the empty state
 - **File filter** — ⇧⌘F filters the tree live across all roots
-- **In-page find** — ⌘F native find bar with match highlighting (⌘G / ⇧⌘G for next/prev)
+- **In-page find** — ⌘F native find bar with match highlighting; step matches with the up/down chevrons beside the count, ⌘G / ⇧⌘G, or ⌘↩ / ⇧⌘↩
 - **Outline** — collapsible right pane (⇧⌘B) with a sliding accent rail marker and scrollspy
 - **Typography** — font size (⌘+ / ⌘− / ⌘0) and a narrow/wide/full-width reading column (⇧⌘\), both persisted
 - **Finder-style chrome** — capsule search field; native toolbar controls grouped into capsules by function; a "FOLDERS" section header with tinted icons and a full-width selection pill; and a bottom status bar (markdown file count, or word count / reading-time for the open file), mirroring the macOS 26 Finder
@@ -39,7 +39,7 @@ the same bindings.
 | ⌘O | Open file | ⌘P | Quick open |
 | ⇧⌘A | Add folder | ⌥⌘A | Add remote folder |
 | ⌘F | Find in page | ⇧⌘F | Filter files |
-| ⌘G / ⇧⌘G | Find next / previous | ⌘[ / ⌘] | Back / forward |
+| ⌘G / ⇧⌘G (or ⌘↩ / ⇧⌘↩) | Find next / previous | ⌘[ / ⌘] | Back / forward |
 | ⌘B | Toggle sidebar | ⇧⌘B | Toggle outline |
 | ⇧⌘D | Toggle diff | ⇧⌘\ | Cycle column width |
 | ⌘+ / ⌘− / ⌘0 | Text bigger / smaller / reset | ⇧⌘E | Open in editor |

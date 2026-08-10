@@ -12,6 +12,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   menu. It names the current scope on the button, groups the branches under
   their own scrolling section, filters them by name in repos with many
   branches, and opens scrolled to the branch you're comparing against.
+### Added
+
+- **Step find matches from the toolbar.** The find field now has up/down chevrons
+  beside the "N of M" count that jump to the previous/next match, and ⌘↩ / ⇧⌘↩
+  step the matches as aliases for ⌘G / ⇧⌘G — so you can walk the results without
+  leaving the search field or moving your hands.
 
 ## [1.15.0] - 2026-08-01
 
