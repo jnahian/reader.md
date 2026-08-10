@@ -63,7 +63,11 @@ to the file, but are lost if the file is renamed or moved.
 ## Exporting & searching
 
 **How do I export to PDF?**
-**File → Export as PDF…** (⌘E) renders the current document to PDF.
+**File → Export as PDF…** (⌘E) renders the current document to PDF. A **Layout**
+control in the save dialog picks **Page by Page** — real pages at your system
+paper size, the default — or **Continuous**, one long page. The last choice is
+remembered. Paginated pages take the reading theme's paper color, so dark
+documents export as dark pages.
 
 **How do I search within a document?**
 Find in Page (⌘F) highlights every match and shows a live "N of M" count; step

@@ -22,7 +22,7 @@ the same bindings.
 - **Finder-style chrome** — capsule search field; native toolbar controls grouped into capsules by function; a "FOLDERS" section header with tinted icons and a full-width selection pill; and a bottom status bar (markdown file count, or word count / reading-time for the open file), mirroring the macOS 26 Finder
 - **Reading feedback** — accent progress bar under the toolbar; word count and reading time in the status bar
 - **Code copy buttons**, **image click-to-zoom** lightbox, and hover **heading anchors**
-- **Export to PDF** (⌘E) and **manual reload** (⌘R) — toolbar buttons on the right, plus the web view's native PDF renderer
+- **Export to PDF** (⌘E) and **manual reload** (⌘R) — toolbar buttons on the right; the save dialog's Layout control picks page-by-page (default) or one continuous page, and remembers the choice
 - **Hand off to an editor** (⇧⌘E) — Reader.md stays a reader; pick an editor once (**File → Set Default Editor…**, or right-click a file → **Always Open With**) and ⇧⌘E sends the open document there. The watcher re-renders on save, so an editor beside Reader.md reads as a live preview. Not offered for the bundled help docs, piped `reader -` documents, or read-only remote folders
 - **Liquid Glass chrome** — on macOS 26 (Tahoe) the native toolbar, sidebar, outline, find bar, and quick-open palette all read as Liquid Glass; on macOS 13–15 they fall back to translucent `NSVisualEffectView` material. Collapsible + resizable sidebar (⌘B, width persisted); the title's proxy icon reveals the file in Finder
 - **Syntax highlighting, Mermaid, LaTeX math** — via the bundled JS engines

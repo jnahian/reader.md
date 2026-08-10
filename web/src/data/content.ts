@@ -111,7 +111,7 @@ export const featureRows: FeatureRow[] = [
   },
   {
     name: "Live reload & export",
-    body: "The open file re-renders (scroll preserved) and the tree refreshes on disk changes. Export to PDF (⌘E), manual reload (⌘R), and Sparkle auto-update.",
+    body: "The open file re-renders (scroll preserved) and the tree refreshes on disk changes. Export to PDF (⌘E) — page-by-page or continuous — manual reload (⌘R), and Sparkle auto-update.",
   },
 ];
 
