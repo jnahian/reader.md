@@ -274,9 +274,9 @@ struct FavoriteRow: View {
     var body: some View {
         HStack(spacing: 6) {
             Color.clear.frame(width: 10)
-            Image(systemName: "star.fill")
-                .font(.system(size: 11))
-                .foregroundStyle(isSelected ? Color.white : Color.accentColor)
+            Image(systemName: "doc.text")
+                .font(.system(size: 12))
+                .foregroundStyle(isSelected ? Color.white : Color.secondary)
             Text((path as NSString).lastPathComponent)
                 .font(.system(size: 13))
                 .foregroundStyle(isSelected ? Color.white : Color.primary)
