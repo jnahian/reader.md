@@ -23,11 +23,11 @@ struct ReaderMdApp: App {
                 .preferredColorScheme(state.colorScheme)
                 .onOpenURL { url in
                     if url.isFileURL {
-                        // Same routing as drops / `readermd://open`: folders become
-                        // roots, markdown opens. Treating every file URL as a
-                        // document blanked the pane for `open -a Reader.md.app <dir>`
-                        // and left folder paths in Recents.
-                        state.openDropped(url)
+                        // Folders become roots; files open. Treating every file URL as
+                        // a document blanked the pane for `open -a Reader.md.app <dir>`
+                        // and left folder paths in Recents. No extension filter here —
+                        // unlike `readermd://open`, this URL is user-initiated.
+                        state.openPath(url.path)
                         return
                     }
                     switch ReaderURL.action(for: url) {

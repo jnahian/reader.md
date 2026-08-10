@@ -33,4 +33,28 @@ final class RecentPathTests: XCTestCase {
         let gone = tempDir.appendingPathComponent("gone.md")
         XCTAssertTrue(AppState.shouldKeepRecent(gone.path))
     }
+
+    /// marked percent-encodes hrefs, so a link to a file with a space in its name
+    /// arrives as `%20` and has to be decoded before it resolves.
+    func testEncodedLinkResolvesToRealFile() throws {
+        let file = tempDir.appendingPathComponent("My Note.md")
+        try "# hi\n".write(to: file, atomically: true, encoding: .utf8)
+        let encoded = tempDir.path + "/My%20Note.md"
+        XCTAssertEqual(AppState.resolvedPath(encoded), file.path)
+    }
+
+    /// That encoding isn't reversible — marked leaves a real `%` alone — so a file
+    /// literally named `a%20b.md` must win over the decoded spelling.
+    func testLiteralPercentFilenameWinsOverDecoding() throws {
+        let file = tempDir.appendingPathComponent("a%20b.md")
+        try "# hi\n".write(to: file, atomically: true, encoding: .utf8)
+        XCTAssertEqual(AppState.resolvedPath(file.path), file.path)
+    }
+
+    /// Nothing to resolve against: hand the path back untouched so the caller still
+    /// selects it and the user can remove the stale entry.
+    func testMissingPathIsReturnedUnchanged() {
+        let gone = tempDir.path + "/gone%20file.md"
+        XCTAssertEqual(AppState.resolvedPath(gone), gone)
+    }
 }

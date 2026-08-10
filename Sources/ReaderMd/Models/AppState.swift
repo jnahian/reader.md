@@ -502,6 +502,9 @@ final class AppState: ObservableObject {
 
     /// Add a folder dropped onto the window.
     func addDroppedFolder(_ url: URL) {
+        // Reveal the sidebar first: `addRoot` no-ops on a folder that's already a
+        // root, so with the sidebar collapsed the whole gesture would look inert.
+        showSidebar = true
         addRoot(url, persist: true)
     }
 
@@ -783,12 +786,31 @@ final class AppState: ObservableObject {
         refreshDiff()
     }
 
-    /// Open a path from Recents, relative links, or the CLI. Folders become
-    /// roots (same as a drop); markdown files open. Using `openDropped` rather
-    /// than always building a file node — a directory opened as a file shows a
-    /// blank pane and used to pollute Recents with folder paths.
+    /// Open a path from Recents, a relative link, or a file URL. Folders become
+    /// roots (same as a drop) instead of opening as a blank document; everything
+    /// else opens as a file — including paths that no longer exist, so a stale
+    /// recent still selects and can be removed rather than silently doing nothing.
     func openPath(_ path: String) {
-        openDropped(URL(fileURLWithPath: path))
+        let resolved = Self.resolvedPath(path)
+        var isDir: ObjCBool = false
+        if FileManager.default.fileExists(atPath: resolved, isDirectory: &isDir), isDir.boolValue {
+            addDroppedFolder(URL(fileURLWithPath: resolved))
+        } else {
+            open(FileNode(url: URL(fileURLWithPath: resolved), isDirectory: false))
+        }
+    }
+
+    /// marked runs `encodeURI` on hrefs, so a link to `My Note.md` reaches us as
+    /// `My%20Note.md`. Try the literal path first: that encoding isn't reversible
+    /// (it leaves a real `%` alone), so a file actually named `a%20b.md` has to win
+    /// over the decoded spelling. Recents and file URLs arrive decoded already.
+    nonisolated static func resolvedPath(_ path: String) -> String {
+        let fm = FileManager.default
+        if !fm.fileExists(atPath: path), let decoded = path.removingPercentEncoding,
+           decoded != path, fm.fileExists(atPath: decoded) {
+            return decoded
+        }
+        return path
     }
 
     /// Open a bundled help document (FAQ / SHORTCUTS / CHANGELOG) in the reader.
