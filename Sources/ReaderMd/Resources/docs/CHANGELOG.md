@@ -6,6 +6,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- The diff scope control in the topbar is now a popover instead of a pull-down
+  menu. It names the current scope on the button, groups the branches under
+  their own scrolling section, filters them by name in repos with many
+  branches, and opens scrolled to the branch you're comparing against.
+
 ## [1.15.0] - 2026-08-01
 
 ### Added
