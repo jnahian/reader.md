@@ -78,6 +78,10 @@ export const featureRows: FeatureRow[] = [
     body: 'Inside a repository, changed markdown gets a sidebar badge (<code class="tok">M</code> · <code class="tok">A</code> · <code class="tok">?</code> · <code class="tok">U</code>) and ⇧⌘D shows the document as a side-by-side diff with word-level highlighting and hunks in the outline. The scope menu compares against unstaged, staged, everything since the last commit, or any branch — "vs main" diffs your working copy, uncommitted edits included. <code class="tok">.gitignore</code>d files stay out of the tree.',
   },
   {
+    name: "Favorites",
+    body: "Pin the files you keep coming back to. They sit in a FAVORITES section above Recents, in the order you arranged them — star a file from the tree, any context menu, ⌘D for the open document, or the ⌘P palette; drag to reorder, hover × to unpin.",
+  },
+  {
     name: "Quick open & find",
     body: "⌘P fuzzy file switcher across all roots, ⇧⌘F live tree filter, and ⌘F native in-page find with match highlighting (⌘G / ⇧⌘G for next/prev).",
   },
@@ -124,6 +128,7 @@ export interface Shortcut {
 export const shortcuts: Shortcut[] = [
   { action: "Open file", keys: "⌘O" },
   { action: "Quick open", keys: "⌘P" },
+  { action: "Add to / remove from Favorites", keys: "⌘D" },
   { action: "Add folder", keys: "⇧⌘A" },
   { action: "Add remote folder", keys: "⌥⌘A" },
   { action: "Find in page", keys: "⌘F" },

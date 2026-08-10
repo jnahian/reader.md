@@ -244,6 +244,12 @@ func paletteCommands(_ state: AppState) -> [PaletteCommand] {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(file.url.path, forType: .string)
         })
+        if state.canFavoriteCurrentFile {
+            cmds.append(PaletteCommand(id: "favorite", title: state.favoriteMenuTitle, subtitle: "Document",
+                                       systemImage: state.currentFileIsFavorite ? "star.slash" : "star") {
+                $0.toggleFavoriteCurrentFile()
+            })
+        }
         if state.canOpenInEditor {
             cmds.append(PaletteCommand(id: "editor", title: state.openInEditorTitle, subtitle: "Document",
                                        systemImage: "square.and.pencil") { s in

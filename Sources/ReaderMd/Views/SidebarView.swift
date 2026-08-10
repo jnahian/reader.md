@@ -6,6 +6,7 @@ struct SidebarView: View {
     @EnvironmentObject var state: AppState
     @FocusState private var searchFocused: Bool
     @State private var draggingRootID: String?
+    @State private var draggingFavorite: String?
     @State private var addHover = false
 
     var body: some View {
@@ -109,9 +110,17 @@ struct SidebarView: View {
         }
     }
 
-    /// The normal (unfiltered) sidebar: recents, then the folder tree.
+    /// The normal (unfiltered) sidebar: favorites, recents, then the folder tree.
     @ViewBuilder
     private var tree: some View {
+        if !state.favoriteFiles.isEmpty {
+            sectionHeader("FAVORITES")
+            ForEach(state.favoriteFiles, id: \.self) { path in
+                FavoriteRow(path: path, draggingFavorite: $draggingFavorite)
+            }
+            Spacer().frame(height: 10)
+        }
+
         if !state.recentFiles.isEmpty {
             HStack {
                 sectionHeader("RECENTS")
@@ -230,7 +239,113 @@ struct SearchResultRow: View {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(file.node.url.path, forType: .string)
             }
+            Divider()
+            Button(state.isFavorite(file.node.url.path) ? "Remove from Favorites" : "Add to Favorites") {
+                state.toggleFavorite(file.node.url.path)
+            }
         }
+    }
+}
+
+/// A row in the sidebar Favorites section. Favorites span roots, so the name
+/// alone can be ambiguous (README.md is everywhere) — the full path is the
+/// tooltip rather than a second line, keeping the pinned list compact.
+struct FavoriteRow: View {
+    @EnvironmentObject var state: AppState
+    let path: String
+    @Binding var draggingFavorite: String?
+    @State private var hovering = false
+
+    private var isSelected: Bool { state.selectedFile?.url.path == path }
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Color.clear.frame(width: 10)
+            Image(systemName: "star.fill")
+                .font(.system(size: 11))
+                .foregroundStyle(isSelected ? Color.white : Color.accentColor)
+            Text((path as NSString).lastPathComponent)
+                .font(.system(size: 13))
+                .foregroundStyle(isSelected ? Color.white : Color.primary)
+                .lineLimit(1)
+            Spacer(minLength: 0)
+            if hovering {
+                Button { state.removeFavorite(path) } label: {
+                    Image(systemName: "xmark").font(.system(size: 10))
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(isSelected ? Color.white : Color.secondary)
+                .dockTooltip("Remove from Favorites")
+            } else if let badge = state.gitStatus(for: path) {
+                Text(badge.rawValue)
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundStyle(isSelected ? Color.white : Color.secondary)
+                    .dockTooltip(badge.help)
+            }
+        }
+        .padding(.vertical, 4)
+        .padding(.leading, 10)
+        .padding(.trailing, 7)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .fill(isSelected ? Color.accentColor
+                      : (hovering ? Color.primary.opacity(0.06) : Color.clear))
+        )
+        .contentShape(Rectangle())
+        .onHover { hovering = $0 }
+        .onTapGesture { state.openPath(path) }
+        .dockTooltip(path)
+        .opacity(draggingFavorite == path ? 0.4 : 1)
+        .onDrag {
+            draggingFavorite = path
+            return NSItemProvider(object: path as NSString)
+        }
+        .onDrop(of: [.text],
+                delegate: FavoriteReorderDelegate(target: path,
+                                                  draggingFavorite: $draggingFavorite,
+                                                  state: state))
+        .contextMenu {
+            if isSelected {
+                Button("Close") { state.closeFile() }
+            } else {
+                Button("Open") { state.openPath(path) }
+            }
+            OpenWithMenu(state: state, url: URL(fileURLWithPath: path))
+            Button("Reveal in Finder") {
+                NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
+            }
+            Button("Copy Path") {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(path, forType: .string)
+            }
+            Divider()
+            Button("Remove from Favorites") { state.removeFavorite(path) }
+        }
+    }
+}
+
+/// Live-reorders favorites as a dragged row hovers over another, the same way
+/// roots reorder.
+struct FavoriteReorderDelegate: DropDelegate {
+    let target: String
+    @Binding var draggingFavorite: String?
+    let state: AppState
+
+    func dropEntered(info: DropInfo) {
+        guard let dragging = draggingFavorite, dragging != target,
+              let from = state.favoriteFiles.firstIndex(of: dragging),
+              let to = state.favoriteFiles.firstIndex(of: target) else { return }
+        withAnimation(.easeInOut(duration: 0.15)) {
+            state.moveFavorite(from: from, to: to > from ? to + 1 : to)
+        }
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal { DropProposal(operation: .move) }
+
+    func performDrop(info: DropInfo) -> Bool {
+        draggingFavorite = nil
+        return true
     }
 }
 
@@ -289,6 +404,9 @@ struct RecentRow: View {
                 NSPasteboard.general.setString(path, forType: .string)
             }
             Divider()
+            Button(state.isFavorite(path) ? "Remove from Favorites" : "Add to Favorites") {
+                state.toggleFavorite(path)
+            }
             Button("Remove from Recents") { state.removeRecent(path) }
         }
     }
