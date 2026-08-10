@@ -2,11 +2,23 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 
+/// What the sidebar is dragging right now. Roots and favorites are two
+/// reorderable lists that both emit a plain-string payload into the same
+/// `.onDrop(of: [.text])`, so a drop delegate can't tell whose drag it is from
+/// the payload. One shared value keeps that unambiguous: starting either drag
+/// replaces it, so neither delegate can act on the other list's leftover state.
+enum SidebarDrag: Equatable {
+    case root(String)       // RootFolder.id
+    case favorite(String)   // file path
+
+    var rootID: String? { if case .root(let id) = self { return id } else { return nil } }
+    var favoritePath: String? { if case .favorite(let path) = self { return path } else { return nil } }
+}
+
 struct SidebarView: View {
     @EnvironmentObject var state: AppState
     @FocusState private var searchFocused: Bool
-    @State private var draggingRootID: String?
-    @State private var draggingFavorite: String?
+    @State private var dragging: SidebarDrag?
     @State private var addHover = false
 
     var body: some View {
@@ -132,7 +144,7 @@ struct SidebarView: View {
         if !state.favoriteFiles.isEmpty {
             sectionHeader("FAVORITES")
             ForEach(state.favoriteFiles, id: \.self) { path in
-                FavoriteRow(path: path, draggingFavorite: $draggingFavorite)
+                FavoriteRow(path: path, dragging: $dragging)
             }
             Spacer().frame(height: 10)
         }
@@ -147,7 +159,7 @@ struct SidebarView: View {
                 .padding(.top, 4)
         }
         ForEach(state.roots) { root in
-            RootSectionView(root: root, draggingRootID: $draggingRootID)
+            RootSectionView(root: root, dragging: $dragging)
         }
     }
 
@@ -253,7 +265,7 @@ struct SearchResultRow: View {
 struct FavoriteRow: View {
     @EnvironmentObject var state: AppState
     let path: String
-    @Binding var draggingFavorite: String?
+    @Binding var dragging: SidebarDrag?
     @State private var hovering = false
 
     private var isSelected: Bool { state.selectedFile?.url.path == path }
@@ -296,14 +308,14 @@ struct FavoriteRow: View {
         .onHover { hovering = $0 }
         .onTapGesture { state.openPath(path) }
         .dockTooltip(path)
-        .opacity(draggingFavorite == path ? 0.4 : 1)
+        .opacity(dragging?.favoritePath == path ? 0.4 : 1)
         .onDrag {
-            draggingFavorite = path
+            dragging = .favorite(path)
             return NSItemProvider(object: path as NSString)
         }
         .onDrop(of: [.text],
                 delegate: FavoriteReorderDelegate(target: path,
-                                                  draggingFavorite: $draggingFavorite,
+                                                  dragging: $dragging,
                                                   state: state))
         .contextMenu {
             if isSelected {
@@ -329,12 +341,12 @@ struct FavoriteRow: View {
 /// roots reorder.
 struct FavoriteReorderDelegate: DropDelegate {
     let target: String
-    @Binding var draggingFavorite: String?
+    @Binding var dragging: SidebarDrag?
     let state: AppState
 
     func dropEntered(info: DropInfo) {
-        guard let dragging = draggingFavorite, dragging != target,
-              let from = state.favoriteFiles.firstIndex(of: dragging),
+        guard let dragged = dragging?.favoritePath, dragged != target,
+              let from = state.favoriteFiles.firstIndex(of: dragged),
               let to = state.favoriteFiles.firstIndex(of: target) else { return }
         withAnimation(.easeInOut(duration: 0.15)) {
             state.moveFavorite(from: from, to: to > from ? to + 1 : to)
@@ -344,7 +356,7 @@ struct FavoriteReorderDelegate: DropDelegate {
     func dropUpdated(info: DropInfo) -> DropProposal { DropProposal(operation: .move) }
 
     func performDrop(info: DropInfo) -> Bool {
-        draggingFavorite = nil
+        dragging = nil
         return true
     }
 }
@@ -416,7 +428,7 @@ struct RecentRow: View {
 struct RootSectionView: View {
     @EnvironmentObject var state: AppState
     @ObservedObject var root: RootFolder
-    @Binding var draggingRootID: String?
+    @Binding var dragging: SidebarDrag?
     @State private var expanded = false
     @State private var hovering = false
 
@@ -481,13 +493,13 @@ struct RootSectionView: View {
             .contentShape(Rectangle())
             .onTapGesture { withAnimation(.easeInOut(duration: 0.12)) { expanded.toggle() } }
             .onHover { hovering = $0 }
-            .opacity(draggingRootID == root.id ? 0.4 : 1)
+            .opacity(dragging?.rootID == root.id ? 0.4 : 1)
             .onDrag {
-                draggingRootID = root.id
+                dragging = .root(root.id)
                 return NSItemProvider(object: root.id as NSString)
             }
             .onDrop(of: [.text],
-                    delegate: RootReorderDelegate(target: root, draggingRootID: $draggingRootID, state: state))
+                    delegate: RootReorderDelegate(target: root, dragging: $dragging, state: state))
             .contextMenu {
                 Button(expanded ? "Collapse" : "Expand") {
                     withAnimation(.easeInOut(duration: 0.12)) { expanded.toggle() }
@@ -529,12 +541,12 @@ struct RootSectionView: View {
 /// Live-reorders roots as a dragged folder hovers over another.
 struct RootReorderDelegate: DropDelegate {
     let target: RootFolder
-    @Binding var draggingRootID: String?
+    @Binding var dragging: SidebarDrag?
     let state: AppState
 
     func dropEntered(info: DropInfo) {
-        guard let dragging = draggingRootID, dragging != target.id,
-              let from = state.roots.firstIndex(where: { $0.id == dragging }),
+        guard let dragged = dragging?.rootID, dragged != target.id,
+              let from = state.roots.firstIndex(where: { $0.id == dragged }),
               let to = state.roots.firstIndex(where: { $0.id == target.id }) else { return }
         withAnimation(.easeInOut(duration: 0.15)) {
             state.moveRoot(from: from, to: to > from ? to + 1 : to)
@@ -544,7 +556,7 @@ struct RootReorderDelegate: DropDelegate {
     func dropUpdated(info: DropInfo) -> DropProposal { DropProposal(operation: .move) }
 
     func performDrop(info: DropInfo) -> Bool {
-        draggingRootID = nil
+        dragging = nil
         return true
     }
 }

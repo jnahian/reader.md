@@ -15,7 +15,7 @@ the same bindings.
 - **Context menus** — right-click any file, folder, root, or recent for Open / Always Open With / Reveal in Finder / Copy Path / Add to Favorites / Remove (and Edit Connection · Re-sync on remote roots)
 - **Drag-and-drop** — drop a markdown file onto the content pane to open it
 - **Quick open** — ⌘P fuzzy file switcher across all roots, with keyboard navigation
-- **History & recents** — back/forward (⌘[ / ⌘]) plus a managed recent-files list in the empty state, with the pinned Favorites section under it
+- **History & recents** — back/forward (⌘[ / ⌘]) plus a managed recent-files list in the sidebar, above Favorites
 - **File filter** — ⇧⌘F filters the tree live across all roots
 - **In-page find** — ⌘F native find bar with match highlighting; step matches with the up/down chevrons beside the count, ⌘G / ⇧⌘G, or ⌘↩ / ⇧⌘↩
 - **Outline** — collapsible right pane (⇧⌘B) with a sliding accent rail marker and scrollspy
