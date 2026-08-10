@@ -6,6 +6,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Canvas width has its own topbar button.** The width picker (formerly
+  "Column Width") moved out of the text-size menu into a dedicated ↔ button,
+  and is now called **Canvas Width** everywhere. Wide is the new default for
+  fresh installs; an existing choice is kept.
+
 ## [1.15.0] - 2026-08-01
 
 ### Added

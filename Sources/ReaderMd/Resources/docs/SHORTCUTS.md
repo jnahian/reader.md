@@ -51,7 +51,7 @@ document you're reading.
 | ⌘+ | Increase Text |
 | ⌘- | Decrease Text |
 | ⌘0 | Actual Size |
-| ⇧⌘\\ | Cycle Column Width (Narrow / Wide / Full) |
+| ⇧⌘\\ | Cycle Canvas Width (Narrow / Wide / Full) |
 | ⇧⌘D | Toggle Diff (in a git repository) |
 
 ## Help

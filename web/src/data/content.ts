@@ -87,7 +87,7 @@ export const featureRows: FeatureRow[] = [
   },
   {
     name: "Typography",
-    body: 'Font size (⌘+ / ⌘− / ⌘0) and a narrow / wide / full-width reading column (⇧⌘\\), both persisted.',
+    body: 'Font size (⌘+ / ⌘− / ⌘0) and a narrow / wide / full-width canvas (⇧⌘\\, wide by default), both persisted.',
   },
   {
     name: "Rendering",
@@ -134,7 +134,7 @@ export const shortcuts: Shortcut[] = [
   { action: "Toggle outline", keys: "⇧⌘B" },
   { action: "Toggle diff", keys: "⇧⌘D" },
   { action: "Text bigger / smaller / reset", keys: "⌘+ / ⌘− / ⌘0" },
-  { action: "Column width", keys: "⇧⌘\\" },
+  { action: "Canvas width", keys: "⇧⌘\\" },
   { action: "Open in editor", keys: "⇧⌘E" },
   { action: "Export PDF", keys: "⌘E" },
   { action: "Reload", keys: "⌘R" },

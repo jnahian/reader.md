@@ -18,7 +18,7 @@ the same bindings.
 - **File filter** — ⇧⌘F filters the tree live across all roots
 - **In-page find** — ⌘F native find bar with match highlighting (⌘G / ⇧⌘G for next/prev)
 - **Outline** — collapsible right pane (⇧⌘B) with a sliding accent rail marker and scrollspy
-- **Typography** — font size (⌘+ / ⌘− / ⌘0) and a narrow/wide/full-width reading column (⇧⌘\), both persisted
+- **Typography** — font size (⌘+ / ⌘− / ⌘0) and a narrow/wide/full-width canvas (⇧⌘\, wide by default), both persisted
 - **Finder-style chrome** — capsule search field; native toolbar controls grouped into capsules by function; a "FOLDERS" section header with tinted icons and a full-width selection pill; and a bottom status bar (markdown file count, or word count / reading-time for the open file), mirroring the macOS 26 Finder
 - **Reading feedback** — accent progress bar under the toolbar; word count and reading time in the status bar
 - **Code copy buttons**, **image click-to-zoom** lightbox, and hover **heading anchors**
@@ -41,7 +41,7 @@ the same bindings.
 | ⌘F | Find in page | ⇧⌘F | Filter files |
 | ⌘G / ⇧⌘G | Find next / previous | ⌘[ / ⌘] | Back / forward |
 | ⌘B | Toggle sidebar | ⇧⌘B | Toggle outline |
-| ⇧⌘D | Toggle diff | ⇧⌘\ | Cycle column width |
+| ⇧⌘D | Toggle diff | ⇧⌘\ | Cycle canvas width |
 | ⌘+ / ⌘− / ⌘0 | Text bigger / smaller / reset | ⇧⌘E | Open in editor |
 | ⌘E | Export PDF | ⌘R | Reload |
 | ⌘/ | Keyboard shortcuts | | |
