@@ -173,7 +173,7 @@ final class AppState: ObservableObject {
 
     // Reading / typography
     @Published var fontScale: Double = 1.0     // 0.7 ... 1.6
-    @Published var contentWidth: ContentWidth = .narrow
+    @Published var contentWidth: ContentWidth = .wide
 
     // Chrome layout
     @Published var showSidebar: Bool = true

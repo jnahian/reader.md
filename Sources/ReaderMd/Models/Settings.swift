@@ -79,7 +79,8 @@ enum Settings {
     static func loadContentWidth() -> ContentWidth {
         if let raw = defaults.string(forKey: contentWidthKey),
            let w = ContentWidth(rawValue: raw) { return w }
-        return (defaults.object(forKey: wideKey) as? Bool ?? false) ? .wide : .narrow
+        if let wide = defaults.object(forKey: wideKey) as? Bool { return wide ? .wide : .narrow }
+        return .wide
     }
     static func saveContentWidth(_ value: ContentWidth) {
         defaults.set(value.rawValue, forKey: contentWidthKey)
