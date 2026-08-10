@@ -75,7 +75,7 @@ export const featureRows: FeatureRow[] = [
   },
   {
     name: "Git-aware",
-    body: 'Inside a repository, changed markdown gets a sidebar badge (<code class="tok">M</code> · <code class="tok">A</code> · <code class="tok">?</code> · <code class="tok">U</code>) and ⇧⌘D shows the document as a side-by-side diff with word-level highlighting and hunks in the outline. The scope menu compares against unstaged, staged, everything since the last commit, or any branch — "vs main" diffs your working copy, uncommitted edits included. <code class="tok">.gitignore</code>d files stay out of the tree.',
+    body: 'Inside a repository, changed markdown gets a sidebar badge (<code class="tok">M</code> · <code class="tok">A</code> · <code class="tok">?</code> · <code class="tok">U</code>) and ⇧⌘D shows the document as a side-by-side diff with word-level highlighting and hunks in the outline. The scope popover beside it compares against unstaged, staged, everything since the last commit, or any branch — "vs main" diffs your working copy, uncommitted edits included, and a filter field finds a branch by name in a repo with a lot of them. <code class="tok">.gitignore</code>d files stay out of the tree.',
   },
   {
     name: "Quick open & find",
@@ -192,7 +192,7 @@ export const archCards: ArchCard[] = [
   {
     name: "GitDiff",
     hue: 205,
-    body: 'Every git invocation in the app, through one <code class="tok">Process</code> runner: sidebar status badges, the split diff (unstaged, staged, since the last commit, or against a branch), the branch list the scope menu offers, and the ignore set the folder scan prunes with.',
+    body: 'Every git invocation in the app, through one <code class="tok">Process</code> runner: sidebar status badges, the split diff (unstaged, staged, since the last commit, or against a branch), the branch list the scope popover offers, and the ignore set the folder scan prunes with.',
   },
   {
     name: "MarkdownWebView",

@@ -78,9 +78,12 @@ sidebar (`M`, `A`, `?`, `U`), and ⇧⌘D shows the document as a side-by-side d
 with the outline listing hunks instead of headings.
 
 **What can I diff against?**
-The menu beside the diff button picks: **Unstaged**, **Staged**, **All** (since
-the last commit), or any branch in the repo — "vs main" compares your working
-copy, uncommitted edits included, against that branch's tip.
+The button beside the diff toggle names what you're comparing against and opens
+a popover to change it: **Unstaged**, **Staged**, **All** (since the last
+commit), or any branch in the repo — "vs main" compares your working copy,
+uncommitted edits included, against that branch's tip. In a repo with many
+branches the popover has a filter field, so you can type part of a branch name
+instead of scrolling for it.
 
 ## Remote folders
 

@@ -995,6 +995,37 @@ final class GitBranchListTests: XCTestCase {
     }
 }
 
+/// The scope popover's branch filter. The list it narrows is capped at 50, so a
+/// filter that drops the branch you typed is the difference between reaching a
+/// ref and not.
+final class GitBranchFilterTests: XCTestCase {
+    private let branches = ["main", "origin/main", "feature/Login", "dev"]
+
+    func testEmptyQueryKeepsEveryBranchInOrder() {
+        XCTAssertEqual(GitDiff.filterBranches(branches, query: ""), branches)
+        XCTAssertEqual(GitDiff.filterBranches(branches, query: "   "), branches)
+    }
+
+    /// Substring, not prefix: typing "main" has to reach `origin/main` too.
+    func testMatchesAnywhereInTheRefName() {
+        XCTAssertEqual(GitDiff.filterBranches(branches, query: "main"), ["main", "origin/main"])
+    }
+
+    func testMatchIsCaseInsensitive() {
+        XCTAssertEqual(GitDiff.filterBranches(branches, query: "login"), ["feature/Login"])
+        XCTAssertEqual(GitDiff.filterBranches(branches, query: "MAIN"), ["main", "origin/main"])
+    }
+
+    /// Typed mid-word, a slash still matches — branch names are full of them.
+    func testMatchesOnASlash() {
+        XCTAssertEqual(GitDiff.filterBranches(branches, query: "e/L"), ["feature/Login"])
+    }
+
+    func testNoMatchesYieldsAnEmptyList() {
+        XCTAssertTrue(GitDiff.filterBranches(branches, query: "zzz").isEmpty)
+    }
+}
+
 /// In diff mode the outline lists hunks, not headings. The ids must match the
 /// element ids bridge.js stamps, or clicking a row scrolls nowhere.
 final class DiffOutlineTests: XCTestCase {
