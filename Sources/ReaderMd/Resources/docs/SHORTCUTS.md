@@ -8,6 +8,7 @@
 | ⇧⌘A | Add Folder… |
 | ⌥⌘A | Add Remote Folder… |
 | ⌘P | Quick Open (files, `>` commands, `#` headings) |
+| ⌘D | Add to / Remove from Favorites (the open document) |
 | ⇧⌘E | Open in Editor (pick one first via File → Set Default Editor…) |
 | ⌘E | Export as PDF… |
 | ⌘R | Reload |
@@ -26,8 +27,8 @@
 | Shortcut | Action |
 | --- | --- |
 | ⌘F | Find in Page |
-| ⌘G | Find Next |
-| ⇧⌘G | Find Previous |
+| ⌘G or ⌘↩ | Find Next |
+| ⇧⌘G or ⇧⌘↩ | Find Previous |
 | ⎋ | Clear the find field |
 | ⇧⌘F | Filter Files (sidebar) |
 

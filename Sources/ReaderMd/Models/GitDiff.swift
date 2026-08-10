@@ -611,6 +611,16 @@ extension GitDiff {
             .prefix(50))
     }
 
+    /// The branch rows the scope popover shows for `query`. Case-insensitive
+    /// substring, so "main" finds both `main` and `origin/main` — a fuzzy
+    /// subsequence match would also return every branch containing those
+    /// letters in order, which on a 50-ref list is noise rather than help.
+    static func filterBranches(_ branches: [String], query: String) -> [String] {
+        let trimmed = query.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return branches }
+        return branches.filter { $0.range(of: trimmed, options: .caseInsensitive) != nil }
+    }
+
     /// Paths git ignores under `folder`, named relative to it. `--directory`
     /// collapses a wholly ignored directory to one entry, so the scan prunes the
     /// subtree instead of testing every file in it. Callers must be off the main

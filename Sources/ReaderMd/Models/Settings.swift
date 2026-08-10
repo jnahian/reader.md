@@ -12,6 +12,7 @@ enum Settings {
     private static let showSidebarKey = "reader.md.showSidebar"
     private static let sidebarWidthKey = "reader.md.sidebarWidth"
     private static let recentsKey = "reader.md.recents"
+    private static let favoritesKey = "reader.md.favorites"
     private static let showResolvedThreadsKey = "reader.md.showResolvedThreads"
     private static let readingThemeKey = "reader.md.readingTheme"
     private static let positionsKey = "reader.md.positions"
@@ -117,6 +118,14 @@ enum Settings {
     }
     static func saveRecents(_ paths: [String]) {
         defaults.set(paths, forKey: recentsKey)
+    }
+
+    // Favorites: user-pinned files, in the order they were pinned (or dragged).
+    static func loadFavorites() -> [String] {
+        defaults.stringArray(forKey: favoritesKey) ?? []
+    }
+    static func saveFavorites(_ paths: [String]) {
+        defaults.set(paths, forKey: favoritesKey)
     }
 
     // Reading positions: path -> scroll fraction (0...1)

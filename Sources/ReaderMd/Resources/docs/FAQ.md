@@ -35,6 +35,14 @@ there's nothing to edit — the help pages, `reader -` input, and remote folders
 the folder path too). Start the query with `>` to run a command, or `#` to jump
 to a heading in the document you're reading.
 
+**Can I pin the files I keep coming back to?**
+Yes — **Favorites**. Click the star that appears when you hover a file in the
+sidebar, right-click any file → **Add to Favorites**, or press ⌘D for the open
+document. Pinned files sit in a **FAVORITES** section in the sidebar, below
+Recents and above your folders, and stay there until you unpin them — drag to
+reorder, and the hover **×** (or the context menu) removes one. Recents churns as you read;
+Favorites don't. The bundled help pages and `reader -` documents can't be pinned.
+
 **Where's the document outline?**
 Toggle it with ⇧⌘B. It tracks your scroll position and clicking a heading jumps
 to it.
@@ -72,7 +80,8 @@ being cut off at the edge. Links stay clickable in either layout.
 
 **How do I search within a document?**
 Find in Page (⌘F) highlights every match and shows a live "N of M" count; step
-through matches with ⌘G / ⇧⌘G. To filter the file list in the sidebar, use ⇧⌘F.
+through matches with the ⌃/⌄ chevrons beside the count, ⌘G / ⇧⌘G, or ⌘↩ / ⇧⌘↩.
+To filter the file list in the sidebar, use ⇧⌘F.
 
 ## Git
 
@@ -82,9 +91,12 @@ sidebar (`M`, `A`, `?`, `U`), and ⇧⌘D shows the document as a side-by-side d
 with the outline listing hunks instead of headings.
 
 **What can I diff against?**
-The menu beside the diff button picks: **Unstaged**, **Staged**, **All** (since
-the last commit), or any branch in the repo — "vs main" compares your working
-copy, uncommitted edits included, against that branch's tip.
+The button beside the diff toggle names what you're comparing against and opens
+a popover to change it: **Unstaged**, **Staged**, **All** (since the last
+commit), or any branch in the repo — "vs main" compares your working copy,
+uncommitted edits included, against that branch's tip. In a repo with many
+branches the popover has a filter field, so you can type part of a branch name
+instead of scrolling for it.
 
 ## Remote folders
 
