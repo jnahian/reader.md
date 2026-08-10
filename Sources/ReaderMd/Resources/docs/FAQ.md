@@ -67,7 +67,8 @@ to the file, but are lost if the file is renamed or moved.
 control in the save dialog picks **Page by Page** — real pages at your system
 paper size, the default — or **Continuous**, one long page. The last choice is
 remembered. Paginated pages take the reading theme's paper color, so dark
-documents export as dark pages.
+documents export as dark pages, and long code lines wrap to the page instead of
+being cut off at the edge. Links stay clickable in either layout.
 
 **How do I search within a document?**
 Find in Page (⌘F) highlights every match and shows a live "N of M" count; step

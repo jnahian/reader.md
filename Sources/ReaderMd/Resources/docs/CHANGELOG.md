@@ -10,9 +10,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **Page-by-page PDF export.** The ⌘E save dialog now has a Layout control:
   **Page by Page** (the default) paginates the document onto real pages at your
-  system paper size, with diagrams and images kept whole across page breaks and
-  the page painted in the reading theme's color; **Continuous** keeps the old
-  single long page. Your last choice is remembered.
+  system paper size, with diagrams and images kept whole across page breaks,
+  long code lines wrapped rather than cut off at the page edge, and the page
+  painted in the reading theme's color; **Continuous** keeps the old single long
+  page. Links stay clickable either way. Your last choice is remembered.
 
 ### Changed
 
