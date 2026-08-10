@@ -83,7 +83,7 @@ export const featureRows: FeatureRow[] = [
   },
   {
     name: "Quick open & find",
-    body: "⌘P fuzzy file switcher across all roots, ⇧⌘F live tree filter, and ⌘F native in-page find with match highlighting (⌘G / ⇧⌘G for next/prev).",
+    body: "⌘P fuzzy file switcher across all roots, ⇧⌘F live tree filter, and ⌘F native in-page find with match highlighting — step matches with the chevrons beside the count, ⌘G / ⇧⌘G, or ⌘↩ / ⇧⌘↩.",
   },
   {
     name: "Outline",
@@ -133,7 +133,7 @@ export const shortcuts: Shortcut[] = [
   { action: "Add remote folder", keys: "⌥⌘A" },
   { action: "Find in page", keys: "⌘F" },
   { action: "Filter files", keys: "⇧⌘F" },
-  { action: "Find next / previous", keys: "⌘G / ⇧⌘G" },
+  { action: "Find next / previous", keys: "⌘G / ⇧⌘G or ⌘↩ / ⇧⌘↩" },
   { action: "Back / forward", keys: "⌘[ / ⌘]" },
   { action: "Toggle sidebar", keys: "⌘B" },
   { action: "Toggle outline", keys: "⇧⌘B" },

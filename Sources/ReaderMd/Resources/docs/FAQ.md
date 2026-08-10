@@ -75,7 +75,8 @@ to the file, but are lost if the file is renamed or moved.
 
 **How do I search within a document?**
 Find in Page (⌘F) highlights every match and shows a live "N of M" count; step
-through matches with ⌘G / ⇧⌘G. To filter the file list in the sidebar, use ⇧⌘F.
+through matches with the ⌃/⌄ chevrons beside the count, ⌘G / ⇧⌘G, or ⌘↩ / ⇧⌘↩.
+To filter the file list in the sidebar, use ⇧⌘F.
 
 ## Git
 
