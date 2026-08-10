@@ -26,8 +26,8 @@
 | Shortcut | Action |
 | --- | --- |
 | ⌘F | Find in Page |
-| ⌘G | Find Next |
-| ⇧⌘G | Find Previous |
+| ⌘G or ⌘↩ | Find Next |
+| ⇧⌘G or ⇧⌘↩ | Find Previous |
 | ⎋ | Clear the find field |
 | ⇧⌘F | Filter Files (sidebar) |
 
