@@ -22,9 +22,38 @@ export interface Release {
 
 export const releasesLog: Release[] = [
   {
+    version: "1.16.0",
+    date: "Aug 11, 2026",
+    badge: "LATEST",
+    groups: [
+      {
+        tag: "ADDED",
+        items: [
+          "<strong>Page-by-page PDF export</strong> — the ⌘E save dialog has a Layout control. <strong>Page by Page</strong> (the new default) paginates the document onto real pages at your system paper size, keeping diagrams and images whole across page breaks, wrapping long code lines rather than cutting them off at the page edge, and painting the page in the reading theme's color. <strong>Continuous</strong> keeps the old single long page. Links stay clickable either way, and your last choice is remembered.",
+          "<strong>Step find matches from the toolbar</strong> — the find field now has up/down chevrons beside the \"N of M\" count that jump to the previous/next match, and ⌘↩ / ⇧⌘↩ step the matches as aliases for ⌘G / ⇧⌘G — so you can walk the results without leaving the search field.",
+          "<strong>Favorites in the sidebar</strong> — pin the files you keep coming back to and they sit in a <strong>FAVORITES</strong> section between Recents and your folders, in the order you arranged them. Star a file from its hover control in the tree, from any file's context menu, with ⌘D for the open document, or from the ⌘P palette; drag to reorder, hover <strong>×</strong> to unpin. Recents churns as you read; Favorites stay until you remove them, and a pinned file drops out of Recents so opening it never looks like it left the list.",
+        ],
+      },
+      {
+        tag: "IMPROVED",
+        items: [
+          "<strong>Canvas width has its own topbar button</strong> — the width picker (formerly \"Column Width\") moved out of the text-size menu into a dedicated ↔ button, and is now called <strong>Canvas Width</strong> everywhere. Wide is the new default for fresh installs; an existing choice is kept.",
+          "<strong>Picking what to diff against is a popover now</strong> — the topbar's scope control replaces its pull-down menu. It names the current scope on the button, groups the branches under their own scrolling section, filters them by name in repos with many branches, and opens scrolled to the branch you're comparing against.",
+        ],
+      },
+      {
+        tag: "FIXED",
+        items: [
+          "<strong>Opening a folder no longer shows a blank pane</strong> — file-URL opens (<code>open -a Reader.md.app ~/docs</code>, dropping a folder on the app icon, <code>reader open</code>) and Recents taps now route directories into the sidebar as roots the same way <strong>Add Folder</strong> does, and the sidebar reveals itself if it was collapsed. Stale folder paths already in Recents or Favorites are dropped on launch.",
+          "<strong>Links to files with spaces in the name open again</strong> — a relative link such as <code>[notes](&lt;My Note.md&gt;)</code> reaches the app percent-encoded; it now resolves to the real file instead of opening an empty document.",
+          "<strong>Tooltips no longer stay on screen after you click</strong> — a hover bubble hung around once the click landed, and one that opened a menu or popover could strand it there entirely. Clicking now dismisses it.",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.15.0",
     date: "Aug 1, 2026",
-    badge: "LATEST",
     groups: [
       {
         tag: "ADDED",
