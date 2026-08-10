@@ -324,11 +324,13 @@ final class AppState: ObservableObject {
         contentWidth = Settings.loadContentWidth()
         showSidebar = Settings.loadShowSidebar()
         sidebarWidth = Settings.loadSidebarWidth()
-        // Drop help-doc paths saved by builds that recorded them.
-        recentFiles = Settings.loadRecents().filter { !Self.isBundledDoc(URL(fileURLWithPath: $0)) }
-        // Not pruned to files that still exist, unlike positions: a favorite on an
+        // Drop help-doc paths and directories. Folder paths land in both lists when
+        // a file-URL open (`open -a`) used to treat them as documents — clicking one
+        // then opened a blank pane. See `openPath` / `onOpenURL`. Neither list is
+        // pruned to files that still exist, unlike positions: an entry on an
         // unmounted volume should come back with the volume, not vanish silently.
-        favoriteFiles = Settings.loadFavorites()
+        recentFiles = Settings.loadRecents().filter { Self.shouldKeepListed($0) }
+        favoriteFiles = Settings.loadFavorites().filter { Self.shouldKeepListed($0) }
         showResolvedThreads = Settings.loadShowResolvedThreads()
         editorBundleID = Settings.loadEditorBundleID()
         editorDisplayName = editorBundleID
@@ -524,6 +526,11 @@ final class AppState: ObservableObject {
 
     /// Add a folder dropped onto the window.
     func addDroppedFolder(_ url: URL) {
+        // Reveal the sidebar first: `addRoot` no-ops on a folder that's already a
+        // root, so with the sidebar collapsed the whole gesture would look inert.
+        // Persisted like the toggle, or the state would silently revert next launch.
+        showSidebar = true
+        Settings.saveShowSidebar(true)
         addRoot(url, persist: true)
     }
 
@@ -762,8 +769,21 @@ final class AppState: ObservableObject {
             forwardStack.removeAll()
         }
         setCurrent(node)
-        // Help docs are app resources, not the user's documents — keep them out of recents.
-        if !Self.isBundledDoc(node.url), !Self.isStdinTemp(node.url) { pushRecent(node.url.path) }
+        // Help docs / stdin temps / directories aren't documents worth remembering.
+        if !node.isDirectory, !Self.isBundledDoc(node.url), !Self.isStdinTemp(node.url) {
+            pushRecent(node.url.path)
+        }
+    }
+
+    /// Recents and Favorites are file lists. Bundled help docs and directories (left
+    /// over from an older file-URL open path) don't belong in either.
+    nonisolated static func shouldKeepListed(_ path: String) -> Bool {
+        if isBundledDoc(URL(fileURLWithPath: path)) { return false }
+        var isDir: ObjCBool = false
+        if FileManager.default.fileExists(atPath: path, isDirectory: &isDir), isDir.boolValue {
+            return false
+        }
+        return true
     }
 
     /// True for anything inside the app's own resource bundle — the help docs
@@ -792,8 +812,31 @@ final class AppState: ObservableObject {
         refreshDiff()
     }
 
+    /// Open a path from Recents, a relative link, or a file URL. Folders become
+    /// roots (same as a drop) instead of opening as a blank document; everything
+    /// else opens as a file — including paths that no longer exist, so a stale
+    /// recent still selects and can be removed rather than silently doing nothing.
     func openPath(_ path: String) {
-        open(FileNode(url: URL(fileURLWithPath: path), isDirectory: false))
+        let resolved = Self.resolvedPath(path)
+        var isDir: ObjCBool = false
+        if FileManager.default.fileExists(atPath: resolved, isDirectory: &isDir), isDir.boolValue {
+            addDroppedFolder(URL(fileURLWithPath: resolved))
+        } else {
+            open(FileNode(url: URL(fileURLWithPath: resolved), isDirectory: false))
+        }
+    }
+
+    /// marked runs `encodeURI` on hrefs, so a link to `My Note.md` reaches us as
+    /// `My%20Note.md`. Try the literal path first: that encoding isn't reversible
+    /// (it leaves a real `%` alone), so a file actually named `a%20b.md` has to win
+    /// over the decoded spelling. Recents and file URLs arrive decoded already.
+    nonisolated static func resolvedPath(_ path: String) -> String {
+        let fm = FileManager.default
+        if !fm.fileExists(atPath: path), let decoded = path.removingPercentEncoding,
+           decoded != path, fm.fileExists(atPath: decoded) {
+            return decoded
+        }
+        return path
     }
 
     /// Open a bundled help document (FAQ / SHORTCUTS / CHANGELOG) in the reader.
@@ -884,9 +927,10 @@ final class AppState: ObservableObject {
 
     /// A file can be pinned unless it isn't really the user's document: the
     /// bundled help docs and piped `reader -` temporaries are both transient in a
-    /// way a pin implies they aren't — same rule that keeps them out of Recents.
+    /// way a pin implies they aren't — same rule that keeps them out of Recents,
+    /// which also rules out folders (a pinned row opens as a document).
     nonisolated static func canFavorite(_ url: URL) -> Bool {
-        !isBundledDoc(url) && !isStdinTemp(url)
+        shouldKeepListed(url.path) && !isStdinTemp(url)
     }
 
     /// New favorites append rather than insert: a pinned list that reshuffled on

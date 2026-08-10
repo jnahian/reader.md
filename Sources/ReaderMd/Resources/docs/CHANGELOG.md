@@ -38,6 +38,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   their own scrolling section, filters them by name in repos with many
   branches, and opens scrolled to the branch you're comparing against.
 
+### Fixed
+
+- **Opening a folder no longer shows a blank pane.** File-URL opens
+  (`open -a Reader.md.app ~/docs`, dropping a folder on the app icon, `reader open`)
+  and Recents taps now route directories into the sidebar as roots the same way
+  **Add Folder** does, instead of treating them as markdown documents — and the
+  sidebar reveals itself if it was collapsed. Stale folder paths already in Recents
+  or Favorites are dropped on launch, and a folder can no longer be pinned.
+- **Links to files with spaces in the name open again.** A relative link such as
+  `[notes](<My Note.md>)` reaches the app percent-encoded; it now resolves to the
+  real file instead of opening an empty document.
+
 ## [1.15.0] - 2026-08-01
 
 ### Added
