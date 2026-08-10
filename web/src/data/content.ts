@@ -91,7 +91,7 @@ export const featureRows: FeatureRow[] = [
   },
   {
     name: "Typography",
-    body: 'Font size (⌘+ / ⌘− / ⌘0) and a narrow / wide / full-width reading column (⇧⌘\\), both persisted.',
+    body: 'Font size (⌘+ / ⌘− / ⌘0) and a narrow / wide / full-width canvas (⇧⌘\\, wide by default), both persisted.',
   },
   {
     name: "Rendering",
@@ -115,7 +115,7 @@ export const featureRows: FeatureRow[] = [
   },
   {
     name: "Live reload & export",
-    body: "The open file re-renders (scroll preserved) and the tree refreshes on disk changes. Export to PDF (⌘E), manual reload (⌘R), and Sparkle auto-update.",
+    body: "The open file re-renders (scroll preserved) and the tree refreshes on disk changes. Export to PDF (⌘E) — page-by-page or continuous — manual reload (⌘R), and Sparkle auto-update.",
   },
 ];
 
@@ -139,7 +139,7 @@ export const shortcuts: Shortcut[] = [
   { action: "Toggle outline", keys: "⇧⌘B" },
   { action: "Toggle diff", keys: "⇧⌘D" },
   { action: "Text bigger / smaller / reset", keys: "⌘+ / ⌘− / ⌘0" },
-  { action: "Column width", keys: "⇧⌘\\" },
+  { action: "Canvas width", keys: "⇧⌘\\" },
   { action: "Open in editor", keys: "⇧⌘E" },
   { action: "Export PDF", keys: "⌘E" },
   { action: "Reload", keys: "⌘R" },

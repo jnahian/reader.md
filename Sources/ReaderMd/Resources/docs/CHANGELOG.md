@@ -6,14 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Changed
-
-- The diff scope control in the topbar is now a popover instead of a pull-down
-  menu. It names the current scope on the button, groups the branches under
-  their own scrolling section, filters them by name in repos with many
-  branches, and opens scrolled to the branch you're comparing against.
 ### Added
 
+- **Page-by-page PDF export.** The ⌘E save dialog now has a Layout control:
+  **Page by Page** (the default) paginates the document onto real pages at your
+  system paper size, with diagrams and images kept whole across page breaks,
+  long code lines wrapped rather than cut off at the page edge, and the page
+  painted in the reading theme's color; **Continuous** keeps the old single long
+  page. Links stay clickable either way. Your last choice is remembered.
 - **Step find matches from the toolbar.** The find field now has up/down chevrons
   beside the "N of M" count that jump to the previous/next match, and ⌘↩ / ⇧⌘↩
   step the matches as aliases for ⌘G / ⇧⌘G — so you can walk the results without
@@ -26,6 +26,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   churns as you read; Favorites stay until you remove them. The bundled help
   pages and piped `reader -` documents aren't pinnable, the same way they stay
   out of Recents.
+
+### Changed
+
+- **Canvas width has its own topbar button.** The width picker (formerly
+  "Column Width") moved out of the text-size menu into a dedicated ↔ button,
+  and is now called **Canvas Width** everywhere. Wide is the new default for
+  fresh installs; an existing choice is kept.
+- The diff scope control in the topbar is now a popover instead of a pull-down
+  menu. It names the current scope on the button, groups the branches under
+  their own scrolling section, filters them by name in repos with many
+  branches, and opens scrolled to the branch you're comparing against.
 
 ## [1.15.0] - 2026-08-01
 

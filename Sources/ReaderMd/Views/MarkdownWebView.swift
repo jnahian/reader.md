@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import WebKit
+import PDFKit
 import UniformTypeIdentifiers
 
 extension Bundle {
@@ -80,6 +81,12 @@ struct MarkdownWebView: NSViewRepresentable {
 
     func makeNSView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
+        // Paginated ⌘E export prints; printing drops CSS backgrounds unless
+        // asked not to. 13.3+ only — on 13.0–13.2 page-by-page exports print
+        // on white, accepted per the design spec.
+        if #available(macOS 13.3, *) {
+            config.preferences.shouldPrintBackgrounds = true
+        }
         let controller = WKUserContentController()
         let messageNames = ["ready", "toc", "activeHeading", "openExternal", "openFile", "wordCount", "progress",
                              "rendered", "textSelected", "markClicked", "marksApplied", "findResult",
@@ -463,37 +470,178 @@ struct MarkdownWebView: NSViewRepresentable {
         // MARK: Export
 
         func exportPDF() {
-            guard let webView else { return }
-            // Find highlights and diagram zoom would both bake into the PDF.
-            // beforeExport() resets them; wait for that JS to finish (completion
-            // handler), snapshot, then afterExport() puts them back. Both halves
-            // no-op when nothing is active, so there is no state to branch on here.
-            webView.evaluateJavaScript("window.ReaderMd.beforeExport();") { [weak self] _, _ in
-                self?.generatePDF()
-            }
+            // The export token lands here from inside updateNSView — a SwiftUI
+            // render pass. The save panel's accessory view never attaches when
+            // runModal starts there (the remote panel boots without it), so the
+            // panel has to wait a tick — same reason ⌘F defers its focus grab.
+            DispatchQueue.main.async { [weak self] in self?.presentExportPanel() }
         }
 
-        private func generatePDF() {
+        private func presentExportPanel() {
             guard let webView else { return }
-            webView.createPDF(configuration: WKPDFConfiguration()) { [weak self] result in
-                // afterExport() restores the exact find match the user was on;
-                // find() would scroll them back to match 1 as a side effect of
-                // exporting.
-                self?.webView?.evaluateJavaScript("window.ReaderMd.afterExport();")
-                guard case let .success(data) = result else { return }
-                Task { @MainActor in self?.savePDF(data) }
-            }
-        }
 
-        @MainActor
-        private func savePDF(_ data: Data) {
+            // Panel first (it now carries the layout choice), render after.
+            // Cancel ends here — beforeExport() hasn't run, nothing to restore.
             let panel = NSSavePanel()
             panel.allowedContentTypes = [.pdf]
             let base = (loadedPath as NSString?)?.lastPathComponent ?? "document"
             panel.nameFieldStringValue = (base as NSString).deletingPathExtension + ".pdf"
-            if panel.runModal() == .OK, let url = panel.url {
+
+            let picker = NSPopUpButton(frame: .zero, pullsDown: false)
+            picker.addItems(withTitles: ExportLayout.allCases.map(\.displayName))
+            picker.selectItem(at: ExportLayout.allCases.firstIndex(of: Settings.loadExportLayout()) ?? 0)
+            let row = NSStackView(views: [NSTextField(labelWithString: "Layout:"), picker])
+            row.orientation = .horizontal
+            row.edgeInsets = NSEdgeInsets(top: 10, left: 20, bottom: 10, right: 0)
+            // The panel doesn't lay out its accessory — a zero-sized view
+            // silently doesn't appear.
+            row.setFrameSize(row.fittingSize)
+            panel.accessoryView = row
+
+            guard panel.runModal() == .OK, let url = panel.url else { return }
+            let layout = ExportLayout.allCases[picker.indexOfSelectedItem]
+            Settings.saveExportLayout(layout)
+
+            // Find highlights and diagram zoom would both bake into the PDF.
+            // beforeExport() resets them; wait for that JS to finish, render,
+            // then endExport() puts them back. Both halves no-op when nothing
+            // is active, so there is no state to branch on here.
+            activeExports += 1
+            webView.evaluateJavaScript("window.ReaderMd.beforeExport();") { [weak self] _, _ in
+                switch layout {
+                case .continuous: self?.exportContinuous(to: url)
+                case .pageByPage: self?.exportPaginated(to: url)
+                }
+            }
+        }
+
+        /// Exports that have run beforeExport() and not yet finished rendering.
+        /// The find highlights and diagram zoom are document-wide, so they can
+        /// only be restored once the last one is done — ⌘E is live again while
+        /// an export renders, and restoring after the first would bake the
+        /// highlights into a second export still in flight.
+        private var activeExports = 0
+
+        private func endExport() {
+            activeExports -= 1
+            // Restores the exact find match the user was on; find() would scroll
+            // them back to match 1 as a side effect of exporting.
+            if activeExports == 0 { webView?.evaluateJavaScript("window.ReaderMd.afterExport();") }
+        }
+
+        private func exportContinuous(to url: URL) {
+            guard let webView else { return endExport() }
+            webView.createPDF(configuration: WKPDFConfiguration()) { [weak self] result in
+                self?.endExport()
+                guard case let .success(data) = result else { return }
                 try? data.write(to: url)
             }
+        }
+
+        /// Carried through the print operation's `contextInfo` so concurrent
+        /// exports don't share one slot: ⌘E is live again the moment
+        /// `runModal(for:)` returns, so a second export can start before the
+        /// first finishes painting.
+        private final class PendingExport {
+            let url: URL
+            let pageColor: CGColor?
+            init(url: URL, pageColor: CGColor?) {
+                self.url = url
+                self.pageColor = pageColor
+            }
+        }
+
+        private func exportPaginated(to url: URL) {
+            guard let webView else { return endExport() }
+            // The print engine leaves the paper margins unpainted, which reads
+            // as a white frame around any non-white theme. Fetch the document
+            // background so the finished PDF can be repainted edge to edge.
+            webView.evaluateJavaScript("getComputedStyle(document.body).backgroundColor") { [weak self] result, _ in
+                self?.runPrintOperation(to: url, pageColor: Self.cssColor(result as? String))
+            }
+        }
+
+        private func runPrintOperation(to url: URL, pageColor: CGColor?) {
+            // Nothing to print into: beforeExport() has already stripped the find
+            // highlights and diagram zoom, so endExport() has to put them back.
+            guard let webView, let window = webView.window else { return endExport() }
+            let info = NSPrintInfo()   // copies the shared defaults: system paper size + margins
+            info.jobDisposition = .save
+            info.dictionary()[NSPrintInfo.AttributeKey.jobSavingURL] = url
+
+            let op = webView.printOperation(with: info)
+            op.showsPrintPanel = false
+            op.showsProgressPanel = false
+            // WKWebView's print view starts zero-sized and prints blank pages
+            // unless given a frame before the run.
+            op.view?.frame = webView.bounds
+            // WKWebView print operations only work through runModal(for:...) —
+            // a bare run() silently produces nothing. Panels are hidden, so
+            // nothing modal is actually shown.
+            let pending = PendingExport(url: url, pageColor: pageColor)
+            op.runModal(for: window, delegate: self,
+                        didRun: #selector(printOperationDidRun(_:success:contextInfo:)),
+                        contextInfo: Unmanaged.passRetained(pending).toOpaque())
+        }
+
+        @objc private func printOperationDidRun(_ printOperation: NSPrintOperation,
+                                                success: Bool,
+                                                contextInfo: UnsafeMutableRawPointer?) {
+            endExport()
+            guard let contextInfo else { return }
+            let pending = Unmanaged<PendingExport>.fromOpaque(contextInfo).takeRetainedValue()
+            if success, let color = pending.pageColor {
+                Self.paintPageBackground(url: pending.url, color: color)
+            }
+        }
+
+        /// "rgb(13, 17, 23)" / "rgba(…)" → CGColor. Nil for anything else,
+        /// including a fully transparent background (nothing worth painting).
+        private static func cssColor(_ css: String?) -> CGColor? {
+            guard let css else { return nil }
+            let nums = css.split(whereSeparator: { !"0123456789.".contains($0) })
+                .compactMap { Double($0) }
+            guard nums.count >= 3 else { return nil }
+            if nums.count >= 4, nums[3] == 0 { return nil }
+            return CGColor(srgbRed: nums[0] / 255, green: nums[1] / 255, blue: nums[2] / 255, alpha: 1)
+        }
+
+        /// Rewrite the PDF with `color` filled under every page, so the paper
+        /// margins match the theme instead of staying printer-white. (The print
+        /// engine paints the CSS background only inside the page area; neither
+        /// canvas propagation nor `@page { background }` reaches the margins.)
+        private static func paintPageBackground(url: URL, color: CGColor) {
+            guard let data = try? Data(contentsOf: url),
+                  let provider = CGDataProvider(data: data as CFData),
+                  let doc = CGPDFDocument(provider), doc.numberOfPages > 0,
+                  let firstPage = doc.page(at: 1) else { return }
+            // drawPDFPage copies a page's content stream but not its /Annots,
+            // so the rewrite alone would kill every link in the document. Lift
+            // the annotations off the original before it's overwritten and
+            // re-attach them below; moving the objects (rather than rebuilding
+            // them) keeps internal heading jumps as well as external URLs.
+            let links = PDFDocument(data: data).map { source in
+                (0..<source.pageCount).map { source.page(at: $0)?.annotations ?? [] }
+            } ?? []
+
+            var mediaBox = firstPage.getBoxRect(.mediaBox)
+            guard let ctx = CGContext(url as CFURL, mediaBox: &mediaBox, nil) else { return }
+            for i in 1...doc.numberOfPages {
+                guard let page = doc.page(at: i) else { continue }
+                ctx.beginPDFPage(nil)
+                ctx.setFillColor(color)
+                ctx.fill(page.getBoxRect(.mediaBox))
+                ctx.drawPDFPage(page)
+                ctx.endPDFPage()
+            }
+            ctx.closePDF()
+
+            guard links.contains(where: { !$0.isEmpty }),
+                  let painted = PDFDocument(url: url) else { return }
+            for (i, annotations) in links.enumerated() where i < painted.pageCount {
+                for annotation in annotations { painted.page(at: i)?.addAnnotation(annotation) }
+            }
+            painted.write(to: url)
         }
 
         /// JSON-encode a string into a safe JS string literal.

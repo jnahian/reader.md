@@ -54,7 +54,7 @@ Yes. Mermaid fenced code blocks render as diagrams, and LaTeX (`$…$` /
 **Can I change the theme or text size?**
 Light/dark follows the toggle in the topbar, which also picks a reading theme —
 Standard, Editorial, or Terminal. Text size is ⌘+ / ⌘- / ⌘0, and
-**View → Column Width** picks Narrow, Wide, or Full Width (⇧⌘\ cycles them). Full Width fills the window, so wide tables stop scrolling sideways.
+**View → Canvas Width** picks Narrow, Wide (the default), or Full Width (⇧⌘\ cycles them). Full Width fills the window, so wide tables stop scrolling sideways.
 
 In the Standard theme, links and heading anchors use the accent color you picked
 in System Settings, and follow it when you change it. Editorial and Terminal keep
@@ -71,7 +71,12 @@ to the file, but are lost if the file is renamed or moved.
 ## Exporting & searching
 
 **How do I export to PDF?**
-**File → Export as PDF…** (⌘E) renders the current document to PDF.
+**File → Export as PDF…** (⌘E) renders the current document to PDF. A **Layout**
+control in the save dialog picks **Page by Page** — real pages at your system
+paper size, the default — or **Continuous**, one long page. The last choice is
+remembered. Paginated pages take the reading theme's paper color, so dark
+documents export as dark pages, and long code lines wrap to the page instead of
+being cut off at the edge. Links stay clickable in either layout.
 
 **How do I search within a document?**
 Find in Page (⌘F) highlights every match and shows a live "N of M" count; step

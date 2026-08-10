@@ -39,9 +39,10 @@ private struct ReaderToolbar: ViewModifier {
                     OrphanedMarksBadge()
                 }
 
-                // View: typography + outline.
+                // View: reading style + canvas width + outline.
                 ToolbarItemGroup(placement: .primaryAction) {
-                    typographyMenu
+                    readingStyleMenu
+                    canvasWidthMenu
 
                     if !state.toc.isEmpty {
                         Button { state.setShowTOC(!state.showTOC) } label: {
@@ -111,7 +112,7 @@ private struct ReaderToolbar: ViewModifier {
         }
     }
 
-    private var typographyMenu: some View {
+    private var readingStyleMenu: some View {
         Menu {
             Picker("Theme", selection: Binding(
                 get: { state.readingTheme },
@@ -123,12 +124,21 @@ private struct ReaderToolbar: ViewModifier {
             }
             .pickerStyle(.inline)
 
-            Divider()
-            Button("Increase Text  ⌘+") { state.adjustFontScale(0.1) }
-            Button("Decrease Text  ⌘−") { state.adjustFontScale(-0.1) }
-            Button("Actual Size  ⌘0") { state.resetFontScale() }
-            Divider()
-            Picker("Column Width", selection: Binding(
+            Section("Text Size") {
+                Button("Increase Text (⌘+)") { state.adjustFontScale(0.1) }
+                Button("Decrease Text (⌘−)") { state.adjustFontScale(-0.1) }
+                Button("Actual Size (⌘0)") { state.resetFontScale() }
+            }
+        } label: {
+            Image(systemName: "textformat.size")
+        }
+        .menuIndicator(.hidden)
+        .dockTooltip("Reading style")
+    }
+
+    private var canvasWidthMenu: some View {
+        Menu {
+            Picker("Canvas Width", selection: Binding(
                 get: { state.contentWidth },
                 set: { state.setContentWidth($0) }
             )) {
@@ -138,10 +148,10 @@ private struct ReaderToolbar: ViewModifier {
             }
             .pickerStyle(.inline)
         } label: {
-            Image(systemName: "textformat.size")
+            Image(systemName: "arrow.left.and.right")
         }
         .menuIndicator(.hidden)
-        .dockTooltip("Text size & width")
+        .dockTooltip("Canvas width (⇧⌘\\)")
     }
 
     /// Search stays inline in the toolbar, like Preview. Enter finds the next

@@ -39,6 +39,7 @@ private struct TooltipTracker: NSViewRepresentable {
 final class TrackerNSView: NSView {
     var text: String = ""
     private var timer: Timer?
+    private var clickMonitor: Any?
 
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
@@ -55,9 +56,26 @@ final class TrackerNSView: NSView {
         timer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: false) { [weak self] _ in
             MainActor.assumeIsolated { self?.showTooltip() }
         }
+        // A click should dismiss the bubble (and cancel a pending one), but the
+        // click lands on the control itself, never on this background view — and
+        // if it opens a menu or popover, the mouseExited may never arrive. Watch
+        // for it with a monitor scoped to the hover.
+        if clickMonitor == nil {
+            clickMonitor = NSEvent.addLocalMonitorForEvents(
+                matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+            ) { [weak self] event in
+                MainActor.assumeIsolated {
+                    self?.timer?.invalidate()
+                    self?.timer = nil
+                    TooltipController.shared.hide()
+                }
+                return event
+            }
+        }
     }
 
     override func mouseExited(with event: NSEvent) {
+        removeClickMonitor()
         timer?.invalidate()
         timer = nil
         TooltipController.shared.hide()
@@ -69,10 +87,16 @@ final class TrackerNSView: NSView {
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         if window == nil {
+            removeClickMonitor()
             timer?.invalidate()
             timer = nil
             TooltipController.shared.hideIfOwner(self)
         }
+    }
+
+    private func removeClickMonitor() {
+        if let clickMonitor { NSEvent.removeMonitor(clickMonitor) }
+        clickMonitor = nil
     }
 
     private func showTooltip() {
@@ -81,7 +105,10 @@ final class TrackerNSView: NSView {
         TooltipController.shared.show(text: text, anchorScreenFrame: screenFrame, owner: self)
     }
 
-    deinit { timer?.invalidate() }
+    deinit {
+        timer?.invalidate()
+        if let clickMonitor { NSEvent.removeMonitor(clickMonitor) }
+    }
 }
 
 // MARK: - Shared floating panel
