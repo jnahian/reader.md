@@ -95,6 +95,24 @@ enum ContentWidth: String, CaseIterable {
     }
 }
 
+/// How ⌘E lays out the PDF: real pages via the print engine, or one
+/// continuous page the height of the whole document.
+enum ExportLayout: String, CaseIterable {
+    case pageByPage, continuous
+
+    var displayName: String {
+        switch self {
+        case .pageByPage: return "Page by Page"
+        case .continuous: return "Continuous"
+        }
+    }
+
+    /// Absent or unrecognized persisted values fall back to the default.
+    static func named(_ raw: String?) -> ExportLayout {
+        raw.flatMap(ExportLayout.init(rawValue:)) ?? .pageByPage
+    }
+}
+
 /// A heading in the currently open document, used for the outline. In diff mode
 /// the same type carries one entry per hunk instead, with `detail` holding the
 /// hunk's counts.

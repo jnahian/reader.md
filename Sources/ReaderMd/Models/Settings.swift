@@ -18,6 +18,7 @@ enum Settings {
     private static let diffModeKey = "reader.md.diffMode"
     private static let diffScopeKey = "reader.md.diffScope"
     private static let editorBundleIDKey = "reader.md.editorBundleID"
+    private static let exportLayoutKey = "reader.md.exportLayout"
 
     private static var defaults: UserDefaults { .standard }
 
@@ -55,6 +56,14 @@ enum Settings {
     }
     static func saveReadingTheme(_ theme: ReadingTheme) {
         defaults.set(theme.rawValue, forKey: readingThemeKey)
+    }
+
+    // Export
+    static func loadExportLayout() -> ExportLayout {
+        ExportLayout.named(defaults.string(forKey: exportLayoutKey))
+    }
+    static func saveExportLayout(_ value: ExportLayout) {
+        defaults.set(value.rawValue, forKey: exportLayoutKey)
     }
 
     // Outline
