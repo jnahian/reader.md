@@ -260,6 +260,9 @@ final class AppState: ObservableObject {
     // Navigation history
     @Published private(set) var recentFiles: [String] = []
 
+    /// Pinned files, newest last — Recents churns as you read, Favorites don't.
+    @Published private(set) var favoriteFiles: [String] = []
+
     /// Saved scroll fraction per file path. Not @Published — nothing in the UI
     /// renders it; it's read once at load time to resume the document.
     private var positions: [String: Double] = [:]
@@ -305,6 +308,9 @@ final class AppState: ObservableObject {
         sidebarWidth = Settings.loadSidebarWidth()
         // Drop help-doc paths saved by builds that recorded them.
         recentFiles = Settings.loadRecents().filter { !Self.isBundledDoc(URL(fileURLWithPath: $0)) }
+        // Not pruned to files that still exist, unlike positions: a favorite on an
+        // unmounted volume should come back with the volume, not vanish silently.
+        favoriteFiles = Settings.loadFavorites()
         showResolvedThreads = Settings.loadShowResolvedThreads()
         editorBundleID = Settings.loadEditorBundleID()
         editorDisplayName = editorBundleID
@@ -850,6 +856,66 @@ final class AppState: ObservableObject {
     func clearRecents() {
         recentFiles = []
         Settings.saveRecents([])
+    }
+
+    // MARK: - Favorites
+
+    func isFavorite(_ path: String) -> Bool {
+        favoriteFiles.contains(path)
+    }
+
+    /// A file can be pinned unless it isn't really the user's document: the
+    /// bundled help docs and piped `reader -` temporaries are both transient in a
+    /// way a pin implies they aren't — same rule that keeps them out of Recents.
+    nonisolated static func canFavorite(_ url: URL) -> Bool {
+        !isBundledDoc(url) && !isStdinTemp(url)
+    }
+
+    /// New favorites append rather than insert: a pinned list that reshuffled on
+    /// every pin would lose the order the user arranged it in.
+    func addFavorite(_ path: String) {
+        guard Self.canFavorite(URL(fileURLWithPath: path)), !favoriteFiles.contains(path) else { return }
+        favoriteFiles.append(path)
+        Settings.saveFavorites(favoriteFiles)
+    }
+
+    func removeFavorite(_ path: String) {
+        guard favoriteFiles.contains(path) else { return }
+        favoriteFiles.removeAll { $0 == path }
+        Settings.saveFavorites(favoriteFiles)
+    }
+
+    func toggleFavorite(_ path: String) {
+        isFavorite(path) ? removeFavorite(path) : addFavorite(path)
+    }
+
+    /// Drag-reorder, matching how roots move. `to` is an insertion index in the
+    /// pre-move list, the way SwiftUI's `move(fromOffsets:toOffset:)` counts.
+    func moveFavorite(from: Int, to: Int) {
+        guard from != to, favoriteFiles.indices.contains(from),
+              to >= 0, to <= favoriteFiles.count else { return }
+        favoriteFiles.move(fromOffsets: IndexSet(integer: from), toOffset: to)
+        Settings.saveFavorites(favoriteFiles)
+    }
+
+    /// The open document, for the menu item and the ⌘P command.
+    var canFavoriteCurrentFile: Bool {
+        guard let url = selectedFile?.url else { return false }
+        return Self.canFavorite(url)
+    }
+
+    var currentFileIsFavorite: Bool {
+        guard let path = selectedFile?.url.path else { return false }
+        return isFavorite(path)
+    }
+
+    var favoriteMenuTitle: String {
+        currentFileIsFavorite ? "Remove from Favorites" : "Add to Favorites"
+    }
+
+    func toggleFavoriteCurrentFile() {
+        guard let path = selectedFile?.url.path else { return }
+        toggleFavorite(path)
     }
 
     // MARK: - External editor

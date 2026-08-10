@@ -83,6 +83,9 @@ struct ReaderMdApp: App {
                 .keyboardShortcut("a", modifiers: [.command, .option])
                 Button("Quick Open…") { state.showQuickOpen = true }
                     .keyboardShortcut("p", modifiers: .command)
+                Button(state.favoriteMenuTitle) { state.toggleFavoriteCurrentFile() }
+                    .keyboardShortcut("d", modifiers: .command)
+                    .disabled(!state.canFavoriteCurrentFile)
                 Divider()
                 Button(state.openInEditorTitle) {
                     if let url = state.selectedFile?.url { state.openInEditor(url) }

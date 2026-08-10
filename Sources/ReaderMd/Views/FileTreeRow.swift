@@ -20,6 +20,13 @@ struct FileTreeRow: View {
 
     private var isSelected: Bool { state.selectedFile?.id == node.id }
 
+    private var isFavorite: Bool { state.isFavorite(node.url.path) }
+
+    private func starColor(selected: Bool) -> Color {
+        if selected { return .white }
+        return isFavorite ? .accentColor : .secondary
+    }
+
     private func iconColor(selected: Bool) -> Color {
         if selected { return .white }
         return node.isDirectory ? .accentColor : .secondary
@@ -86,6 +93,10 @@ struct FileTreeRow: View {
                 OpenWithMenu(state: state, url: node.url)
                 Button("Reveal in Finder") { revealInFinder() }
                 Button("Copy Path") { copyPath() }
+                Divider()
+                Button(isFavorite ? "Remove from Favorites" : "Add to Favorites") {
+                    state.toggleFavorite(node.url.path)
+                }
             }
     }
 
@@ -116,6 +127,18 @@ struct FileTreeRow: View {
                 .foregroundStyle(selected ? Color.white : Color.primary)
                 .lineLimit(1)
             Spacer(minLength: 4)
+
+            // Files only, and only while hovered — except a pinned file, which
+            // keeps its star so the tree shows what's in Favorites.
+            if !node.isDirectory, hovering || isFavorite {
+                Button { state.toggleFavorite(node.url.path) } label: {
+                    Image(systemName: isFavorite ? "star.fill" : "star")
+                        .font(.system(size: 10))
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(starColor(selected: selected))
+                .dockTooltip(isFavorite ? "Remove from Favorites" : "Add to Favorites")
+            }
 
             if let badge {
                 Text(badge.rawValue)
