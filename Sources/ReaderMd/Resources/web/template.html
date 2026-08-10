@@ -262,6 +262,10 @@
       /* The print margins provide the page's whitespace — keeping the screen
          padding (40px sides, 160px scroll tail) would double it on paper. */
       .markdown-body { max-width: none; padding: 0; }
+      /* The page column is narrower than any canvas width, and a scrollbar is
+         no use on paper — long code lines wrap instead of being cut off at the
+         right edge. */
+      pre { white-space: pre-wrap; overflow-wrap: anywhere; }
       .mermaid, img { break-inside: avoid; }
       .mm-controls, .copy-btn, .anchor { display: none; }
     }
