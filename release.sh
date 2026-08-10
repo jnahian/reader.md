@@ -57,7 +57,8 @@ fi
 # download URL points at where gh will host it under this tag.
 STAGE="$(mktemp -d)"
 cp "${DMG}" "${STAGE}/"
-printf '%s\n' "${NOTES}" > "${STAGE}/${APP_NAME}.md"
+NOTES_FILE="${STAGE}/${APP_NAME}.md"
+printf '%s\n' "${NOTES}" > "${NOTES_FILE}"
 "${GEN}" --embed-release-notes \
   --download-url-prefix "https://github.com/${REPO}/releases/download/${TAG}/" "${STAGE}"
 cp "${STAGE}/appcast.xml" build/appcast.xml
@@ -74,9 +75,14 @@ grep -q "<description" build/appcast.xml || {
 
 # Create the release (or replace assets if the tag already exists). Must be the
 # newest, non-prerelease release so releases/latest/download/appcast.xml resolves.
-gh release create "${TAG}" "${DMG}" build/appcast.xml \
-    --repo "${REPO}" --title "${TAG}" --notes "Reader.md ${VERSION}" \
-  || gh release upload "${TAG}" "${DMG}" build/appcast.xml --repo "${REPO}" --clobber
+# The body is the same changelog section Sparkle's prompt embeds — a release page
+# that summarized itself as "Reader.md 1.2.0" told a reader nothing. Re-running
+# against an existing tag rewrites it too, since that's when the notes changed.
+if ! gh release create "${TAG}" "${DMG}" build/appcast.xml \
+       --repo "${REPO}" --title "${TAG}" --notes-file "${NOTES_FILE}"; then
+  gh release upload "${TAG}" "${DMG}" build/appcast.xml --repo "${REPO}" --clobber
+  gh release edit "${TAG}" --repo "${REPO}" --notes-file "${NOTES_FILE}"
+fi
 
 echo "Released ${TAG}: appcast.xml + ${APP_NAME}.dmg uploaded to ${REPO}."
 
