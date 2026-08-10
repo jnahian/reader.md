@@ -259,7 +259,9 @@
        controls, copy buttons, heading anchors) is hidden outright rather
        than trusted to be un-hovered. */
     @media print {
-      .markdown-body { max-width: none; }
+      /* The print margins provide the page's whitespace — keeping the screen
+         padding (40px sides, 160px scroll tail) would double it on paper. */
+      .markdown-body { max-width: none; padding: 0; }
       .mermaid, img { break-inside: avoid; }
       .mm-controls, .copy-btn, .anchor { display: none; }
     }

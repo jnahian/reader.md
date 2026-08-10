@@ -80,6 +80,12 @@ struct MarkdownWebView: NSViewRepresentable {
 
     func makeNSView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
+        // Paginated ⌘E export prints; printing drops CSS backgrounds unless
+        // asked not to. 13.3+ only — on 13.0–13.2 page-by-page exports print
+        // on white, accepted per the design spec.
+        if #available(macOS 13.3, *) {
+            config.preferences.shouldPrintBackgrounds = true
+        }
         let controller = WKUserContentController()
         let messageNames = ["ready", "toc", "activeHeading", "openExternal", "openFile", "wordCount", "progress",
                              "rendered", "textSelected", "markClicked", "marksApplied", "findResult",
@@ -463,17 +469,51 @@ struct MarkdownWebView: NSViewRepresentable {
         // MARK: Export
 
         func exportPDF() {
+            // The export token lands here from inside updateNSView — a SwiftUI
+            // render pass. The save panel's accessory view never attaches when
+            // runModal starts there (the remote panel boots without it), so the
+            // panel has to wait a tick — same reason ⌘F defers its focus grab.
+            DispatchQueue.main.async { [weak self] in self?.presentExportPanel() }
+        }
+
+        private func presentExportPanel() {
             guard let webView else { return }
+
+            // Panel first (it now carries the layout choice), render after.
+            // Cancel ends here — beforeExport() hasn't run, nothing to restore.
+            let panel = NSSavePanel()
+            panel.allowedContentTypes = [.pdf]
+            let base = (loadedPath as NSString?)?.lastPathComponent ?? "document"
+            panel.nameFieldStringValue = (base as NSString).deletingPathExtension + ".pdf"
+
+            let picker = NSPopUpButton(frame: .zero, pullsDown: false)
+            picker.addItems(withTitles: ExportLayout.allCases.map(\.displayName))
+            picker.selectItem(at: ExportLayout.allCases.firstIndex(of: Settings.loadExportLayout()) ?? 0)
+            let row = NSStackView(views: [NSTextField(labelWithString: "Layout:"), picker])
+            row.orientation = .horizontal
+            row.edgeInsets = NSEdgeInsets(top: 10, left: 20, bottom: 10, right: 0)
+            // The panel doesn't lay out its accessory — a zero-sized view
+            // silently doesn't appear.
+            row.setFrameSize(row.fittingSize)
+            panel.accessoryView = row
+
+            guard panel.runModal() == .OK, let url = panel.url else { return }
+            let layout = ExportLayout.allCases[picker.indexOfSelectedItem]
+            Settings.saveExportLayout(layout)
+
             // Find highlights and diagram zoom would both bake into the PDF.
-            // beforeExport() resets them; wait for that JS to finish (completion
-            // handler), snapshot, then afterExport() puts them back. Both halves
-            // no-op when nothing is active, so there is no state to branch on here.
+            // beforeExport() resets them; wait for that JS to finish, render,
+            // then afterExport() puts them back. Both halves no-op when nothing
+            // is active, so there is no state to branch on here.
             webView.evaluateJavaScript("window.ReaderMd.beforeExport();") { [weak self] _, _ in
-                self?.generatePDF()
+                switch layout {
+                case .continuous: self?.exportContinuous(to: url)
+                case .pageByPage: self?.exportPaginated(to: url)
+                }
             }
         }
 
-        private func generatePDF() {
+        private func exportContinuous(to url: URL) {
             guard let webView else { return }
             webView.createPDF(configuration: WKPDFConfiguration()) { [weak self] result in
                 // afterExport() restores the exact find match the user was on;
@@ -481,19 +521,84 @@ struct MarkdownWebView: NSViewRepresentable {
                 // exporting.
                 self?.webView?.evaluateJavaScript("window.ReaderMd.afterExport();")
                 guard case let .success(data) = result else { return }
-                Task { @MainActor in self?.savePDF(data) }
+                try? data.write(to: url)
             }
         }
 
-        @MainActor
-        private func savePDF(_ data: Data) {
-            let panel = NSSavePanel()
-            panel.allowedContentTypes = [.pdf]
-            let base = (loadedPath as NSString?)?.lastPathComponent ?? "document"
-            panel.nameFieldStringValue = (base as NSString).deletingPathExtension + ".pdf"
-            if panel.runModal() == .OK, let url = panel.url {
-                try? data.write(to: url)
+        /// The paginated export in flight: where it saves, and the page color to
+        /// paint under it once the print operation is done.
+        private var pendingExport: (url: URL, pageColor: CGColor?)?
+
+        private func exportPaginated(to url: URL) {
+            guard let webView else { return }
+            // The print engine leaves the paper margins unpainted, which reads
+            // as a white frame around any non-white theme. Fetch the document
+            // background so the finished PDF can be repainted edge to edge.
+            webView.evaluateJavaScript("getComputedStyle(document.body).backgroundColor") { [weak self] result, _ in
+                self?.runPrintOperation(to: url, pageColor: Self.cssColor(result as? String))
             }
+        }
+
+        private func runPrintOperation(to url: URL, pageColor: CGColor?) {
+            guard let webView, let window = webView.window else { return }
+            pendingExport = (url, pageColor)
+            let info = NSPrintInfo()   // copies the shared defaults: system paper size + margins
+            info.jobDisposition = .save
+            info.dictionary()[NSPrintInfo.AttributeKey.jobSavingURL] = url
+
+            let op = webView.printOperation(with: info)
+            op.showsPrintPanel = false
+            op.showsProgressPanel = false
+            // WKWebView's print view starts zero-sized and prints blank pages
+            // unless given a frame before the run.
+            op.view?.frame = webView.bounds
+            // WKWebView print operations only work through runModal(for:...) —
+            // a bare run() silently produces nothing. Panels are hidden, so
+            // nothing modal is actually shown.
+            op.runModal(for: window, delegate: self,
+                        didRun: #selector(printOperationDidRun(_:success:contextInfo:)),
+                        contextInfo: nil)
+        }
+
+        @objc private func printOperationDidRun(_ printOperation: NSPrintOperation,
+                                                success: Bool,
+                                                contextInfo: UnsafeMutableRawPointer?) {
+            webView?.evaluateJavaScript("window.ReaderMd.afterExport();")
+            if success, let (url, color) = pendingExport, let color {
+                Self.paintPageBackground(url: url, color: color)
+            }
+            pendingExport = nil
+        }
+
+        /// "rgb(13, 17, 23)" / "rgba(…)" → CGColor. Nil for anything else,
+        /// including a fully transparent background (nothing worth painting).
+        private static func cssColor(_ css: String?) -> CGColor? {
+            guard let css else { return nil }
+            let nums = css.split(whereSeparator: { !"0123456789.".contains($0) })
+                .compactMap { Double($0) }
+            guard nums.count >= 3 else { return nil }
+            if nums.count >= 4, nums[3] == 0 { return nil }
+            return CGColor(srgbRed: nums[0] / 255, green: nums[1] / 255, blue: nums[2] / 255, alpha: 1)
+        }
+
+        /// Rewrite the PDF with `color` filled under every page, so the paper
+        /// margins match the theme instead of staying printer-white.
+        private static func paintPageBackground(url: URL, color: CGColor) {
+            guard let data = try? Data(contentsOf: url),
+                  let provider = CGDataProvider(data: data as CFData),
+                  let doc = CGPDFDocument(provider), doc.numberOfPages > 0,
+                  let firstPage = doc.page(at: 1) else { return }
+            var mediaBox = firstPage.getBoxRect(.mediaBox)
+            guard let ctx = CGContext(url as CFURL, mediaBox: &mediaBox, nil) else { return }
+            for i in 1...doc.numberOfPages {
+                guard let page = doc.page(at: i) else { continue }
+                ctx.beginPDFPage(nil)
+                ctx.setFillColor(color)
+                ctx.fill(page.getBoxRect(.mediaBox))
+                ctx.drawPDFPage(page)
+                ctx.endPDFPage()
+            }
+            ctx.closePDF()
         }
 
         /// JSON-encode a string into a safe JS string literal.
