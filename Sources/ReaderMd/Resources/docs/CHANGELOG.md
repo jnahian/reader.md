@@ -23,7 +23,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   you arranged them — drag to reorder, hover **×** to unpin. Star a file from its
   hover control in the tree, from any file's context menu (tree, Recents, or
   filter results), with ⌘D for the open document, or from the ⌘P palette. Recents
-  churns as you read; Favorites stay until you remove them. The bundled help
+  churns as you read; Favorites stay until you remove them, and a pinned file
+  drops out of Recents so opening it never looks like it left the list. The bundled help
   pages and piped `reader -` documents aren't pinnable, the same way they stay
   out of Recents.
 

@@ -125,7 +125,8 @@ struct SidebarView: View {
     /// The normal (unfiltered) sidebar: recents, favorites, then the folder tree.
     @ViewBuilder
     private var tree: some View {
-        if !state.recentFiles.isEmpty {
+        let recents = state.unpinnedRecents
+        if !recents.isEmpty {
             HStack {
                 sectionHeader("RECENTS")
                 Button("Clear") { state.clearRecents() }
@@ -135,7 +136,7 @@ struct SidebarView: View {
                     .padding(.trailing, 12)
                     .dockTooltip("Clear recent files")
             }
-            ForEach(state.recentFiles.prefix(6), id: \.self) { path in
+            ForEach(recents.prefix(6), id: \.self) { path in
                 RecentRow(path: path)
             }
             Spacer().frame(height: 10)

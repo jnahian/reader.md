@@ -41,7 +41,8 @@ sidebar, right-click any file → **Add to Favorites**, or press ⌘D for the op
 document. Pinned files sit in a **FAVORITES** section in the sidebar, below
 Recents and above your folders, and stay there until you unpin them — drag to
 reorder, and the hover **×** (or the context menu) removes one. Recents churns as you read;
-Favorites don't. The bundled help pages and `reader -` documents can't be pinned.
+Favorites don't — a pinned file drops out of Recents and stays where you put it.
+The bundled help pages and `reader -` documents can't be pinned.
 
 **Where's the document outline?**
 Toggle it with ⇧⌘B. It tracks your scroll position and clicking a heading jumps

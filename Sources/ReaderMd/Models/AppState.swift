@@ -909,6 +909,13 @@ final class AppState: ObservableObject {
         Settings.saveRecents(recentFiles)
     }
 
+    /// What the sidebar's Recents section lists. A pinned file still records its
+    /// recency (⌘P ranks by it), but showing it in both sections — with Recents
+    /// above Favorites — reads as opening a favorite having moved it out.
+    var unpinnedRecents: [String] {
+        recentFiles.filter { !favoriteFiles.contains($0) }
+    }
+
     func removeRecent(_ path: String) {
         recentFiles.removeAll { $0 == path }
         Settings.saveRecents(recentFiles)

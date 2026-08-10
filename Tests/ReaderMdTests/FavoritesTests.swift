@@ -91,6 +91,28 @@ final class FavoritesTests: XCTestCase {
         XCTAssertEqual(state.favoriteFiles, [])
     }
 
+    /// Opening a pinned file still records its recency (⌘P ranks by it), but the
+    /// sidebar lists it under Favorites only — Recents sits above Favorites, so a
+    /// row in both reads as the pin having jumped out of the list.
+    func testOpeningAPinnedFileKeepsItOutOfTheRecentsSection() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("favorites-\(UUID().uuidString).md")
+        try "# Doc".write(to: url, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let state = AppState()
+        state.addFavorite(url.path)
+        state.open(FileNode(url: url, isDirectory: false))
+
+        XCTAssertEqual(state.favoriteFiles, [url.path])
+        XCTAssertEqual(state.recentFiles.first, url.path, "recency is still recorded for ⌘P")
+        XCTAssertFalse(state.unpinnedRecents.contains(url.path))
+
+        // Unpinning puts it back in Recents where it left off.
+        state.removeFavorite(url.path)
+        XCTAssertEqual(state.unpinnedRecents.first, url.path)
+    }
+
     func testMenuTitleFollowsTheOpenDocument() throws {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("favorites-\(UUID().uuidString).md")
