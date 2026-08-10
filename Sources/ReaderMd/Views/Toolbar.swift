@@ -68,20 +68,11 @@ private struct ReaderToolbar: ViewModifier {
                         .dockTooltip(state.diffMode
                                      ? "Show rendered view (⇧⌘D)" : "Show diff (⇧⌘D)")
 
-                        // A pull-down rather than a segmented control: the branch
-                        // scopes are per repo, so the list has no fixed width.
+                        // A popover rather than a segmented control or a
+                        // pull-down: the branch scopes are per repo, so the list
+                        // has neither a fixed width nor a bounded length.
                         if state.canShowDiff {
-                            Picker("", selection: Binding(
-                                get: { state.diffScope },
-                                set: { state.setDiffScope($0) }
-                            )) {
-                                ForEach(state.diffScopeChoices, id: \.self) { scope in
-                                    Text(scope.displayName).tag(scope)
-                                }
-                            }
-                            .pickerStyle(.menu)
-                            .fixedSize()
-                            .dockTooltip("What the diff compares against")
+                            DiffScopePicker()
                         }
                     }
                 }
