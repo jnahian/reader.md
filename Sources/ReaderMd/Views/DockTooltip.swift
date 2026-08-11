@@ -40,18 +40,60 @@ final class TrackerNSView: NSView {
     var text: String = ""
     private var timer: Timer?
     private var clickMonitor: Any?
+    /// Whether the cursor is over this control. Tracked explicitly rather than
+    /// left implicit in AppKit's enter/exit pairing, because `syncHover` has to
+    /// synthesize the events AppKit doesn't send — see there.
+    private var inside = false
 
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         trackingAreas.forEach(removeTrackingArea)
         addTrackingArea(NSTrackingArea(
             rect: bounds,
-            options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect],
+            // .assumeInside: a control created under a stationary cursor gets no
+            // mouseEntered, so without this AppKit also withholds the matching
+            // mouseExited when the mouse finally leaves, stranding the bubble.
+            options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect, .assumeInside],
             owner: self
         ))
+        syncHover()
     }
 
-    override func mouseEntered(with event: NSEvent) {
+    /// Re-derive hover from where the cursor actually is. AppKit only reports
+    /// enter/exit for a *moving* mouse: a control that appears under a stationary
+    /// cursor never gets `mouseEntered`, and one that slides out from under it
+    /// never gets `mouseExited`. Removing the last row of a sidebar section
+    /// collapses the whole section — header, rows and trailing spacer — so a
+    /// control from the neighbouring section lands under a cursor that never
+    /// moved. That is how the Recents and Favorites × bubbles ended up crossed:
+    /// the removed row's label stayed up over the row that replaced it, and the
+    /// replacement's own bubble never armed until the mouse was jiggled.
+    /// Tracking areas are rebuilt on every geometry change, which is exactly when
+    /// this can happen, so that is where it runs.
+    private func syncHover() {
+        guard let window, window.isKeyWindow else {
+            if inside { endHover() }
+            return
+        }
+        let point = convert(window.mouseLocationOutsideOfEventStream, from: nil)
+        let over = visibleRect.contains(point)
+        if over, !inside {
+            beginHover()
+        } else if !over, inside {
+            endHover()
+        } else if over {
+            // Still the hovered control, but it moved — re-aim the pointer.
+            TooltipController.shared.reanchor(owner: self)
+        }
+    }
+
+    override func mouseEntered(with event: NSEvent) { beginHover() }
+
+    override func mouseExited(with event: NSEvent) { endHover() }
+
+    private func beginHover() {
+        guard !inside else { return }
+        inside = true
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: false) { [weak self] _ in
             MainActor.assumeIsolated { self?.showTooltip() }
@@ -65,20 +107,25 @@ final class TrackerNSView: NSView {
                 matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
             ) { [weak self] event in
                 MainActor.assumeIsolated {
-                    self?.timer?.invalidate()
-                    self?.timer = nil
-                    TooltipController.shared.hide()
+                    guard let self else { return }
+                    self.timer?.invalidate()
+                    self.timer = nil
+                    // Own bubble only: nested trackers (a row and the × inside it)
+                    // both see this click, and the one that doesn't own the bubble
+                    // must not tear down the one that does.
+                    TooltipController.shared.hideIfOwner(self)
                 }
                 return event
             }
         }
     }
 
-    override func mouseExited(with event: NSEvent) {
+    private func endHover() {
+        inside = false
         removeClickMonitor()
         timer?.invalidate()
         timer = nil
-        TooltipController.shared.hide()
+        TooltipController.shared.hideIfOwner(self)
     }
 
     // If the control is removed while its tooltip is showing (e.g. clicking a button
@@ -86,12 +133,7 @@ final class TrackerNSView: NSView {
     // isn't stranded on screen.
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
-        if window == nil {
-            removeClickMonitor()
-            timer?.invalidate()
-            timer = nil
-            TooltipController.shared.hideIfOwner(self)
-        }
+        if window == nil { endHover() } else { syncHover() }
     }
 
     private func removeClickMonitor() {
@@ -126,6 +168,8 @@ final class TooltipController {
     private let pill = PillView()
     private let label: NSTextField
     private weak var owner: TrackerNSView?   // control the currently-shown bubble belongs to
+    private var currentText = ""             // what the bubble reads right now, for re-anchoring
+    private var fadeGeneration = 0           // invalidates an in-flight fade-out
 
     private let hPad: CGFloat = 16    // capsule horizontal inset
     private let vPad: CGFloat = 6     // capsule vertical inset
@@ -173,8 +217,15 @@ final class TooltipController {
         self.owner = owner
         layout(text: text, anchorScreenFrame: anchor)
 
-        panel.alphaValue = 0
-        panel.orderFront(nil)
+        // Claim the panel from any fade-out still running, so its completion
+        // handler doesn't order this bubble straight back out. Only restart from
+        // transparent when the panel is actually down — a bubble handed from one
+        // control to the next should slide, not blink.
+        fadeGeneration &+= 1
+        if !panel.isVisible {
+            panel.alphaValue = 0
+            panel.orderFront(nil)
+        }
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 0.1
             panel.animator().alphaValue = 1
@@ -190,7 +241,15 @@ final class TooltipController {
                anchorScreenFrame: window.convertToScreen(view.convert(view.bounds, to: nil)))
     }
 
+    /// Re-aim the visible bubble after its control moved without the cursor
+    /// leaving it — a row removed above slides the control up under the pointer.
+    func reanchor(owner view: TrackerNSView) {
+        guard owner === view else { return }
+        relabel(currentText, owner: view)
+    }
+
     private func layout(text: String, anchorScreenFrame anchor: NSRect) {
+        currentText = text
         label.stringValue = text
         label.sizeToFit()
         let labelSize = label.frame.size
@@ -220,18 +279,30 @@ final class TooltipController {
                              width: ceil(labelSize.width), height: ceil(labelSize.height))
     }
 
-    func hide() {
+    private func hide() {
         owner = nil
+        guard panel.isVisible else { return }
+        fadeGeneration &+= 1
+        let generation = fadeGeneration
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 0.1
             panel.animator().alphaValue = 0
-        } completionHandler: { [panel] in
-            panel.orderOut(nil)
+        } completionHandler: {
+            MainActor.assumeIsolated { TooltipController.shared.finishFade(generation) }
         }
     }
 
+    /// Order the panel out only if nothing claimed it during the fade. A control
+    /// that slid under the cursor can `show` inside that 100 ms window, and an
+    /// unconditional `orderOut` here would hide the bubble it just put up.
+    private func finishFade(_ generation: Int) {
+        guard fadeGeneration == generation else { return }
+        panel.orderOut(nil)
+    }
+
     /// Hide only if the bubble currently belongs to `view` — avoids a torn-down control
-    /// hiding a tooltip that has since moved to a different control.
+    /// hiding a tooltip that has since moved to a different control. The only way in:
+    /// an unscoped hide is what let one sidebar row cancel its neighbour's bubble.
     func hideIfOwner(_ view: TrackerNSView) {
         if owner === view { hide() }
     }
