@@ -70,17 +70,47 @@ when no document is open — while the user is looking at Settings.
 `retargetCloseItem()` (`ReaderMdApp.swift:237`) rewrites `File ▸ Close` to
 `closeFileOrQuit` on every menu-tracking notification and has the same hole.
 
-**Fix:** both bail out when the key window is not the document window. Identify
-the document window by tagging it: a small `WindowAccessor` `NSViewRepresentable`
-on `ContentView` hands its `NSWindow` to `AppState` as a plain `weak var
-documentWindow: NSWindow?` — deliberately not `@Published`, since nothing
-renders from it and republishing on every window change would churn the view
-tree. The monitor and the retarget both require
-`NSApp.keyWindow === state.documentWindow`.
+**Identifying the document window.** A small `WindowAccessor`
+`NSViewRepresentable` on `ContentView` hands its `NSWindow` to `AppState` as a
+plain `weak var documentWindow: NSWindow?` — deliberately not `@Published`,
+since nothing renders from it and republishing on every window change would
+churn the view tree.
+
+`makeNSView` runs before the view is in a window, so `view.window` is nil there.
+The assignment happens in `updateNSView` behind a `DispatchQueue.main.async` —
+the same tick-later pattern the ⌘F focus grab (`Toolbar.swift:273`) and the
+export panel (`MarkdownWebView.swift:477`) already use.
 
 Chosen over sniffing the key window's identifier for
 `com_apple_SwiftUI_Settings_window`: that string is undocumented and can change
 between macOS releases, and the failure mode is the bug returning silently.
+
+**The monitor** returns the event unhandled unless
+`NSApp.keyWindow === state.documentWindow`, letting AppKit's `performClose`
+close whatever window is focused. This fails *closed*: while `documentWindow` is
+still nil (the first tick after launch), ⌘W closes the window rather than the
+document. Brief, but it is a regression from today, which is why the assignment
+must be deferred and not skipped.
+
+**The retarget must restore, not bail.** `retargetCloseItem()` mutates a
+persistent menu item — `close.target = self; close.action =
+#selector(closeFileOrQuit(_:))` — and those assignments stick. An early `return`
+when Settings is key would leave `File ▸ Close` still pointing at
+`closeFileOrQuit` from the last time the document window was focused, so
+clicking Close with Settings focused would close the *document*: the same bug,
+reached through the menu instead of the key equivalent.
+
+The non-document branch therefore actively restores the item:
+
+```swift
+close.target = nil
+close.action = #selector(NSWindow.performClose(_:))
+```
+
+The comment at `ReaderMdApp.swift:241` notes that `target` was set to `self`
+rather than nil precisely because a nil target validates as disabled — so
+confirm by hand that the restored item is *enabled* when Settings is key. If it
+greys out, target the settings window explicitly instead of nil.
 
 ## The window
 
@@ -168,8 +198,24 @@ The three interesting ones already have handling to reuse:
   and `Settings.loadContentWidth` are already fail-closed to a default.
 - **`pickDefaultEditor()` cancelled** — already a no-op.
 
-The one genuinely new failure is the ⌘W interception above; the window guard is
-the fix.
+Two failures are genuinely new, both rooted in the app having been built
+single-window:
+
+- **⌘W and `File ▸ Close`** reaching the document from the Settings window —
+  the window guard and the menu-item restore above are the fix.
+- **Closing the document window while Settings is open.**
+  `applicationShouldTerminateAfterLastWindowClosed` returns `true`, and
+  `CommandGroup(replacing: .newItem)` removed "New Window", so there is no menu
+  path back to the `WindowGroup` window. With Settings open, clicking the
+  document window's red close button no longer terminates the app — Settings is
+  still a window — and may leave the user with Settings and no document window
+  and no way back.
+
+  **This must be verified by hand before it is fixed**: SwiftUI may restore the
+  `WindowGroup` window on Dock-icon reopen, in which case there is nothing to
+  do. If it does not, implement `applicationShouldHandleReopen(_:hasVisibleWindows:)`
+  in `AppDelegate` to bring the document window back. Do not add a "New Window"
+  command — Reader.md is deliberately single-document.
 
 ## Testing
 
@@ -181,12 +227,15 @@ the fix.
 3. With Settings focused and no document open, ⌘W does not show the quit alert.
 4. With Settings closed, ⌘W still closes the document, and still shows the quit
    alert when no document is open (no regression).
-5. `File ▸ Close` behaves the same way in both cases.
-6. Changing reading theme, appearance, text size or canvas width in Settings
+5. `File ▸ Close` behaves the same way in both cases — and is *enabled*, not
+   greyed out, while Settings is focused.
+6. With Settings open, close the document window with its red button, then click
+   the Dock icon: the document window comes back.
+7. Changing reading theme, appearance, text size or canvas width in Settings
    updates the toolbar menus, and vice versa.
-7. Changing PDF layout in Settings changes the save panel's default; choosing
+8. Changing PDF layout in Settings changes the save panel's default; choosing
    the other option in the save panel does **not** change Settings.
-8. Clearing the external editor greys out ⇧⌘E and reverts the menu title to
+9. Clearing the external editor greys out ⇧⌘E and reverts the menu title to
    "Open in Editor".
 
 One unit test, fitting the existing editor-gate/marks pattern in
@@ -208,13 +257,17 @@ In the project's mandated order (bundled docs → `docs/` → site data):
 
 `FAQ.md` needs no change; nothing in it points at the old locations.
 
+A push to `main` touching `web/` deploys Cloudflare Pages immediately, so the
+`content.ts` edit goes in the **release** commit, not the feature commit —
+otherwise the site advertises ⌘, before a build that has it exists.
+
 ## Files touched
 
 | File | Change |
 | --- | --- |
 | `Sources/ReaderMd/Views/SettingsView.swift` | new — the `Form` |
 | `Sources/ReaderMd/Views/WindowAccessor.swift` | new — tags the document window |
-| `Sources/ReaderMd/ReaderMdApp.swift` | `SwiftUI.Settings` scene; key-window guards in the ⌘W monitor and `retargetCloseItem()` |
+| `Sources/ReaderMd/ReaderMdApp.swift` | `SwiftUI.Settings` scene; key-window guard in the ⌘W monitor; restore-not-bail in `retargetCloseItem()`; `applicationShouldHandleReopen` if verification shows it is needed |
 | `Sources/ReaderMd/Models/AppState.swift` | `documentWindow`, `exportLayout` + `setExportLayout`, `setTheme`, `clearEditor` |
 | `Sources/ReaderMd/ContentView.swift` | attach `WindowAccessor` |
 | `Sources/ReaderMd/Views/MarkdownWebView.swift` | save panel reads `state.exportLayout`, stops writing it back |
