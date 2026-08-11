@@ -168,6 +168,7 @@ private struct ReaderToolbar: ViewModifier {
                 text: $state.findQuery,
                 focusToken: state.focusFind,
                 onSubmit: { state.triggerFindNext() },
+                onPrev: { state.triggerFindPrev() },
                 onCancel: { state.findQuery = "" }
             )
             .frame(width: 110, height: 18)
@@ -247,10 +248,11 @@ private struct FindTextField: NSViewRepresentable {
     /// Flipped by ⌘F; a change (not a value) is the request to focus.
     var focusToken: Bool
     var onSubmit: () -> Void
+    var onPrev: () -> Void
     var onCancel: () -> Void
 
-    func makeNSView(context: Context) -> NSTextField {
-        let field = NSTextField()
+    func makeNSView(context: Context) -> FindField {
+        let field = FindField()
         field.isBordered = false
         field.drawsBackground = false
         field.focusRingType = .none
@@ -260,8 +262,12 @@ private struct FindTextField: NSViewRepresentable {
         return field
     }
 
-    func updateNSView(_ field: NSTextField, context: Context) {
+    func updateNSView(_ field: FindField, context: Context) {
         context.coordinator.parent = self
+        // Reassigned every update, not captured once: the closures hold `state`,
+        // and the representable is a fresh struct on each render.
+        field.onNext = onSubmit
+        field.onPrev = onPrev
         if field.stringValue != text { field.stringValue = text }
         // An NSViewRepresentable doesn't pick up `.disabled` on its own.
         field.isEnabled = context.environment.isEnabled
@@ -295,6 +301,33 @@ private struct FindTextField: NSViewRepresentable {
             case #selector(NSResponder.cancelOperation(_:)): parent.onCancel(); return true
             default: return false
             }
+        }
+    }
+}
+
+/// Steps matches on ⌘↩ / ⇧⌘↩ while the field is being edited — the pair the
+/// chevron tooltips and SHORTCUTS.md advertise.
+///
+/// It has to be `performKeyEquivalent`, not the delegate's `doCommandBySelector`
+/// above: a Command-modified Return isn't in AppKit's key bindings, so the field
+/// editor never turns it into a selector, and plain ↩ (which is bound, to
+/// `insertNewline:`) is the only Return the delegate ever sees.
+final class FindField: NSTextField {
+    var onNext: () -> Void = {}
+    var onPrev: () -> Void = {}
+
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        // Gated on being the focused field: performKeyEquivalent walks every
+        // view in the window, so an unfocused search box would otherwise
+        // swallow ⌘↩ from wherever the user actually is.
+        guard event.keyCode == 36, currentEditor() != nil,
+              window?.firstResponder === currentEditor()
+        else { return super.performKeyEquivalent(with: event) }
+
+        switch event.modifierFlags.intersection(.deviceIndependentFlagsMask) {
+        case .command:          onNext(); return true
+        case [.command, .shift]: onPrev(); return true
+        default:                return super.performKeyEquivalent(with: event)
         }
     }
 }
