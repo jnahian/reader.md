@@ -33,7 +33,7 @@ the same bindings.
 - **Appearance** — a light → dark → system cycle, applied to both native chrome and web content; System follows macOS live, including on a schedule
 - **Live reload** — the open file re-renders (scroll preserved) and the tree refreshes on disk changes
 - **Auto-update** — the packaged `.app` checks for and installs new releases via Sparkle
-- **Settings** (⌘,) — appearance, reading theme, text size, canvas width, the external editor, and the default PDF export layout in one window. Everything except the PDF layout default is also on the toolbar or in a menu
+- **Settings** (⌘,) — appearance, reading theme, text size, canvas width, the external editor, and the default PDF export layout in one window. Mostly a second way into preferences the toolbar and menus already carry; the PDF layout default, clearing the external editor, and picking an appearance mode directly rather than cycling to it live only here
 - **About panel** — version and credits from the standard macOS About window
 
 ## Keyboard shortcuts

@@ -62,8 +62,10 @@ document you're reading.
 | ⌘, | Open Settings |
 
 Appearance, reading theme, text size, canvas width, external editor, and the
-default PDF export layout. Everything except the PDF layout is also reachable
-from the toolbar or a menu — Settings is a second way in, not the only one.
+default PDF export layout. Mostly a second way into preferences the toolbar and
+menus already carry. Three things live only here: the default PDF export layout,
+clearing the external editor, and picking an appearance mode directly rather
+than cycling to it.
 
 ## Help
 

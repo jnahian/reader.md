@@ -119,7 +119,7 @@ export const featureRows: FeatureRow[] = [
   },
   {
     name: "Settings",
-    body: "⌘, opens a Settings window with appearance, reading theme, text size, canvas width, the external editor, and the default PDF export layout. Everything except the PDF layout default is also on the toolbar or in a menu, so Settings is a second way in rather than the only one.",
+    body: "⌘, opens a Settings window with appearance, reading theme, text size, canvas width, the external editor, and the default PDF export layout. Mostly a second way into preferences the toolbar and menus already carry — only the PDF layout default, clearing the external editor, and picking an appearance mode directly rather than cycling to it live there alone.",
   },
 ];
 
@@ -154,8 +154,8 @@ export const shortcuts: Shortcut[] = [
 // A compact subset for the landing "keyboard & CLI" strip.
 export const shortcutsHighlight: Shortcut[] = [
   { keys: "⌘P", action: "Quick open" },
-  { keys: "⌘F", action: "Filter files" },
-  { keys: "⇧⌘F", action: "Find in page" },
+  { keys: "⌘F", action: "Find in page" },
+  { keys: "⇧⌘F", action: "Filter files" },
   { keys: "⌘B", action: "Toggle sidebar" },
   { keys: "⌘E", action: "Export PDF" },
 ];
