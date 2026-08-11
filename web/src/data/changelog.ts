@@ -22,9 +22,21 @@ export interface Release {
 
 export const releasesLog: Release[] = [
   {
-    version: "1.16.0",
+    version: "1.16.1",
     date: "Aug 11, 2026",
     badge: "LATEST",
+    groups: [
+      {
+        tag: "FIXED",
+        items: [
+          "<strong>Sidebar × tooltips no longer get crossed</strong> — unpinning the last favorite or clearing the last recent collapses that whole section, so the row beneath slid up under a pointer that never moved — and kept the vanished row's tooltip, which is how a Favorites × came to read \"Remove from Recents\". The row under the pointer is now re-checked whenever the sidebar re-lays out, so the control that arrives there gets its own tooltip right away.",
+        ],
+      },
+    ],
+  },
+  {
+    version: "1.16.0",
+    date: "Aug 11, 2026",
     groups: [
       {
         tag: "ADDED",
