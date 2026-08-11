@@ -729,6 +729,12 @@ final class AppState: ObservableObject {
         Settings.saveTheme(theme)
     }
 
+    /// Settings picks a mode outright; the toolbar button cycles. Both persist.
+    func setTheme(_ value: AppearanceMode) {
+        theme = value
+        Settings.saveTheme(value)
+    }
+
     func setReadingTheme(_ theme: ReadingTheme) {
         readingTheme = theme
         Settings.saveReadingTheme(theme)
@@ -1073,6 +1079,15 @@ final class AppState: ObservableObject {
         editorBundleID = id
         editorDisplayName = FileManager.default.displayName(atPath: app.path)
         Settings.saveEditorBundleID(id)
+    }
+
+    /// Forget the editor entirely — the inverse of `pickDefaultEditor`, offered
+    /// in Settings. Same three lines `resolvedEditor()` runs when a stored
+    /// bundle id stops resolving.
+    func clearEditor() {
+        editorBundleID = nil
+        editorDisplayName = nil
+        Settings.saveEditorBundleID(nil)
     }
 
     /// "Open in Cursor" once an editor is set, so the menu says which one.

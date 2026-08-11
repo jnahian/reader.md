@@ -173,6 +173,18 @@ struct ReaderMdApp: App {
                 }
             }
         }
+
+        // `SwiftUI.Settings`, qualified: Models/Settings.swift declares a
+        // module-scope `enum Settings` that shadows the scene, and a module
+        // declaration beats an imported one.
+        //
+        // The environment object and color scheme are not inherited from
+        // ContentView — a Settings scene is a sibling, not a child.
+        SwiftUI.Settings {
+            SettingsView()
+                .environmentObject(state)
+                .preferredColorScheme(state.colorScheme)
+        }
     }
 }
 

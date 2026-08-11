@@ -79,6 +79,23 @@ final class EditableFileTests: XCTestCase {
         XCTAssertNil(Settings.loadEditorBundleID())
     }
 
+    /// Settings ▸ Editing & Export can unset the editor outright. Before this
+    /// there was no way back to "no editor" short of uninstalling the app —
+    /// pickDefaultEditor only ever sets one.
+    func testClearEditorForgetsTheStoredEditor() {
+        let saved = Settings.loadEditorBundleID()
+        defer { Settings.saveEditorBundleID(saved) }
+
+        Settings.saveEditorBundleID("com.microsoft.VSCode")
+        let state = AppState()
+        state.clearEditor()
+
+        XCTAssertNil(state.editorBundleID)
+        XCTAssertNil(state.editorDisplayName)
+        XCTAssertNil(Settings.loadEditorBundleID())
+        XCTAssertEqual(state.openInEditorTitle, "Open in Editor")
+    }
+
     /// A local root is not a remote — the remote check must key off `remote`,
     /// not merely off being a root.
     func testFileInsideALocalRootIsEditable() {
