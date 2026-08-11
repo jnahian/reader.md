@@ -6,16 +6,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.16.1] - 2026-08-11
+
 ### Fixed
 
-- **Remove from Recents and Remove from Favorites tooltips no longer get
-  crossed.** Removing the last file from either section collapses the whole
-  section — heading and all — so the row below slid up under a pointer that
-  never moved. The bubble kept the vanished row's label while the × that took
-  its place stayed dead until you jiggled the mouse, which is how a Favorites row
-  came to read "Remove from Recents". Hover is now re-derived whenever the
-  sidebar re-lays out, so a control that arrives under a stationary pointer gets
-  its own tooltip and the old one goes away.
+- **Sidebar × tooltips no longer get crossed.** Unpinning the last favorite or
+  clearing the last recent collapses that whole section, so the row beneath slid
+  up under a pointer that never moved — and kept the vanished row's tooltip,
+  which is how a Favorites × came to read "Remove from Recents". The row under
+  the pointer is now re-checked whenever the sidebar re-lays out, so the control
+  that arrives there gets its own tooltip right away.
 
 ## [1.16.0] - 2026-08-11
 
