@@ -103,7 +103,7 @@ export const featureRows: FeatureRow[] = [
   },
   {
     name: "External editor",
-    body: 'Reader.md stays a reader and hands editing off. Pick an editor once — <strong>File → Set Default Editor…</strong>, or right-click a file → <strong>Always Open With</strong> — and ⇧⌘E sends the open document there. The watcher re-renders on save, so an editor beside Reader.md reads as a live preview.',
+    body: 'Reader.md stays a reader and hands editing off. Pick an editor once — in <strong>Settings ▸ Editing &amp; Export</strong>, with <strong>File → Set Default Editor…</strong>, or by right-clicking a file → <strong>Always Open With</strong> — and ⇧⌘E sends the open document there. The watcher re-renders on save, so an editor beside Reader.md reads as a live preview.',
   },
   {
     name: "Appearance",
@@ -115,7 +115,11 @@ export const featureRows: FeatureRow[] = [
   },
   {
     name: "Live reload & export",
-    body: "The open file re-renders (scroll preserved) and the tree refreshes on disk changes. Export to PDF (⌘E) — page-by-page or continuous — manual reload (⌘R), and Sparkle auto-update.",
+    body: "The open file re-renders (scroll preserved) and the tree refreshes on disk changes. Export to PDF (⌘E) — page-by-page or continuous, chosen per export from the save dialog — manual reload (⌘R), and Sparkle auto-update.",
+  },
+  {
+    name: "Settings",
+    body: "⌘, opens a Settings window with appearance, reading theme, text size, canvas width, the external editor, and the default PDF export layout. Mostly a second way into preferences the toolbar and menus already carry — only the PDF layout default, clearing the external editor, and picking an appearance mode directly rather than cycling to it live there alone.",
   },
 ];
 
@@ -144,13 +148,14 @@ export const shortcuts: Shortcut[] = [
   { action: "Export PDF", keys: "⌘E" },
   { action: "Reload", keys: "⌘R" },
   { action: "Keyboard shortcuts", keys: "⌘/" },
+  { action: "Settings", keys: "⌘," },
 ];
 
 // A compact subset for the landing "keyboard & CLI" strip.
 export const shortcutsHighlight: Shortcut[] = [
   { keys: "⌘P", action: "Quick open" },
-  { keys: "⌘F", action: "Filter files" },
-  { keys: "⇧⌘F", action: "Find in page" },
+  { keys: "⌘F", action: "Find in page" },
+  { keys: "⇧⌘F", action: "Filter files" },
   { keys: "⌘B", action: "Toggle sidebar" },
   { keys: "⌘E", action: "Export PDF" },
 ];

@@ -21,8 +21,9 @@ Yes — in Finder, right-click a `.md` file → **Get Info** → **Open with** �
 choose Reader.md → **Change All…**.
 
 **Can I edit files in Reader.md?**
-No — Reader.md is a reader, and it hands editing to your editor. Choose one with
-**File → Set Default Editor…** (or right-click any file → **Always Open With**), then
+No — Reader.md is a reader, and it hands editing to your editor. Choose one in
+**Settings ▸ Editing & Export** (⌘,), with **File → Set Default Editor…**, or by
+right-clicking any file → **Always Open With**, then
 ⇧⌘E sends the open document straight there. The folder watcher re-renders on
 save, so your editor on one side and Reader.md on the other behaves like a live
 preview. ⇧⌘E stays greyed out until you've picked an editor, and for documents
@@ -57,6 +58,8 @@ Light/dark follows the toggle in the topbar, which also picks a reading theme �
 Standard, Editorial, or Terminal. Text size is ⌘+ / ⌘- / ⌘0, and
 **View → Canvas Width** picks Narrow, Wide (the default), or Full Width (⇧⌘\ cycles them). Full Width fills the window, so wide tables stop scrolling sideways.
 
+All four also live in **Settings** (⌘,), if you'd rather set them in one place.
+
 In the Standard theme, links and heading anchors use the accent color you picked
 in System Settings, and follow it when you change it. Editorial and Terminal keep
 their own accents.
@@ -74,8 +77,9 @@ to the file, but are lost if the file is renamed or moved.
 **How do I export to PDF?**
 **File → Export as PDF…** (⌘E) renders the current document to PDF. A **Layout**
 control in the save dialog picks **Page by Page** — real pages at your system
-paper size, the default — or **Continuous**, one long page. The last choice is
-remembered. Paginated pages take the reading theme's paper color, so dark
+paper size — or **Continuous**, one long page. That choice applies to the one
+export; the default it starts from is **Settings ▸ Editing & Export**.
+Paginated pages take the reading theme's paper color, so dark
 documents export as dark pages, and long code lines wrap to the page instead of
 being cut off at the edge. Links stay clickable in either layout.
 

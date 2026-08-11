@@ -193,9 +193,42 @@ final class AppState: ObservableObject {
     @Published var fontScale: Double = 1.0     // 0.7 ... 1.6
     @Published var contentWidth: ContentWidth = .wide
 
+    /// Default layout for ⌘E. The save panel's popup seeds from this and is a
+    /// per-export override — it deliberately does not write back, or a one-off
+    /// Continuous export would silently become the default.
+    @Published private(set) var exportLayout: ExportLayout = .pageByPage
+
     // Chrome layout
     @Published var showSidebar: Bool = true
     @Published var sidebarWidth: Double = 260
+
+    /// The WindowGroup's window, tagged by `WindowAccessor` on ContentView.
+    /// Deliberately not @Published — nothing renders from it, and republishing
+    /// on every window change would churn the view tree. Weak so closing the
+    /// window doesn't keep it alive.
+    ///
+    /// AppDelegate's ⌘W path uses it to tell the document window apart from the
+    /// Settings window. Read it together with `documentWindowWasTagged` below —
+    /// a nil on its own is ambiguous, and `shouldCloseDocument` needs both.
+    ///
+    /// One slot, deliberately: the app is single-window by construction — the
+    /// WindowGroup routes every `readermd://` URL to the existing window
+    /// (`handlesExternalEvents`) and `CommandGroup(replacing: .newItem)` drops
+    /// New Window. If a second document window ever becomes reachable, this
+    /// becomes last-writer-wins and ⌘W in the other window closes it instead of
+    /// the document.
+    private(set) weak var documentWindow: NSWindow?
+
+    /// Whether `documentWindow` has ever been set. A weak reference can't tell
+    /// "not tagged yet" (the tick before ContentView's first update) from
+    /// "tagged, then closed" once it reads nil, and ⌘W has to treat those
+    /// opposite ways.
+    private(set) var documentWindowWasTagged = false
+
+    func setDocumentWindow(_ window: NSWindow) {
+        documentWindow = window
+        documentWindowWasTagged = true
+    }
 
     // Reading feedback (posted from the web view). Scroll-rate values live on
     // `reading`, NOT here — see ReadingState. A plain `let`, so mutating it
@@ -322,6 +355,7 @@ final class AppState: ObservableObject {
         showTOC = Settings.loadShowTOC()
         fontScale = Settings.loadFontScale()
         contentWidth = Settings.loadContentWidth()
+        exportLayout = Settings.loadExportLayout()
         showSidebar = Settings.loadShowSidebar()
         sidebarWidth = Settings.loadSidebarWidth()
         // Drop help-doc paths and directories. Folder paths land in both lists when
@@ -709,8 +743,13 @@ final class AppState: ObservableObject {
     // MARK: - Theme / TOC persistence
 
     func toggleTheme() {
-        theme = theme.toggled
-        Settings.saveTheme(theme)
+        setTheme(theme.toggled)
+    }
+
+    /// Settings picks a mode outright; the toolbar button cycles. Both persist.
+    func setTheme(_ value: AppearanceMode) {
+        theme = value
+        Settings.saveTheme(value)
     }
 
     func setReadingTheme(_ theme: ReadingTheme) {
@@ -751,6 +790,11 @@ final class AppState: ObservableObject {
     func setContentWidth(_ value: ContentWidth) {
         contentWidth = value
         Settings.saveContentWidth(value)
+    }
+
+    func setExportLayout(_ value: ExportLayout) {
+        exportLayout = value
+        Settings.saveExportLayout(value)
     }
 
     func cycleContentWidth() {
@@ -1052,6 +1096,15 @@ final class AppState: ObservableObject {
         editorBundleID = id
         editorDisplayName = FileManager.default.displayName(atPath: app.path)
         Settings.saveEditorBundleID(id)
+    }
+
+    /// Forget the editor entirely — the inverse of `pickDefaultEditor`, offered
+    /// in Settings. Same three lines `resolvedEditor()` runs when a stored
+    /// bundle id stops resolving.
+    func clearEditor() {
+        editorBundleID = nil
+        editorDisplayName = nil
+        Settings.saveEditorBundleID(nil)
     }
 
     /// "Open in Cursor" once an editor is set, so the menu says which one.

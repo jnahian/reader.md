@@ -173,6 +173,18 @@ struct ReaderMdApp: App {
                 }
             }
         }
+
+        // `SwiftUI.Settings`, qualified: Models/Settings.swift declares a
+        // module-scope `enum Settings` that shadows the scene, and a module
+        // declaration beats an imported one.
+        //
+        // The environment object and color scheme are not inherited from
+        // ContentView — a Settings scene is a sibling, not a child.
+        SwiftUI.Settings {
+            SettingsView()
+                .environmentObject(state)
+                .preferredColorScheme(state.colorScheme)
+        }
     }
 }
 
@@ -218,7 +230,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                   // A sheet or the quit alert is already up: leave ⌘W alone, or repeat
                   // presses stack a second alert on top of the first.
                   NSApp.modalWindow == nil, NSApp.keyWindow?.sheets.isEmpty ?? true,
-                  let self
+                  let self,
+                  // Only the document window closes documents. Settings (and any
+                  // future window) gets AppKit's performClose.
+                  MainActor.assumeIsolated({ self.shouldCloseDocument })
             else { return event }
             // Deferred, not called inline: the quit path runs a modal alert, and
             // spinning a modal loop from inside sendEvent() swallows it silently.
@@ -234,10 +249,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func retargetCloseItem() {
+    /// Whether ⌘W — from the key monitor, the menu item, or its key equivalent —
+    /// means "close the document" rather than "close the key window".
+    ///
+    /// A nil `documentWindow` reads two ways, so it's split on whether the tag
+    /// ever landed. Before the first tag it's the tick between launch and
+    /// ContentView's first update, when the document window is the only window
+    /// there is — intercept, because letting `performClose` through would close
+    /// it, and closing the last window quits the app. After a tag, nil means
+    /// the document window is gone, so whatever is key now (Settings) owns ⌘W.
+    @MainActor private var shouldCloseDocument: Bool {
+        guard let state else { return true }
+        guard let doc = state.documentWindow else { return !state.documentWindowWasTagged }
+        return NSApp.keyWindow === doc
+    }
+
+    @MainActor private func retargetCloseItem() {
         let items = NSApp.mainMenu?.items.compactMap(\.submenu).flatMap(\.items) ?? []
-        guard let close = items.first(where: { $0.action == #selector(NSWindow.performClose(_:)) })
-        else { return }
+        guard let close = items.first(where: {
+            $0.action == #selector(NSWindow.performClose(_:))
+                || $0.action == #selector(closeFileOrQuit(_:))
+        }) else { return }
+
+        // Restore, don't just skip: the retarget below is a persistent mutation,
+        // so leaving it in place while Settings is key would close the document
+        // from the menu — the bug the key-monitor guard fixes for ⌘W.
+        guard shouldCloseDocument else {
+            close.target = nil
+            close.action = #selector(NSWindow.performClose(_:))
+            return
+        }
         // Target is `self`, not nil: left to the responder chain the item validates as
         // disabled and the menu entry greys out.
         close.target = self
@@ -245,6 +286,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @MainActor @objc func closeFileOrQuit(_ sender: Any?) {
+        // The retarget above only refreshes when a menu opens, so the item can
+        // still point here while another window is key: open Settings *from the
+        // menu bar* and the retarget happens while the document is key, then
+        // Settings takes over and ⌘W matches the stale key equivalent. Nothing
+        // validates it away (there's no validateMenuItem), so re-check here and
+        // do what ⌘W means everywhere else — close the key window.
+        guard shouldCloseDocument else {
+            NSApp.keyWindow?.performClose(sender)
+            return
+        }
         if let state, state.selectedFile != nil {
             state.closeFile()
             return

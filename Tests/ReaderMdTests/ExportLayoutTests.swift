@@ -24,4 +24,28 @@ final class ExportLayoutTests: XCTestCase {
     func testCaseIterableOrder() {
         XCTAssertEqual(ExportLayout.allCases, [.pageByPage, .continuous])
     }
+
+    /// AppState is the single in-memory owner: it seeds from the persisted
+    /// value at launch, and setting it writes straight through.
+    @MainActor
+    func testAppStateSeedsFromPersistedLayout() {
+        let saved = Settings.loadExportLayout()
+        defer { Settings.saveExportLayout(saved) }
+
+        Settings.saveExportLayout(.continuous)
+        XCTAssertEqual(AppState().exportLayout, .continuous)
+    }
+
+    @MainActor
+    func testSetExportLayoutPersists() {
+        let saved = Settings.loadExportLayout()
+        defer { Settings.saveExportLayout(saved) }
+
+        let state = AppState()
+        state.setExportLayout(.continuous)
+        XCTAssertEqual(state.exportLayout, .continuous)
+        XCTAssertEqual(Settings.loadExportLayout(), .continuous)
+        // A fresh state sees it too — the write reached UserDefaults, not just memory.
+        XCTAssertEqual(AppState().exportLayout, .continuous)
+    }
 }
