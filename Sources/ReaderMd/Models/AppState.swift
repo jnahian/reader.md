@@ -208,9 +208,8 @@ final class AppState: ObservableObject {
     /// window doesn't keep it alive.
     ///
     /// AppDelegate's ⌘W path uses it to tell the document window apart from the
-    /// Settings window; a nil value means "intercept anyway" (see
-    /// `shouldCloseDocument`), because not intercepting closes the window, and
-    /// closing the last window quits.
+    /// Settings window. Read it together with `documentWindowWasTagged` below —
+    /// a nil on its own is ambiguous, and `shouldCloseDocument` needs both.
     ///
     /// One slot, deliberately: the app is single-window by construction — the
     /// WindowGroup routes every `readermd://` URL to the existing window
@@ -218,7 +217,18 @@ final class AppState: ObservableObject {
     /// New Window. If a second document window ever becomes reachable, this
     /// becomes last-writer-wins and ⌘W in the other window closes it instead of
     /// the document.
-    weak var documentWindow: NSWindow?
+    private(set) weak var documentWindow: NSWindow?
+
+    /// Whether `documentWindow` has ever been set. A weak reference can't tell
+    /// "not tagged yet" (the tick before ContentView's first update) from
+    /// "tagged, then closed" once it reads nil, and ⌘W has to treat those
+    /// opposite ways.
+    private(set) var documentWindowWasTagged = false
+
+    func setDocumentWindow(_ window: NSWindow) {
+        documentWindow = window
+        documentWindowWasTagged = true
+    }
 
     // Reading feedback (posted from the web view). Scroll-rate values live on
     // `reading`, NOT here — see ReadingState. A plain `let`, so mutating it

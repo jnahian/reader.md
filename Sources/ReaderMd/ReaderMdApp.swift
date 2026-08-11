@@ -252,13 +252,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Whether ⌘W — from the key monitor, the menu item, or its key equivalent —
     /// means "close the document" rather than "close the key window".
     ///
-    /// A nil `documentWindow` intercepts. That's the safe direction: the tag is
-    /// missing only for the tick between launch and ContentView's first update,
-    /// when the document window is the only window there is, and *not*
-    /// intercepting would `performClose` it — which quits the app, the exact
-    /// thing this whole path exists to prevent.
+    /// A nil `documentWindow` reads two ways, so it's split on whether the tag
+    /// ever landed. Before the first tag it's the tick between launch and
+    /// ContentView's first update, when the document window is the only window
+    /// there is — intercept, because letting `performClose` through would close
+    /// it, and closing the last window quits the app. After a tag, nil means
+    /// the document window is gone, so whatever is key now (Settings) owns ⌘W.
     @MainActor private var shouldCloseDocument: Bool {
-        guard let doc = state?.documentWindow else { return true }
+        guard let state else { return true }
+        guard let doc = state.documentWindow else { return !state.documentWindowWasTagged }
         return NSApp.keyWindow === doc
     }
 
