@@ -22,9 +22,35 @@ export interface Release {
 
 export const releasesLog: Release[] = [
   {
+    version: "1.17.0",
+    date: "Aug 12, 2026",
+    badge: "LATEST",
+    groups: [
+      {
+        tag: "ADDED",
+        items: [
+          "<strong>Settings window (⌘,)</strong> — appearance, reading theme, text size, canvas width, the external editor, and the default PDF export layout in one place. Mostly a second way into preferences the toolbar and menus already carry; the default PDF layout, clearing the external editor, and picking an appearance mode directly rather than cycling to it live only here.",
+          "<strong>Clear the external editor</strong> — from Settings. Previously the only way to unset one was to uninstall it.",
+          "<strong>Settings in Quick Open</strong> — type <code class=\"tok\">&gt;settings</code> in the ⌘P palette to open the window, alongside every other preference the palette already offered.",
+        ],
+      },
+      {
+        tag: "IMPROVED",
+        items: [
+          "<strong>The Layout popup in the ⌘E save panel is now a per-export choice</strong> — it used to overwrite your default, so exporting once as Continuous quietly changed every later export. The default now lives in Settings ▸ Editing &amp; Export.",
+        ],
+      },
+      {
+        tag: "FIXED",
+        items: [
+          "<strong>⌘↩ and ⇧⌘↩ step through find matches</strong> — as the search field's tooltips and the shortcuts page have always said. Neither was actually wired up; only plain ↩ moved to the next match.",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.16.1",
     date: "Aug 11, 2026",
-    badge: "LATEST",
     groups: [
       {
         tag: "FIXED",
