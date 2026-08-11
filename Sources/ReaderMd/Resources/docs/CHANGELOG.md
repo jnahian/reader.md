@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.17.0] - 2026-08-12
+
 ### Added
 
 - **Settings window (⌘,)** — appearance, reading theme, text size, canvas width,
@@ -15,12 +17,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   directly rather than cycling to it live only here.
 - **Clear the external editor** from Settings. Previously the only way to unset
   one was to uninstall it.
+- **Settings in Quick Open** — type `>settings` in the ⌘P palette to open the
+  window, alongside every other preference the palette already offered.
 
 ### Changed
 
 - **The Layout popup in the ⌘E save panel is now a per-export choice.** It used
   to overwrite your default, so exporting once as Continuous quietly changed
   every later export. The default now lives in Settings ▸ Editing & Export.
+
+### Fixed
+
+- **⌘↩ and ⇧⌘↩ step through find matches**, as the search field's tooltips and
+  the shortcuts page have always said. Neither was actually wired up; only
+  plain ↩ moved to the next match.
 
 ## [1.16.1] - 2026-08-11
 
