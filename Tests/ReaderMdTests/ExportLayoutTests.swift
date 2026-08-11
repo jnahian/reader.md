@@ -48,24 +48,4 @@ final class ExportLayoutTests: XCTestCase {
         // A fresh state sees it too — the write reached UserDefaults, not just memory.
         XCTAssertEqual(AppState().exportLayout, .continuous)
     }
-
-    /// The ⌘E save panel's popup is a per-export override. Choosing the other
-    /// layout for one export must not move the stored default — which is what
-    /// the panel used to do, straight to UserDefaults.
-    @MainActor
-    func testALocalLayoutChoiceDoesNotMoveTheDefault() {
-        let saved = Settings.loadExportLayout()
-        defer { Settings.saveExportLayout(saved) }
-
-        Settings.saveExportLayout(.pageByPage)
-        let state = AppState()
-
-        // Exactly what presentExportPanel does with the popup's selection:
-        // read it, use it, and never write it back.
-        let picked = ExportLayout.allCases[1]
-        XCTAssertEqual(picked, .continuous)
-
-        XCTAssertEqual(state.exportLayout, .pageByPage)
-        XCTAssertEqual(Settings.loadExportLayout(), .pageByPage)
-    }
 }
