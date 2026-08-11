@@ -45,6 +45,14 @@ final class TrackerNSView: NSView {
     /// synthesize the events AppKit doesn't send — see there.
     private var inside = false
 
+    /// Never take a mouse event. This view exists only to observe hover, and its
+    /// tracking area delivers that regardless of hit-testing — but a plain NSView
+    /// returns itself here, and `.background` puts it over the whole host. On a row
+    /// that is only tapped that goes unnoticed; on one carrying a Button or `.onDrag`
+    /// it ate the mouse-down, which is why a Favorites row's × did nothing and the
+    /// row would not drag to reorder, while Recents (tooltip on the × alone) was fine.
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         trackingAreas.forEach(removeTrackingArea)

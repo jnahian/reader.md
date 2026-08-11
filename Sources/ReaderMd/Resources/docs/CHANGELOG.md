@@ -10,12 +10,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
-- **Sidebar × tooltips no longer get crossed.** Unpinning the last favorite or
-  clearing the last recent collapses that whole section, so the row beneath slid
-  up under a pointer that never moved — and kept the vanished row's tooltip,
-  which is how a Favorites × came to read "Remove from Recents". The row under
-  the pointer is now re-checked whenever the sidebar re-lays out, so the control
-  that arrives there gets its own tooltip right away.
+- **The × on a Favorites row works again**, as does dragging one to reorder. The
+  row's tooltip covered it with an invisible layer that swallowed the click, so
+  unpinning did nothing and the row wouldn't move. Recents was unaffected, which
+  is why only Favorites looked stuck.
+- **Sidebar × tooltips no longer get crossed.** Removing the last file from
+  Recents or Favorites collapses that whole section, so the row beneath slid up
+  under a pointer that never moved and kept the vanished row's label — which is
+  how a Favorites × came to read "Remove from Recents". The row under the pointer
+  is now re-checked whenever the sidebar re-lays out.
 
 ## [1.16.0] - 2026-08-11
 
