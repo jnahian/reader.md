@@ -232,6 +232,23 @@ func paletteCommands(_ state: AppState) -> [PaletteCommand] {
                        systemImage: "doc.badge.plus") { $0.pickFile() },
         PaletteCommand(id: "addRemote", title: "Add Remote Folder…", subtitle: "Files",
                        systemImage: "network") { $0.showAddRemote = true },
+        // The one preference surface the palette can't reach through AppState:
+        // SwiftUI owns the Settings scene and exposes no API to open it. The
+        // menu item it installs is the only handle, and it has to be matched on
+        // its ⌘, key equivalent — the selector is SwiftUI's opaque `menuAction:`
+        // (so the usual `sendAction(Selector("showSettingsWindow:"))` trick just
+        // no-ops) and the title is localized. Fire it rather than send its
+        // action: the item's target isn't on the responder chain.
+        PaletteCommand(id: "settings", title: "Settings…", subtitle: "Preferences",
+                       systemImage: "gearshape") { _ in
+            guard let appMenu = NSApp.mainMenu?.items.first?.submenu,
+                  let i = appMenu.items.firstIndex(where: {
+                      $0.keyEquivalent == ","
+                          && $0.keyEquivalentModifierMask == .command
+                  })
+            else { return }
+            appMenu.performActionForItem(at: i)
+        },
     ]
     if state.selectedFile != nil {
         if !state.canShowDiff {
