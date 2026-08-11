@@ -207,9 +207,17 @@ final class AppState: ObservableObject {
     /// on every window change would churn the view tree. Weak so closing the
     /// window doesn't keep it alive.
     ///
-    /// AppDelegate's ⌘W monitor uses it to tell the document window apart from
-    /// the Settings window; a nil value means "don't intercept", which is the
-    /// safe direction.
+    /// AppDelegate's ⌘W path uses it to tell the document window apart from the
+    /// Settings window; a nil value means "intercept anyway" (see
+    /// `shouldCloseDocument`), because not intercepting closes the window, and
+    /// closing the last window quits.
+    ///
+    /// One slot, deliberately: the app is single-window by construction — the
+    /// WindowGroup routes every `readermd://` URL to the existing window
+    /// (`handlesExternalEvents`) and `CommandGroup(replacing: .newItem)` drops
+    /// New Window. If a second document window ever becomes reachable, this
+    /// becomes last-writer-wins and ⌘W in the other window closes it instead of
+    /// the document.
     weak var documentWindow: NSWindow?
 
     // Reading feedback (posted from the web view). Scroll-rate values live on

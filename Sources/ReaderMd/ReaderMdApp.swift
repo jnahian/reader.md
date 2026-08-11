@@ -232,12 +232,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                   NSApp.modalWindow == nil, NSApp.keyWindow?.sheets.isEmpty ?? true,
                   let self,
                   // Only the document window closes documents. Settings (and any
-                  // future window) gets AppKit's performClose. Fails closed while
-                  // documentWindow is still nil, one tick after launch.
-                  MainActor.assumeIsolated({
-                      guard let doc = self.state?.documentWindow else { return false }
-                      return NSApp.keyWindow === doc
-                  })
+                  // future window) gets AppKit's performClose.
+                  MainActor.assumeIsolated({ self.shouldCloseDocument })
             else { return event }
             // Deferred, not called inline: the quit path runs a modal alert, and
             // spinning a modal loop from inside sendEvent() swallows it silently.
@@ -253,6 +249,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// Whether ⌘W — from the key monitor, the menu item, or its key equivalent —
+    /// means "close the document" rather than "close the key window".
+    ///
+    /// A nil `documentWindow` intercepts. That's the safe direction: the tag is
+    /// missing only for the tick between launch and ContentView's first update,
+    /// when the document window is the only window there is, and *not*
+    /// intercepting would `performClose` it — which quits the app, the exact
+    /// thing this whole path exists to prevent.
+    @MainActor private var shouldCloseDocument: Bool {
+        guard let doc = state?.documentWindow else { return true }
+        return NSApp.keyWindow === doc
+    }
+
     @MainActor private func retargetCloseItem() {
         let items = NSApp.mainMenu?.items.compactMap(\.submenu).flatMap(\.items) ?? []
         guard let close = items.first(where: {
@@ -263,7 +272,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Restore, don't just skip: the retarget below is a persistent mutation,
         // so leaving it in place while Settings is key would close the document
         // from the menu — the bug the key-monitor guard fixes for ⌘W.
-        guard let doc = state?.documentWindow, NSApp.keyWindow === doc else {
+        guard shouldCloseDocument else {
             close.target = nil
             close.action = #selector(NSWindow.performClose(_:))
             return
@@ -275,6 +284,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @MainActor @objc func closeFileOrQuit(_ sender: Any?) {
+        // The retarget above only refreshes when a menu opens, so the item can
+        // still point here while another window is key: open Settings *from the
+        // menu bar* and the retarget happens while the document is key, then
+        // Settings takes over and ⌘W matches the stale key equivalent. Nothing
+        // validates it away (there's no validateMenuItem), so re-check here and
+        // do what ⌘W means everywhere else — close the key window.
+        guard shouldCloseDocument else {
+            NSApp.keyWindow?.performClose(sender)
+            return
+        }
         if let state, state.selectedFile != nil {
             state.closeFile()
             return
