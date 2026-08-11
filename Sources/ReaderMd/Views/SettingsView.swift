@@ -60,10 +60,14 @@ struct SettingsView: View {
             Section("Editing & Export") {
                 LabeledContent("External editor") {
                     HStack {
-                        Text(state.editorDisplayName ?? "None")
+                        // Falls back to the raw bundle id, not "None": an editor
+                        // that has been uninstalled still has a stored id, and
+                        // ⇧⌘E is still enabled off it. Saying "None" there would
+                        // hide a setting the user can — and should — clear.
+                        Text(state.editorDisplayName ?? state.editorBundleID ?? "None")
                             .foregroundStyle(state.editorDisplayName == nil ? .secondary : .primary)
                         Spacer()
-                        if state.editorDisplayName != nil {
+                        if state.editorBundleID != nil {
                             Button("Clear") { state.clearEditor() }
                         }
                         Button("Choose…") { state.pickDefaultEditor() }
