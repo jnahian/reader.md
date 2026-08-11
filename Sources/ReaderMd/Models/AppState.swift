@@ -193,6 +193,11 @@ final class AppState: ObservableObject {
     @Published var fontScale: Double = 1.0     // 0.7 ... 1.6
     @Published var contentWidth: ContentWidth = .wide
 
+    /// Default layout for ⌘E. The save panel's popup seeds from this and is a
+    /// per-export override — it deliberately does not write back, or a one-off
+    /// Continuous export would silently become the default.
+    @Published private(set) var exportLayout: ExportLayout = .pageByPage
+
     // Chrome layout
     @Published var showSidebar: Bool = true
     @Published var sidebarWidth: Double = 260
@@ -322,6 +327,7 @@ final class AppState: ObservableObject {
         showTOC = Settings.loadShowTOC()
         fontScale = Settings.loadFontScale()
         contentWidth = Settings.loadContentWidth()
+        exportLayout = Settings.loadExportLayout()
         showSidebar = Settings.loadShowSidebar()
         sidebarWidth = Settings.loadSidebarWidth()
         // Drop help-doc paths and directories. Folder paths land in both lists when
@@ -751,6 +757,11 @@ final class AppState: ObservableObject {
     func setContentWidth(_ value: ContentWidth) {
         contentWidth = value
         Settings.saveContentWidth(value)
+    }
+
+    func setExportLayout(_ value: ExportLayout) {
+        exportLayout = value
+        Settings.saveExportLayout(value)
     }
 
     func cycleContentWidth() {

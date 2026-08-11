@@ -489,7 +489,7 @@ struct MarkdownWebView: NSViewRepresentable {
 
             let picker = NSPopUpButton(frame: .zero, pullsDown: false)
             picker.addItems(withTitles: ExportLayout.allCases.map(\.displayName))
-            picker.selectItem(at: ExportLayout.allCases.firstIndex(of: Settings.loadExportLayout()) ?? 0)
+            picker.selectItem(at: ExportLayout.allCases.firstIndex(of: state.exportLayout) ?? 0)
             let row = NSStackView(views: [NSTextField(labelWithString: "Layout:"), picker])
             row.orientation = .horizontal
             row.edgeInsets = NSEdgeInsets(top: 10, left: 20, bottom: 10, right: 0)
@@ -499,8 +499,10 @@ struct MarkdownWebView: NSViewRepresentable {
             panel.accessoryView = row
 
             guard panel.runModal() == .OK, let url = panel.url else { return }
+            // Per-export override, not a preference write: the default lives in
+            // Settings ▸ Editing & Export. Persisting here meant one Continuous
+            // export quietly changed every later export.
             let layout = ExportLayout.allCases[picker.indexOfSelectedItem]
-            Settings.saveExportLayout(layout)
 
             // Find highlights and diagram zoom would both bake into the PDF.
             // beforeExport() resets them; wait for that JS to finish, render,
