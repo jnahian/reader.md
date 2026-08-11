@@ -1,6 +1,6 @@
 cask "reader-md" do
-  version "1.16.0"
-  sha256 "e217767e8dfbdb8907f4972997f99ab2e27925e8da8745e382282b0a9153a4e0"
+  version "1.16.1"
+  sha256 "1845d6ed80aba5ac219434ae4de6070db3c2e23b59da8a00f6c025c38d4438fb"
 
   url "https://github.com/jnahian/reader.md/releases/download/v#{version}/Reader.md.dmg",
       verified: "github.com/jnahian/reader.md/"
