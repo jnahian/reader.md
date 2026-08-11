@@ -25,14 +25,15 @@ the same bindings.
 - **Finder-style chrome** — capsule search field; native toolbar controls grouped into capsules by function; a "FOLDERS" section header with tinted icons and a full-width selection pill; and a bottom status bar (markdown file count, or word count / reading-time for the open file), mirroring the macOS 26 Finder
 - **Reading feedback** — accent progress bar under the toolbar; word count and reading time in the status bar
 - **Code copy buttons**, **image click-to-zoom** lightbox, and hover **heading anchors**
-- **Export to PDF** (⌘E) and **manual reload** (⌘R) — toolbar buttons on the right; the save dialog's Layout control picks page-by-page (default) or one continuous page, and remembers the choice
-- **Hand off to an editor** (⇧⌘E) — Reader.md stays a reader; pick an editor once (**File → Set Default Editor…**, or right-click a file → **Always Open With**) and ⇧⌘E sends the open document there. The watcher re-renders on save, so an editor beside Reader.md reads as a live preview. Not offered for the bundled help docs, piped `reader -` documents, or read-only remote folders
+- **Export to PDF** (⌘E) and **manual reload** (⌘R) — toolbar buttons on the right; the save dialog's Layout control picks page-by-page or one continuous page for that export, and the default it starts from lives in **Settings ▸ Editing & Export**
+- **Hand off to an editor** (⇧⌘E) — Reader.md stays a reader; pick an editor once (**Settings ▸ Editing & Export**, **File → Set Default Editor…**, or right-click a file → **Always Open With**) and ⇧⌘E sends the open document there. The watcher re-renders on save, so an editor beside Reader.md reads as a live preview. Not offered for the bundled help docs, piped `reader -` documents, or read-only remote folders
 - **Liquid Glass chrome** — on macOS 26 (Tahoe) the native toolbar, sidebar, outline, find bar, and quick-open palette all read as Liquid Glass; on macOS 13–15 they fall back to translucent `NSVisualEffectView` material. Collapsible + resizable sidebar (⌘B, width persisted); the title's proxy icon reveals the file in Finder
 - **Syntax highlighting, Mermaid, LaTeX math** — via the bundled JS engines
 - **YAML frontmatter** — rendered as a clean key/value table at the top of the document
 - **Appearance** — a light → dark → system cycle, applied to both native chrome and web content; System follows macOS live, including on a schedule
 - **Live reload** — the open file re-renders (scroll preserved) and the tree refreshes on disk changes
 - **Auto-update** — the packaged `.app` checks for and installs new releases via Sparkle
+- **Settings** (⌘,) — appearance, reading theme, text size, canvas width, the external editor, and the default PDF export layout in one window. Everything except the PDF layout default is also on the toolbar or in a menu
 - **About panel** — version and credits from the standard macOS About window
 
 ## Keyboard shortcuts
@@ -48,5 +49,6 @@ the same bindings.
 | ⌘+ / ⌘− / ⌘0 | Text bigger / smaller / reset | ⇧⌘E | Open in editor |
 | ⌘E | Export PDF | ⌘R | Reload |
 | ⌘/ | Keyboard shortcuts | ⌘D | Add to / remove from Favorites |
+| ⌘, | Settings | | |
 
 Reader.md also has a command-line companion — see [the CLI reference](cli.md).

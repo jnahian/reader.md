@@ -9,7 +9,7 @@
 | ⌥⌘A | Add Remote Folder… |
 | ⌘P | Quick Open (files, `>` commands, `#` headings) |
 | ⌘D | Add to / Remove from Favorites (the open document) |
-| ⇧⌘E | Open in Editor (pick one first via File → Set Default Editor…) |
+| ⇧⌘E | Open in Editor (pick one first in Settings, or File → Set Default Editor…) |
 | ⌘E | Export as PDF… |
 | ⌘R | Reload |
 
@@ -54,6 +54,16 @@ document you're reading.
 | ⌘0 | Actual Size |
 | ⇧⌘\\ | Cycle Canvas Width (Narrow / Wide / Full) |
 | ⇧⌘D | Toggle Diff (in a git repository) |
+
+## Settings
+
+| Shortcut | Action |
+| --- | --- |
+| ⌘, | Open Settings |
+
+Appearance, reading theme, text size, canvas width, external editor, and the
+default PDF export layout. Everything except the PDF layout is also reachable
+from the toolbar or a menu — Settings is a second way in, not the only one.
 
 ## Help
 

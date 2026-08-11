@@ -6,6 +6,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Settings window (⌘,)** — appearance, reading theme, text size, canvas width,
+  the external editor, and the default PDF export layout in one place. Every
+  control still works from the toolbar and menus too.
+- **Clear the external editor** from Settings. Previously the only way to unset
+  one was to uninstall it.
+
+### Changed
+
+- **The Layout popup in the ⌘E save panel is now a per-export choice.** It used
+  to overwrite your default, so exporting once as Continuous quietly changed
+  every later export. The default now lives in Settings ▸ Editing & Export.
+
 ## [1.16.1] - 2026-08-11
 
 ### Fixed
