@@ -202,6 +202,16 @@ final class AppState: ObservableObject {
     @Published var showSidebar: Bool = true
     @Published var sidebarWidth: Double = 260
 
+    /// The WindowGroup's window, tagged by `WindowAccessor` on ContentView.
+    /// Deliberately not @Published — nothing renders from it, and republishing
+    /// on every window change would churn the view tree. Weak so closing the
+    /// window doesn't keep it alive.
+    ///
+    /// AppDelegate's ⌘W monitor uses it to tell the document window apart from
+    /// the Settings window; a nil value means "don't intercept", which is the
+    /// safe direction.
+    weak var documentWindow: NSWindow?
+
     // Reading feedback (posted from the web view). Scroll-rate values live on
     // `reading`, NOT here — see ReadingState. A plain `let`, so mutating it
     // never fires AppState's objectWillChange.

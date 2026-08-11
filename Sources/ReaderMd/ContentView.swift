@@ -30,6 +30,7 @@ struct ContentView: View {
         }
         .readerToolbar()
         .background(findStepShortcuts)
+        .background(WindowAccessor { state.documentWindow = $0 })
         .animation(.easeInOut(duration: 0.15), value: state.showSidebar)
         .animation(.easeInOut(duration: 0.15), value: state.showTOC)
         .animation(.easeInOut(duration: 0.12), value: state.showQuickOpen)

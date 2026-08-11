@@ -218,7 +218,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                   // A sheet or the quit alert is already up: leave ⌘W alone, or repeat
                   // presses stack a second alert on top of the first.
                   NSApp.modalWindow == nil, NSApp.keyWindow?.sheets.isEmpty ?? true,
-                  let self
+                  let self,
+                  // Only the document window closes documents. Settings (and any
+                  // future window) gets AppKit's performClose. Fails closed while
+                  // documentWindow is still nil, one tick after launch.
+                  MainActor.assumeIsolated({
+                      guard let doc = self.state?.documentWindow else { return false }
+                      return NSApp.keyWindow === doc
+                  })
             else { return event }
             // Deferred, not called inline: the quit path runs a modal alert, and
             // spinning a modal loop from inside sendEvent() swallows it silently.
@@ -234,10 +241,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func retargetCloseItem() {
+    @MainActor private func retargetCloseItem() {
         let items = NSApp.mainMenu?.items.compactMap(\.submenu).flatMap(\.items) ?? []
-        guard let close = items.first(where: { $0.action == #selector(NSWindow.performClose(_:)) })
-        else { return }
+        guard let close = items.first(where: {
+            $0.action == #selector(NSWindow.performClose(_:))
+                || $0.action == #selector(closeFileOrQuit(_:))
+        }) else { return }
+
+        // Restore, don't just skip: the retarget below is a persistent mutation,
+        // so leaving it in place while Settings is key would close the document
+        // from the menu — the bug the key-monitor guard fixes for ⌘W.
+        guard let doc = state?.documentWindow, NSApp.keyWindow === doc else {
+            close.target = nil
+            close.action = #selector(NSWindow.performClose(_:))
+            return
+        }
         // Target is `self`, not nil: left to the responder chain the item validates as
         // disabled and the menu entry greys out.
         close.target = self
