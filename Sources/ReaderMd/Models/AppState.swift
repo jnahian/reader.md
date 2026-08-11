@@ -733,8 +733,7 @@ final class AppState: ObservableObject {
     // MARK: - Theme / TOC persistence
 
     func toggleTheme() {
-        theme = theme.toggled
-        Settings.saveTheme(theme)
+        setTheme(theme.toggled)
     }
 
     /// Settings picks a mode outright; the toolbar button cycles. Both persist.
