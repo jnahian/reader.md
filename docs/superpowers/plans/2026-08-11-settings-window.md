@@ -783,12 +783,16 @@ EOF
 
 Not part of this plan's commits. When cutting the release (follow the `release` skill):
 
-- `web/src/data/content.ts` — mirror the `docs/features.md` changes. Specifically
-  **line 106**, which still says an editor is picked via
-  "<strong>File → Set Default Editor…</strong>, or right-click a file →
-  <strong>Always Open With</strong>" and needs Settings added; plus a Settings
-  entry and the ⌘, shortcut. Check the same file for any "remembers the choice"
-  wording about the PDF Layout control — that is now false.
+- ~~`web/src/data/content.ts`~~ — **done** in `a1e845e`, at the user's request,
+  rather than being held for the release. A Settings feature row, the ⌘,
+  shortcut, and the editor + export cards corrected. It publishes when the
+  branch merges to `main`, so the site advertises ⌘, from the merge, not from
+  the release — cut the version soon after merging.
+- `web/src/data/changelog.ts` — still outstanding, and correctly so:
+  `web/CLAUDE.md` says the site changelog is per release, never per merge, and
+  that there is no "Unreleased" release on the site. Add the entry when the
+  version is cut, newest-first, moving `badge: "LATEST"` off the previous one.
+  `### Added` → `ADDED`, `### Changed` → `IMPROVED`.
 - `Sources/ReaderMd/Resources/docs/CHANGELOG.md:46` is a *historical* 1.16.0
   entry that says the export layout choice is remembered. Leave it — it
   describes what shipped in that version, and the `[Unreleased]` section records
