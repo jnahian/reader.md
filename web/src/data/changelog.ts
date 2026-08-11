@@ -29,7 +29,8 @@ export const releasesLog: Release[] = [
       {
         tag: "FIXED",
         items: [
-          "<strong>Sidebar × tooltips no longer get crossed</strong> — unpinning the last favorite or clearing the last recent collapses that whole section, so the row beneath slid up under a pointer that never moved — and kept the vanished row's tooltip, which is how a Favorites × came to read \"Remove from Recents\". The row under the pointer is now re-checked whenever the sidebar re-lays out, so the control that arrives there gets its own tooltip right away.",
+          "<strong>The × on a Favorites row works again</strong> — as does dragging one to reorder. The row's tooltip covered it with an invisible layer that swallowed the click, so unpinning did nothing and the row wouldn't move. Recents was unaffected, which is why only Favorites looked stuck.",
+          "<strong>Sidebar × tooltips no longer get crossed</strong> — removing the last file from Recents or Favorites collapses that whole section, so the row beneath slid up under a pointer that never moved and kept the vanished row's label — which is how a Favorites × came to read \"Remove from Recents\". The row under the pointer is now re-checked whenever the sidebar re-lays out.",
         ],
       },
     ],
