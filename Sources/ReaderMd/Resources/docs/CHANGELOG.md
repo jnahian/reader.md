@@ -18,6 +18,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `/tmp/notes`, or through a link to another volume, showed no `M` · `A` · `?`
   badges at all. The sidebar looks them up under the resolved path the folder
   scan returns, and the badge map was keyed only under the path you added.
+- **`reader ls` printed nothing useful for a cloned repository** — just a bare
+  `:` where its origin should be. Cloned remotes arrived after that listing was
+  written and never reached it; it now shows the clone URL.
+- **`brew uninstall --zap` left your annotations behind.** Highlights, notes,
+  and cached remote folders live under the app's name rather than its bundle
+  id, and only the bundle-id paths were being removed — so a zap reported
+  success and cleaned up nothing of yours.
 
 ## [1.17.0] - 2026-08-12
 
