@@ -177,12 +177,6 @@ final class TrackerNSView: NSView {
 
     private func endHover() {
         inside = false
-        dismissBubble()
-    }
-
-    /// Take the bubble down (and cancel a pending one) without touching `inside`
-    /// — for the cases where the bubble has to go but the cursor hasn't moved.
-    private func dismissBubble() {
         removeClickMonitor()
         timer?.invalidate()
         timer = nil
