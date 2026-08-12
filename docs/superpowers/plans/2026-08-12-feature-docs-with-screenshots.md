@@ -24,29 +24,29 @@
 
 ## File Structure
 
-| Path | Responsibility |
-|---|---|
-| `make-app.sh:8` | Modified — allow `BUNDLE_ID` to be overridden from the environment |
-| `.claude/skills/reader-docs/SKILL.md` | Orchestrator: the loop and the three gates |
-| `.claude/skills/reader-docs/references/manifest-schema.md` | Manifest field reference |
-| `.claude/skills/reader-docs/references/page-template.md` | Page structure |
-| `.claude/skills/reader-docs/references/manual-shots.md` | Checklist for non-scriptable shots |
-| `.claude/skills/reader-docs/references/voice.md` | Tone rules |
-| `.claude/skills/reader-docs/scripts/winid.swift` | Resolve the app's CGWindowID |
-| `.claude/skills/reader-docs/scripts/cursor.swift` | Park the mouse pointer at a fixed point |
-| `.claude/skills/reader-docs/scripts/fixtures.sh` | Generate the fixture corpus and git repo |
-| `.claude/skills/reader-docs/scripts/capture.sh` | Execute a manifest: guards, geometry, settle, capture, encode |
-| `docs/features/reading.md` | Pilot page prose |
-| `docs/features/reading.shots.json` | Pilot page manifest |
-| `docs/features.md` | Reduced to an index |
-| `docs/assets/screenshots/reading/*` | Captured assets |
-| `web/src/content.config.ts` | Astro collection globbing `../docs/features` |
-| `web/src/pages/docs/[...slug].astro` | One route per page |
-| `web/src/components/DocsNav.astro` | Cross-page navigation |
-| `web/src/components/DocsMedia.astro` | Renders a still or a clip |
-| `web/plugins/remark-docs-assets.mjs` | Rewrites asset paths, swaps `.mp4` to the video component |
-| `web/package.json` | `prebuild` script copying assets into `public/` |
-| `web/.gitignore` | Ignores `public/screenshots` |
+| Path                                                       | Responsibility                                                     |
+| ---------------------------------------------------------- | ------------------------------------------------------------------ |
+| `make-app.sh:8`                                            | Modified — allow `BUNDLE_ID` to be overridden from the environment |
+| `.claude/skills/reader-docs/SKILL.md`                      | Orchestrator: the loop and the three gates                         |
+| `.claude/skills/reader-docs/references/manifest-schema.md` | Manifest field reference                                           |
+| `.claude/skills/reader-docs/references/page-template.md`   | Page structure                                                     |
+| `.claude/skills/reader-docs/references/manual-shots.md`    | Checklist for non-scriptable shots                                 |
+| `.claude/skills/reader-docs/references/voice.md`           | Tone rules                                                         |
+| `.claude/skills/reader-docs/scripts/winid.swift`           | Resolve the app's CGWindowID                                       |
+| `.claude/skills/reader-docs/scripts/cursor.swift`          | Park the mouse pointer at a fixed point                            |
+| `.claude/skills/reader-docs/scripts/fixtures.sh`           | Generate the fixture corpus and git repo                           |
+| `.claude/skills/reader-docs/scripts/capture.sh`            | Execute a manifest: guards, geometry, settle, capture, encode      |
+| `docs/features/reading.md`                                 | Pilot page prose                                                   |
+| `docs/features/reading.shots.json`                         | Pilot page manifest                                                |
+| `docs/features.md`                                         | Reduced to an index                                                |
+| `docs/assets/screenshots/reading/*`                        | Captured assets                                                    |
+| `web/src/content.config.ts`                                | Astro collection globbing `../docs/features`                       |
+| `web/src/pages/docs/[...slug].astro`                       | One route per page                                                 |
+| `web/src/components/DocsNav.astro`                         | Cross-page navigation                                              |
+| `web/src/components/DocsMedia.astro`                       | Renders a still or a clip                                          |
+| `web/plugins/remark-docs-assets.mjs`                       | Rewrites asset paths, swaps `.mp4` to the video component          |
+| `web/package.json`                                         | `prebuild` script copying assets into `public/`                    |
+| `web/.gitignore`                                           | Ignores `public/screenshots`                                       |
 
 ---
 
@@ -55,7 +55,7 @@
 The spec's only unverified assumption. Do it first: if the one-line change fights Sparkle or signing, the fallback decision must happen before anything depends on it.
 
 **Files:**
-- Modify: `make-app.sh:8`
+- Modify: `make-app.sh:8` (BUNDLE_ID) and `make-app.sh:20` (APP_OUT)
 
 **Interfaces:**
 - Produces: an app bundle at `build/Reader.md.app` whose `CFBundleIdentifier` is `${BUNDLE_ID:-com.nahian.reader-md}`, so `BUNDLE_ID=com.nahian.reader-md.shots ./make-app.sh` yields a shots build.
@@ -100,6 +100,17 @@ with:
 # Overridable so the docs harness can build an isolated bundle (its own
 # UserDefaults domain) without touching the real app's saved folders.
 BUNDLE_ID="${BUNDLE_ID:-com.nahian.reader-md}"
+```
+
+Then, at line 20, replace `APP="build/${APP_NAME}.app"` with an overridable
+output directory, so the harness's isolated build never clobbers the normal one:
+
+```bash
+# Overridable alongside BUNDLE_ID so the docs harness can build its isolated
+# bundle without clobbering the normal build at build/Reader.md.app.
+APP_OUT="${APP_OUT:-build}"
+mkdir -p "$APP_OUT"
+APP="${APP_OUT}/${APP_NAME}.app"
 ```
 
 - [ ] **Step 4: Run it to verify it passes**
@@ -205,11 +216,25 @@ let windows = CGWindowListCopyWindowInfo(
     [.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID
 ) as? [[String: Any]] ?? []
 
+// The app also exposes a small unnamed system dialog at layer 0. Prefer a
+// window with a title — that is the document window. Fall back to any layer-0
+// window only if nothing is titled.
+var fallback: Int?
+
 for w in windows {
     let owner = w[kCGWindowOwnerName as String] as? String ?? ""
+    let name = w[kCGWindowName as String] as? String ?? ""
     let layer = w[kCGWindowLayer as String] as? Int ?? -1
     guard owner.contains(needle), layer == 0,
           let number = w[kCGWindowNumber as String] as? Int else { continue }
+    if !name.isEmpty {
+        print(number)
+        exit(0)
+    }
+    if fallback == nil { fallback = number }
+}
+
+if let number = fallback {
     print(number)
     exit(0)
 }
@@ -341,10 +366,10 @@ skim the [reference](reference/shortcuts.md).
 
 ## What lives here
 
-| Section | Contents |
-|---|---|
-| Guides | Task-shaped walkthroughs |
-| Reference | Tables and lookups |
+| Section   | Contents                 |
+| --------- | ------------------------ |
+| Guides    | Task-shaped walkthroughs |
+| Reference | Tables and lookups       |
 
 > Notes are written as they are learned, and corrected as they are disproven.
 EOF
@@ -429,11 +454,11 @@ cat > "$ROOT/field-notes/reference/shortcuts.md" <<'EOF'
 
 ## Codes
 
-| Code | Meaning |
-|---|---|
-| `A` | Added |
-| `M` | Modified |
-| `U` | Unmerged |
+| Code | Meaning  |
+| ---- | -------- |
+| `A`  | Added    |
+| `M`  | Modified |
+| `U`  | Unmerged |
 
 ## Example
 
@@ -645,7 +670,12 @@ REPO="$(git -C "$HERE" rev-parse --show-toplevel)"
 APP_NAME="Reader.md"
 SHOTS_DOMAIN="com.nahian.reader-md.shots"
 REAL_DOMAIN="com.nahian.reader-md"
-APP="$REPO/build/$APP_NAME.app"
+# The harness drives its OWN build, never build/Reader.md.app. Sharing that
+# path is how a run ends up against the real preference domain: seeding
+# com.nahian.reader-md.shots does nothing if the app you launch is the default
+# build, and the capture silently fills with real folders and real filenames.
+APP_DIR="$REPO/build/shots"
+APP="$APP_DIR/$APP_NAME.app"
 READER="$APP/Contents/MacOS/reader"
 
 MANIFEST="${1:-}"
@@ -700,6 +730,50 @@ require_shots_domain() {
   DOMAIN="$domain"
 }
 
+# Builds the isolated app if missing, then ASSERTS that the bundle actually
+# carries the shots identifier. Seeding a preference domain is worthless if the
+# app being launched reads a different one — the assert is the guard that
+# catches it, and it is not skippable.
+require_shots_app() {
+  if [ ! -d "$APP" ]; then
+    echo "capture: building the isolated app (first run) …"
+    ( cd "$REPO" && BUNDLE_ID="$DOMAIN" APP_OUT="$APP_DIR" ./make-app.sh >/dev/null )
+  fi
+  local got
+  got=$(defaults read "$APP/Contents/Info" CFBundleIdentifier 2>/dev/null || echo "none")
+  if [ "$got" != "$DOMAIN" ]; then
+    echo "capture: rebuilding the isolated app (id was '$got', expected '$DOMAIN') …"
+    ( cd "$REPO" && BUNDLE_ID="$DOMAIN" APP_OUT="$APP_DIR" ./make-app.sh >/dev/null )
+    got=$(defaults read "$APP/Contents/Info" CFBundleIdentifier 2>/dev/null || echo "none")
+  fi
+  if [ "$got" != "$DOMAIN" ]; then
+    echo "capture: '$APP' has bundle id '$got', expected '$DOMAIN'." >&2
+    echo "  Refusing to run: this app would read the real preference domain and" >&2
+    echo "  the screenshots would contain real folders and filenames." >&2
+    exit 4
+  fi
+}
+
+# Both builds are called "Reader.md", so `tell application "Reader.md"` is
+# ambiguous if the normal build is also running — and would happily drive the
+# real one. Require exactly one, and require it to be ours.
+assert_running_is_shots_app() {
+  local n id
+  n=$(osascript -e "tell application \"System Events\" to count of (processes whose name is \"$APP_NAME\")" 2>/dev/null || echo 0)
+  if [ "${n:-0}" -ne 1 ]; then
+    echo "capture: $n processes named '$APP_NAME' are running." >&2
+    echo "  Quit your normal Reader.md before capturing — otherwise AppleScript" >&2
+    echo "  cannot tell the two apart and may drive the wrong one." >&2
+    exit 4
+  fi
+  id=$(osascript -e "tell application \"System Events\" to get bundle identifier of first process whose name is \"$APP_NAME\"" 2>/dev/null || echo none)
+  if [ "$id" != "$DOMAIN" ]; then
+    echo "capture: the running '$APP_NAME' is '$id', not '$DOMAIN'." >&2
+    echo "  Refusing to drive the real app." >&2
+    exit 4
+  fi
+}
+
 # --- app control -------------------------------------------------------------
 
 seed_prefs() {
@@ -710,6 +784,11 @@ seed_prefs() {
   defaults write "$DOMAIN" reader.md.showTOC -bool false
   defaults write "$DOMAIN" reader.md.contentWidth -string wide
   defaults write "$DOMAIN" reader.md.fontScale -float 1.0
+  # A fresh domain has no lastSeenBuild, so AppState.checkWhatsNew() opens the
+  # bundled CHANGELOG over the content pane and hides the sidebar. Seed a build
+  # number far in the future to suppress it. (Found the hard way: the first
+  # fixture capture was a screenshot of the changelog.)
+  defaults write "$DOMAIN" lastSeenBuild -string 999999999999
 
   # Manifest overrides. Types are inferred: arrays -> -array, booleans -> -bool,
   # numbers -> -float, everything else -> -string.
@@ -739,47 +818,85 @@ seed_prefs() {
   killall cfprefsd 2>/dev/null || true
 }
 
+# Waits for BOTH a CGWindowID and an Accessibility window. They do not become
+# available at the same moment: CGWindowList sees the window first, and driving
+# it through System Events before its AX window exists fails with "Can't get
+# window 1 ... Invalid index".
 launch_app() {
   osascript -e "tell application \"$APP_NAME\" to quit" >/dev/null 2>&1 || true
-  sleep 1
+  sleep 1.5
   open -a "$APP"
-  local i
-  for i in $(seq 1 60); do
-    WINID=$(swift "$HERE/winid.swift" "$APP_NAME" 2>/dev/null | head -1) && [ -n "$WINID" ] && return 0
-    sleep 0.2
+  local i ax
+  for i in $(seq 1 80); do
+    WINID=$(swift "$HERE/winid.swift" "$APP_NAME" 2>/dev/null | head -1) || WINID=""
+    if [ -n "$WINID" ]; then
+      # Count only real document windows: the app also exposes an unnamed
+      # AXSystemDialog that sorts ahead of it and is NOT what we want to drive.
+      ax=$(osascript -e "tell application \"System Events\" to tell process \"$APP_NAME\" to count of (windows whose value of attribute \"AXSubrole\" is \"AXStandardWindow\")" 2>/dev/null || echo 0)
+      [ "${ax:-0}" -ge 1 ] && { assert_running_is_shots_app; return 0; }
+    fi
+    sleep 0.25
   done
   echo "capture: app window never appeared" >&2
   exit 5
 }
 
+# Guarantees the app is frontmost before a keystroke is sent. It re-activates
+# first — the terminal reclaims focus routinely and that is not an error — and
+# only fails if activation will not stick, which means something is actively
+# fighting for focus and keystrokes would land in it.
 assert_frontmost() {
-  local front
+  local front attempt
+  for attempt in 1 2 3; do
+    front=$(osascript -e 'tell application "System Events" to get name of first process whose frontmost is true')
+    [ "$front" = "$APP_NAME" ] && return 0
+    osascript -e "tell application \"$APP_NAME\" to activate" >/dev/null 2>&1 || true
+    sleep 0.4
+  done
   front=$(osascript -e 'tell application "System Events" to get name of first process whose frontmost is true')
-  if [ "$front" != "$APP_NAME" ]; then
-    echo "capture: $APP_NAME lost focus to '$front' — aborting rather than" >&2
-    echo "  sending keystrokes to another application." >&2
-    exit 6
-  fi
+  [ "$front" = "$APP_NAME" ] && return 0
+  echo "capture: $APP_NAME will not stay frontmost — '$front' keeps taking focus." >&2
+  echo "  Aborting rather than sending keystrokes to another application." >&2
+  echo "  Close or quiet that app and re-run." >&2
+  exit 6
 }
 
+# The window restores its autosaved frame shortly after launch, which can land
+# AFTER a resize and silently undo it — producing differently-sized shots. So
+# set, verify, and retry rather than setting once and hoping.
 set_geometry() {
-  local w="$1" h="$2"
-  osascript >/dev/null <<EOF
+  local w="$1" h="$2" attempt got
+  for attempt in 1 2 3 4 5; do
+    # Tolerate transient AX errors ("Invalid index" while the window is being
+    # created or replaced) — that is exactly what the retry loop is for.
+    osascript >/dev/null 2>&1 <<EOF || true
 tell application "$APP_NAME" to activate
-delay 0.4
+delay 0.3
 tell application "System Events" to tell process "$APP_NAME"
-  set size of window 1 to {$w, $h}
-  set position of window 1 to {120, 80}
+  set win to first window whose value of attribute "AXSubrole" is "AXStandardWindow"
+  set size of win to {$w, $h}
+  set position of win to {120, 80}
 end tell
 EOF
-  sleep 0.5
+    sleep 0.6
+    got=$(osascript -e "tell application \"System Events\" to tell process \"$APP_NAME\" to get size of (first window whose value of attribute \"AXSubrole\" is \"AXStandardWindow\")" 2>/dev/null | tr -d ' ' || echo "none")
+    [ "$got" = "$w,$h" ] && {
+      # The window id changes if the window was recreated; re-resolve it or
+      # screencapture fails with "could not create image from window".
+      WINID=$(swift "$HERE/winid.swift" "$APP_NAME" | head -1)
+      return 0
+    }
+  done
+  echo "capture: window would not hold ${w}x${h} (got $got)" >&2
+  exit 8
 }
 
 window_bounds() {
   osascript <<EOF
 tell application "System Events" to tell process "$APP_NAME"
-  set p to position of window 1
-  set s to size of window 1
+  set win to first window whose value of attribute "AXSubrole" is "AXStandardWindow"
+  set p to position of win
+  set s to size of win
   return ((item 1 of p) as text) & " " & ((item 2 of p) as text) & " " & ((item 1 of s) as text) & " " & ((item 2 of s) as text)
 end tell
 EOF
@@ -789,6 +906,7 @@ EOF
 
 preflight
 require_shots_domain
+require_shots_app
 
 FIXTURES=$("$HERE/fixtures.sh")
 PAGE=$(jq -r '.page' "$MANIFEST")
@@ -804,8 +922,24 @@ else
 fi
 mkdir -p "$OUT" "$FINAL_OUT"
 
+# Liquid Glass samples whatever sits behind the window, so a terminal or chat
+# window behind it bleeds into the sidebar and makes two runs of the same
+# manifest differ. Hiding everything else leaves only the desktop wallpaper
+# back there, which is constant. Without this, cross-run SSIM lands around
+# 0.95–0.99 purely from backdrop bleed.
+hide_others() {
+  osascript >/dev/null 2>&1 <<EOF || true
+tell application "$APP_NAME" to activate
+tell application "System Events"
+  set visible of (every process whose visible is true and name is not "$APP_NAME") to false
+end tell
+EOF
+  sleep 0.8
+}
+
 seed_prefs
 launch_app
+hide_others
 set_geometry "$WIN_W" "$WIN_H"
 assert_frontmost
 
@@ -945,10 +1079,16 @@ run_actions() {
     if [ -n "$key" ]; then
       assert_frontmost
       mods=$(echo "$action" | jq -r '(.mods // []) | map(. + " down") | join(", ")')
+      # AppleScript string literals need \ and " escaped. Without this, the
+      # canvas-width shortcut (⇧⌘\) produces `keystroke "\"` and osascript
+      # dies with 'Expected " but found end of script'.
+      local esc="$key"
+      esc="${esc//\\/\\\\}"
+      esc="${esc//\"/\\\"}"
       if [ -n "$mods" ]; then
-        osascript -e "tell application \"System Events\" to keystroke \"$key\" using {$mods}"
+        osascript -e "tell application \"System Events\" to keystroke \"$esc\" using {$mods}"
       else
-        osascript -e "tell application \"System Events\" to keystroke \"$key\""
+        osascript -e "tell application \"System Events\" to keystroke \"$esc\""
       fi
     elif [ -n "$cli" ]; then
       "$READER" "$FIXTURES/$cli"
@@ -1291,11 +1431,11 @@ copy of the prose — never write page content into `web/src/`.
 
 **The three gates are hard requirements. None may be auto-approved.**
 
-| # | When | What the user approves |
-|---|------|------------------------|
-| 1 | Before capture | The manifest: shot list, states, actions |
-| 2 | Before commit | The finished page and every asset |
-| 3 | Before push | That publishing is intended |
+| #   | When           | What the user approves                   |
+| --- | -------------- | ---------------------------------------- |
+| 1   | Before capture | The manifest: shot list, states, actions |
+| 2   | Before commit  | The finished page and every asset        |
+| 3   | Before push    | That publishing is intended              |
 
 **Gate 3 matters more here than it looks.** Cloudflare Pages builds and
 publishes on any push to `main` that touches `web/`. There is no staging step —
@@ -1402,13 +1542,13 @@ Lives at `docs/features/<slug>.shots.json`, committed beside the page it feeds.
 }
 ```
 
-| Field | Required | Meaning |
-|---|---|---|
-| `page` | yes | Must match `docs/features/<page>.md`; also the asset directory name |
-| `window` | no | Logical window size, default 1400×900. Captured at 2× |
-| `domain` | no | Preference domain; defaults to `com.nahian.reader-md.shots`. Setting it to the real domain is refused |
-| `prefs` | no | Seeded before launch. `<fixtures>` expands to the generated corpus root |
-| `shots` | yes | Ordered array |
+| Field    | Required | Meaning                                                                                               |
+| -------- | -------- | ----------------------------------------------------------------------------------------------------- |
+| `page`   | yes      | Must match `docs/features/<page>.md`; also the asset directory name                                   |
+| `window` | no       | Logical window size, default 1400×900. Captured at 2×                                                 |
+| `domain` | no       | Preference domain; defaults to `com.nahian.reader-md.shots`. Setting it to the real domain is refused |
+| `prefs`  | no       | Seeded before launch. `<fixtures>` expands to the generated corpus root                               |
+| `shots`  | yes      | Ordered array                                                                                         |
 
 ## Shot
 
@@ -1421,22 +1561,22 @@ Lives at `docs/features/<slug>.shots.json`, committed beside the page it feeds.
 }
 ```
 
-| Field | Required | Meaning |
-|---|---|---|
-| `id` | yes | Zero-padded and ordered; becomes the filename |
-| `open` | no | Fixture-relative path opened via the `reader` CLI |
-| `actions` | no | Run in order after `open`; default `[]` |
-| `caption` | yes | Alt text and caption |
-| `video` | no | `{ "seconds": n }` — records a clip instead of a still |
-| `manual` | no | Captured by hand; the harness skips it and warns if the file is absent |
+| Field     | Required | Meaning                                                                |
+| --------- | -------- | ---------------------------------------------------------------------- |
+| `id`      | yes      | Zero-padded and ordered; becomes the filename                          |
+| `open`    | no       | Fixture-relative path opened via the `reader` CLI                      |
+| `actions` | no       | Run in order after `open`; default `[]`                                |
+| `caption` | yes      | Alt text and caption                                                   |
+| `video`   | no       | `{ "seconds": n }` — records a clip instead of a still                 |
+| `manual`  | no       | Captured by hand; the harness skips it and warns if the file is absent |
 
 ## Actions
 
-| Action | Shape |
-|---|---|
-| keystroke | `{ "key": "b", "mods": ["shift", "command"] }` |
-| open a file | `{ "reader": "field-notes/guides/setup.md" }` |
-| wait | `{ "waitMs": 1200 }` |
+| Action      | Shape                                          |
+| ----------- | ---------------------------------------------- |
+| keystroke   | `{ "key": "b", "mods": ["shift", "command"] }` |
+| open a file | `{ "reader": "field-notes/guides/setup.md" }`  |
+| wait        | `{ "waitMs": 1200 }`                           |
 
 `mods` are `command`, `shift`, `option`, `control`.
 
@@ -1450,16 +1590,16 @@ motion readable.
 
 Seedable keys, from `Sources/ReaderMd/Models/Settings.swift`:
 
-| Key | Type | Values |
-|---|---|---|
-| `reader.md.folders` | array of paths | Use `<fixtures>/…` |
-| `reader.md.theme` | string | `light`, `dark`, `system` |
-| `reader.md.contentWidth` | string | `narrow`, `wide`, `full` |
-| `reader.md.showSidebar` | bool | |
-| `reader.md.showTOC` | bool | |
-| `reader.md.fontScale` | number | `1.0` is default |
-| `reader.md.readingTheme` | string | see `ReadingTheme` |
-| `reader.md.diffMode` | bool | |
+| Key                      | Type           | Values                    |
+| ------------------------ | -------------- | ------------------------- |
+| `reader.md.folders`      | array of paths | Use `<fixtures>/…`        |
+| `reader.md.theme`        | string         | `light`, `dark`, `system` |
+| `reader.md.contentWidth` | string         | `narrow`, `wide`, `full`  |
+| `reader.md.showSidebar`  | bool           |                           |
+| `reader.md.showTOC`      | bool           |                           |
+| `reader.md.fontScale`    | number         | `1.0` is default          |
+| `reader.md.readingTheme` | string         | see `ReadingTheme`        |
+| `reader.md.diffMode`     | bool           |                           |
 
 ## Rules
 
@@ -1548,13 +1688,13 @@ ffmpeg -v error -y -i in.png -vf scale=2400:-1 -compression_level 100 \
 
 ## The list
 
-| Shot | Page | State to reach |
-|---|---|---|
-| Context menu on a file | navigating | Right-click a file in the tree |
-| Context menu on a root | library | Right-click a root header |
-| Drag and drop | library | Mid-drag of a markdown file over the content pane |
-| Add Remote sheet | library | Sidebar footer → **Add Remote** |
-| Always Open With | exporting | Right-click a file → **Always Open With** |
+| Shot                   | Page       | State to reach                                    |
+| ---------------------- | ---------- | ------------------------------------------------- |
+| Context menu on a file | navigating | Right-click a file in the tree                    |
+| Context menu on a root | library    | Right-click a root header                         |
+| Drag and drop          | library    | Mid-drag of a markdown file over the content pane |
+| Add Remote sheet       | library    | Sidebar footer → **Add Remote**                   |
+| Always Open With       | exporting  | Right-click a file → **Always Open With**         |
 
 Check each for leaked personal data before it ships — a Finder-adjacent shot is
 the easiest place for a real path to appear.

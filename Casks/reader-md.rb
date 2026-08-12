@@ -21,7 +21,11 @@ cask "reader-md" do
   app "Reader.md.app"
   binary "#{appdir}/Reader.md.app/Contents/MacOS/reader"
 
+  # Annotations and remote caches are under the app's *name*, not its bundle id
+  # (MarkStore and RemoteSpec both build "Reader.md/…"), so zapping only the
+  # bundle-id paths left every highlight and note behind.
   zap trash: [
+    "~/Library/Application Support/Reader.md",
     "~/Library/Application Support/com.nahian.reader-md",
     "~/Library/Caches/com.nahian.reader-md",
     "~/Library/HTTPStorages/com.nahian.reader-md",

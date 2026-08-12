@@ -1,0 +1,114 @@
+---
+import { getCollection } from "astro:content";
+
+interface Props {
+  current: string;
+  related?: string[];
+}
+const { current, related } = Astro.props;
+
+const all = await getCollection("docs");
+
+// A page names its neighbours by id. Resolving here means a typo or a renamed
+// page stops the build with the offending id, rather than publishing a link
+// that 404s — the hand-written lists this replaced had shipped dead links.
+const pages = (related ?? []).map((id) => {
+  const page = all.find((p) => p.id === id);
+  if (!page) {
+    throw new Error(
+      `docs/${current}: related page "${id}" does not exist. Known ids: ${all
+        .map((p) => p.id)
+        .sort()
+        .join(", ")}`
+    );
+  }
+  if (id === current) {
+    throw new Error(`docs/${current}: lists itself as related`);
+  }
+  return page;
+});
+---
+
+{pages.length > 0 && (
+  <section class="related">
+    <div class="pill related__eyebrow">Keep reading</div>
+    <h2 class="related__title">Where to go next</h2>
+    <div class="related__grid">
+      {pages.map((p) => (
+        <a href={`/docs/${p.id}`} class="related__card card">
+          <span class="related__name">{p.data.title}</span>
+          <span class="related__summary">{p.data.summary}</span>
+        </a>
+      ))}
+    </div>
+    {/* Kept on one line each: Astro drops the whitespace at a line break that
+        falls immediately before an element, which silently joins the words. */}
+    <p class="related__help">
+      Still stuck? The app carries its own help — <strong>Help → FAQ</strong> and <strong>Keyboard Shortcuts</strong> (⌘/).
+      Anything missing is worth an <a href="https://github.com/jnahian/reader.md/issues">issue</a>.
+    </p>
+  </section>
+)}
+
+<style>
+  .related {
+    margin-top: 72px;
+    padding-top: 48px;
+    border-top: 1px solid var(--border-soft);
+    text-align: center;
+  }
+
+  .related__eyebrow {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    padding: 6px 14px;
+  }
+
+  .related__title {
+    margin: 18px 0 32px;
+    font-size: 27px;
+    letter-spacing: -0.03em;
+  }
+
+  .related__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    text-align: left;
+  }
+
+  .related__card {
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    color: inherit;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+
+  .related__card:hover {
+    color: inherit;
+    background: var(--surface-2);
+    border-color: var(--border);
+  }
+
+  .related__name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--fg);
+    margin-bottom: 6px;
+  }
+
+  .related__summary {
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--faint);
+  }
+
+  .related__help {
+    margin: 32px 0 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--faint);
+  }
+</style>

@@ -1,0 +1,64 @@
+---
+import { getCollection, render } from "astro:content";
+import Base from "../../layouts/Base.astro";
+import DocsNav from "../../components/DocsNav.astro";
+import RelatedDocs from "../../components/RelatedDocs.astro";
+// Base.astro already renders Nav and Footer itself and takes a `page` prop —
+// importing them here would render each twice.
+
+export async function getStaticPaths() {
+  const pages = await getCollection("docs");
+  return pages.map((page) => ({
+    params: { slug: page.id },
+    props: { page },
+  }));
+}
+
+const { page } = Astro.props;
+const { Content, headings } = await render(page);
+---
+
+<Base title={`${page.data.title} — Reader.md`} description={page.data.summary} page="docs">
+  <div class="doc">
+    <DocsNav current={page.id} headings={headings} />
+    <main class="doc__body">
+      <Content />
+      <RelatedDocs current={page.id} related={page.data.related} />
+    </main>
+  </div>
+</Base>
+
+<script>
+  // A reader who asked for reduced motion gets a paused clip with controls
+  // rather than a looping one. The poster frame still fills the slot.
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    document.querySelectorAll<HTMLVideoElement>(".docs-media--video video").forEach((v) => {
+      v.autoplay = false;
+      v.loop = false;
+      v.controls = true;
+      v.pause();
+    });
+  }
+</script>
+
+<style>
+  .doc {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    gap: 48px;
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding: calc(var(--nav-h) + 32px) var(--pad-x) 96px;
+  }
+
+  .doc__body {
+    min-width: 0;
+  }
+
+  @media (max-width: 900px) {
+    .doc {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 24px;
+    }
+  }
+</style>

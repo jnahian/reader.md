@@ -6,6 +6,26 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **No more tooltip on launch, or on switching back to Reader.md.** A window
+  that opened under a stationary pointer counted as a hover, so whichever
+  control happened to land under the cursor — usually the toolbar's sidebar
+  toggle — put its bubble on screen unprompted, and ⌘-tabbing back with the
+  pointer parked did it again. A bubble now waits for the pointer to actually be
+  moved onto a control.
+- **Git badges on a folder reached through a symlink** — a repository added as
+  `/tmp/notes`, or through a link to another volume, showed no `M` · `A` · `?`
+  badges at all. The sidebar looks them up under the resolved path the folder
+  scan returns, and the badge map was keyed only under the path you added.
+- **`reader ls` printed nothing useful for a cloned repository** — just a bare
+  `:` where its origin should be. Cloned remotes arrived after that listing was
+  written and never reached it; it now shows the clone URL.
+- **`brew uninstall --zap` left your annotations behind.** Highlights, notes,
+  and cached remote folders live under the app's name rather than its bundle
+  id, and only the bundle-id paths were being removed — so a zap reported
+  success and cleaned up nothing of yours.
+
 ## [1.17.0] - 2026-08-12
 
 ### Added
@@ -251,6 +271,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Highlight, annotate, and comment on what you read.** Select any text to
+  highlight it in one of five colours, attach a note to it, or start a comment
+  thread with replies and a **Resolve** button; the toolbar keeps a count of
+  resolved threads, which doubles as a switch for hiding them. Marks are
+  anchored to the words rather than to a position in the file, so an edit
+  elsewhere leaves them where they were — and if the text one was made on
+  disappears entirely, it is flagged as orphaned rather than quietly dropped.
+  Nothing is written into your markdown: annotations live beside the file,
+  keyed by its path, which is why renaming a file loses them.
 - **Documents remember where you stopped.** Reopening a long file returns you to
   the place you left off instead of the top. A document you barely started, or
   one you finished, still opens at the top — resuming into the last screen of

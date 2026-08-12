@@ -1,0 +1,19 @@
+{
+  "page": "exporting",
+  "window": { "width": 1400, "height": 900 },
+  "prefs": {
+    "reader.md.folders": ["<fixtures>/field-notes"],
+    "reader.md.theme": "dark",
+    "reader.md.contentWidth": "wide",
+    "reader.md.showSidebar": true,
+    "reader.md.showTOC": false
+  },
+  "shots": [
+    {
+      "id": "01-export",
+      "manual": true,
+      "open": "field-notes/guides/setup.md",
+      "caption": "The export dialog (⌘E), with the Layout control below the name field"
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+{
+  "page": "annotations",
+  "window": { "width": 1400, "height": 900 },
+  "prefs": {
+    "reader.md.folders": ["<fixtures>/field-notes"],
+    "reader.md.theme": "dark",
+    "reader.md.contentWidth": "wide",
+    "reader.md.showSidebar": true,
+    "reader.md.showTOC": false
+  },
+  "shots": [
+    {
+      "id": "01-popover",
+      "open": "field-notes/guides/setup.md",
+      "actions": [
+        { "drag": [340, 213, 800, 213] },
+        { "waitMs": 800 }
+      ],
+      "caption": "Selecting text raises the markup bar: five colours and a note button"
+    },
+    {
+      "id": "02-highlight",
+      "open": "field-notes/guides/setup.md",
+      "actions": [
+        { "drag": [340, 213, 800, 213] },
+        { "waitMs": 800 },
+        { "click": [435, 256] },
+        { "waitMs": 800 }
+      ],
+      "caption": "The selection highlighted in yellow"
+    },
+    {
+      "id": "03-note",
+      "open": "field-notes/guides/setup.md",
+      "actions": [
+        { "drag": [340, 213, 800, 213] },
+        { "waitMs": 800 },
+        { "click": [593, 256] },
+        { "waitMs": 900 },
+        { "click": [520, 288] },
+        { "waitMs": 400 },
+        { "key": "Worth re-checking later." },
+        { "waitMs": 700 }
+      ],
+      "caption": "Writing a note on the highlighted text"
+    },
+    {
+      "id": "04-thread",
+      "open": "field-notes/guides/setup.md",
+      "actions": [
+        { "drag": [340, 213, 800, 213] },
+        { "waitMs": 800 },
+        { "click": [593, 256] },
+        { "waitMs": 900 },
+        { "click": [520, 288] },
+        { "waitMs": 400 },
+        { "key": "Worth re-checking later." },
+        { "waitMs": 500 },
+        { "click": [641, 288] },
+        { "waitMs": 1500 },
+        { "key": "r", "mods": ["command"] },
+        { "waitMs": 2000 },
+        { "click": [500, 213] },
+        { "waitMs": 1500 }
+      ],
+      "caption": "Reopening a mark shows its thread, with a reply field, Delete, and Resolve"
+    },
+    {
+      "id": "05-resolved",
+      "open": "field-notes/guides/setup.md",
+      "actions": [
+        { "drag": [340, 213, 800, 213] },
+        { "waitMs": 800 },
+        { "click": [593, 256] },
+        { "waitMs": 900 },
+        { "click": [520, 288] },
+        { "waitMs": 400 },
+        { "key": "Worth re-checking later." },
+        { "waitMs": 500 },
+        { "click": [641, 288] },
+        { "waitMs": 1500 },
+        { "key": "r", "mods": ["command"] },
+        { "waitMs": 2000 },
+        { "click": [500, 213] },
+        { "waitMs": 1500 },
+        { "click": [622, 373] },
+        { "waitMs": 1500 }
+      ],
+      "caption": "A resolved thread, de-emphasized, and the toolbar's resolved count"
+    }
+  ]
+}

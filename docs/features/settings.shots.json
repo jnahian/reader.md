@@ -1,0 +1,36 @@
+{
+  "page": "settings",
+  "window": { "width": 1400, "height": 900 },
+  "prefs": {
+    "reader.md.folders": ["<fixtures>/field-notes"],
+    "reader.md.theme": "dark",
+    "reader.md.contentWidth": "wide",
+    "reader.md.showSidebar": true,
+    "reader.md.showTOC": false
+  },
+  "shots": [
+    {
+      "id": "01-window",
+      "manual": true,
+      "caption": "The Settings window (⌘,), with every preference in one place"
+    },
+    {
+      "id": "02-light",
+      "open": "field-notes/index.md",
+      "prefs": { "reader.md.theme": "light" },
+      "caption": "The same window in the light appearance"
+    },
+    {
+      "id": "03-editorial",
+      "open": "field-notes/guides/setup.md",
+      "prefs": { "reader.md.readingTheme": "editorial" },
+      "caption": "The Editorial reading theme, which restyles the document only"
+    },
+    {
+      "id": "04-terminal",
+      "open": "field-notes/guides/setup.md",
+      "prefs": { "reader.md.readingTheme": "terminal" },
+      "caption": "The Terminal reading theme"
+    }
+  ]
+}

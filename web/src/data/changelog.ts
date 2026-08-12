@@ -225,6 +225,7 @@ export const releasesLog: Release[] = [
       {
         tag: "ADDED",
         items: [
+          "<strong>Highlights, notes, and comment threads</strong> — select text to highlight it in one of five colours, attach a note, or start a thread you can reply to and resolve. Anchored to the words, so an edit elsewhere leaves them in place; stored beside the file, never written into your markdown.",
           "<strong>Resume where you stopped</strong> — reopening a long file returns you to the place you left off. A document you barely started, or one you finished, still opens at the top.",
           "<strong>A GitHub reading theme</strong> — the content pane can now wear GitHub's palette, fonts, and code colours, alongside Standard, Editorial, and Terminal.",
         ],

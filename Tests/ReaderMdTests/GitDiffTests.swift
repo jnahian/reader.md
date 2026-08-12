@@ -861,10 +861,9 @@ final class GitDiffSymlinkedRepoTests: XCTestCase {
         XCTAssertEqual(diff.deletions, 1)
     }
 
-    /// Badge lookups use `FileNode.url.path`, which is built by descending from
-    /// the folder the user added — so the status map has to be keyed there, not
-    /// under git's resolved top-level. Resolving at lookup time instead would
-    /// mean a realpath syscall per sidebar row per render.
+    /// Recents, Favorites and a file opened by path look the badge up under the
+    /// folder as it was added — unresolved — so the map has to be keyed there
+    /// as well as under git's top-level.
     func testStatusIsKeyedUnderTheFolderTheUserAdded() throws {
         let file = link.appendingPathComponent("note.md")
         try "# Hello\n".write(to: file, atomically: true, encoding: .utf8)
@@ -872,6 +871,21 @@ final class GitDiffSymlinkedRepoTests: XCTestCase {
 
         let map = GitDiff.status(root: root, displayedAs: link)
         XCTAssertEqual(map[file.path], .untracked)
+    }
+
+    /// And keyed under git's resolved top-level too. `contentsOfDirectory(at:)`
+    /// hands back resolved URLs, so every row of the scanned tree below a root
+    /// with a symlinked ancestor — `/tmp/notes`, a home folder that is a link —
+    /// already holds the resolved path. Keying only the added-as form lost every
+    /// badge in the sidebar, which is the one place they are meant to show.
+    func testStatusIsAlsoKeyedUnderGitsResolvedTopLevel() throws {
+        let file = link.appendingPathComponent("note.md")
+        try "# Hello\n".write(to: file, atomically: true, encoding: .utf8)
+        let root = try XCTUnwrap(GitDiff.repoRoot(for: file))
+
+        let resolved = root.appendingPathComponent("note.md").path
+        XCTAssertNotEqual(resolved, file.path, "the symlink fixture no longer resolves")
+        XCTAssertEqual(GitDiff.status(root: root, displayedAs: link)[resolved], .untracked)
     }
 
     /// Without a display root the keys stay in git's namespace — the identity

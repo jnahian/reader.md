@@ -1,0 +1,40 @@
+{
+  "page": "git",
+  "window": { "width": 1400, "height": 900 },
+  "prefs": {
+    "reader.md.folders": ["<fixtures>/field-guide"],
+    "reader.md.theme": "dark",
+    "reader.md.contentWidth": "wide",
+    "reader.md.showSidebar": true,
+    "reader.md.showTOC": false
+  },
+  "shots": [
+    {
+      "id": "01-badges",
+      "open": "field-guide/decisions.md",
+      "caption": "Sidebar badges marking a modified, an added, and an untracked file"
+    },
+    {
+      "id": "02-diff",
+      "open": "field-guide/README.md",
+      "actions": [{ "key": "d", "mods": ["shift", "command"] }],
+      "caption": "The same document as a side-by-side diff, opened with ⇧⌘D"
+    },
+    {
+      "id": "03-hunks",
+      "open": "field-guide/README.md",
+      "actions": [
+        { "key": "d", "mods": ["shift", "command"] },
+        { "waitMs": 600 },
+        { "key": "b", "mods": ["shift", "command"] }
+      ],
+      "caption": "In diff mode the outline lists changed hunks instead of headings"
+    },
+    {
+      "id": "04-scope",
+      "manual": true,
+      "open": "field-guide/README.md",
+      "caption": "The scope popover, choosing what the diff compares against"
+    }
+  ]
+}
