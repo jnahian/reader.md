@@ -12,6 +12,21 @@ guard CommandLine.arguments.count > 2,
     exit(2)
 }
 
-CGWarpMouseCursorPosition(CGPoint(x: x, y: y))
+// Warping alone is not enough: it moves the pointer WITHOUT delivering a
+// mouse-moved event, so an app never learns the cursor left and any tooltip it
+// was showing stays up — which then photobombs the clip. Post real
+// mouseMoved events so hover state actually updates.
+let target = CGPoint(x: x, y: y)
+CGWarpMouseCursorPosition(target)
 CGAssociateMouseAndMouseCursorPosition(1)
+
+for _ in 0..<3 {
+    CGEvent(
+        mouseEventSource: nil,
+        mouseType: .mouseMoved,
+        mouseCursorPosition: target,
+        mouseButton: .left
+    )?.post(tap: .cghidEventTap)
+    usleep(60_000)
+}
 exit(0)

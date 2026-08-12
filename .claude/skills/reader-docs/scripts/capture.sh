@@ -152,6 +152,9 @@ launch_app() {
   osascript -e "tell application \"$APP_NAME\" to quit" >/dev/null 2>&1 || true
   sleep 1.5
   open -a "$APP"
+  # A previous run may have left it hidden; a hidden app has no on-screen
+  # window and launch would time out waiting for one.
+  osascript -e "tell application \"System Events\" to set visible of process \"$APP_NAME\" to true" >/dev/null 2>&1 || true
   local i ax
   for i in $(seq 1 80); do
     WINID=$(swift "$HERE/winid.swift" "$APP_NAME" 2>/dev/null | head -1) || WINID=""
@@ -282,11 +285,31 @@ tell application "System Events"
 end tell
 EOF
   sleep 0.8
+  HID_OTHERS=1
 }
+
+# Hiding the user's applications is a side effect of capturing, not something
+# they asked for — always give the desktop back, including on failure.
+HID_OTHERS=0
+restore_others() {
+  [ "$HID_OTHERS" -eq 1 ] || return 0
+  osascript -e 'tell application "System Events" to set visible of every process to true' >/dev/null 2>&1 || true
+}
+# One EXIT trap only — a second `trap ... EXIT` silently replaces the first,
+# which would have left the user's apps hidden.
+RAW_DIR=""
+cleanup() {
+  [ -n "$RAW_DIR" ] && rm -rf "$RAW_DIR"
+  restore_others
+}
+trap cleanup EXIT
 
 seed_prefs
 launch_app
 hide_others
+# Stills need the pointer out of the way just as much as clips do: a tooltip
+# left up by a stale hover shows in every shot taken afterwards.
+swift "$HERE/cursor.swift" 99999 99999
 set_geometry "$WIN_W" "$WIN_H"
 assert_frontmost
 
@@ -332,21 +355,79 @@ record_video() {
   secs=$(echo "$shot" | jq -r '.video.seconds // 6')
   read -r x y w h <<<"$(window_bounds)"
 
-  # The cursor is always recorded and cannot be hidden, so park it off-window.
-  swift "$HERE/cursor.swift" 10 10
+  # The cursor is always recorded and cannot be hidden, so park it far off the
+  # window — bottom-right of the screen. (10,10) was not enough: a toolbar
+  # tooltip was still up and photobombed the clip.
+  swift "$HERE/cursor.swift" 99999 99999
+  sleep 0.6
+
+  KEYLOG="$RAW_DIR/$id.keys"
+  : > "$KEYLOG"
 
   screencapture -v -V "$secs" -R "$x,$y,$w,$h" "$RAW_DIR/$id.mov" &
   rec=$!
   sleep 1
   run_actions "$shot"
   wait "$rec"
+  local rec_end
+  rec_end=$(python3 -c 'import time; print(time.time())')
+  KEYLOG_DONE="$KEYLOG"
+  KEYLOG=""
 
-  ffmpeg -v error -y -i "$RAW_DIR/$id.mov" \
-         -vf "fps=30,scale=1600:-2" -c:v libx264 -crf 26 -preset slow \
+  # screencapture does not begin recording the instant it is launched, and it
+  # can stop short of -V. So do not time badges from when we started it: derive
+  # the recording window backwards from its ACTUAL duration. The clip covers
+  # [rec_end - duration, rec_end], which is self-correcting whatever the lag.
+  local dur rec_start
+  dur=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$RAW_DIR/$id.mov")
+  rec_start=$(awk -v e="$rec_end" -v d="$dur" 'BEGIN{ printf "%.3f", e - d }')
+
+  # Build a keystroke-badge overlay per logged key. Without this a viewer sees
+  # the effect of a shortcut with nothing showing the cause, which for a
+  # keyboard-driven app is most of the point.
+  local inputs="" chain="[0:v]fps=30,scale=1600:-2[base]" prev="base" idx=0 ts label rel bfile
+  if [ -s "$KEYLOG_DONE" ]; then
+    while IFS=$'\t' read -r ts label; do
+      [ -n "$label" ] || continue
+      rel=$(awk -v a="$ts" -v b="$rec_start" 'BEGIN{ d=a-b; if (d<0) d=0; printf "%.2f", d }')
+      idx=$((idx + 1))
+      bfile="$RAW_DIR/$id.badge$idx.png"
+      swift "$HERE/badge.swift" "$label" "$bfile" 42
+      inputs="$inputs -i $bfile"
+      chain="$chain;[$prev][${idx}:v]overlay=(W-w)/2:H-h-64:enable='between(t,$rel,$rel+1.40)'[v$idx]"
+      prev="v$idx"
+    done < "$KEYLOG_DONE"
+  fi
+
+  # shellcheck disable=SC2086
+  ffmpeg -v error -y -i "$RAW_DIR/$id.mov" $inputs \
+         -filter_complex "$chain" -map "[$prev]" \
+         -c:v libx264 -crf 26 -preset slow \
          -movflags +faststart -pix_fmt yuv420p -an "$OUT/$id.mp4"
   ffmpeg -v error -y -i "$OUT/$id.mp4" -frames:v 1 -q:v 3 "$OUT/$id.poster.jpg"
-  echo "  $id (video, ${secs}s)"
+  echo "  $id (video, ${secs}s, $idx keystroke badge(s))"
 }
+
+# Renders a shortcut the way the app's own docs write it: ⌃⌥⇧⌘ in Apple's
+# canonical modifier order, then the key.
+key_glyphs() {
+  local key="$1" mods="$2" out=""
+  case "$mods" in *control*) out="${out}⌃" ;; esac
+  case "$mods" in *option*)  out="${out}⌥" ;; esac
+  case "$mods" in *shift*)   out="${out}⇧" ;; esac
+  case "$mods" in *command*) out="${out}⌘" ;; esac
+  local label
+  case "$key" in
+    " ")  label="Space" ;;
+    *)    label=$(printf '%s' "$key" | tr '[:lower:]' '[:upper:]') ;;
+  esac
+  printf '%s%s' "$out" "$label"
+}
+
+# Set while a clip is recording; each keystroke appends "<epoch>\t<glyphs>" so
+# the badge overlay lands on the exact frame the key was pressed rather than on
+# a guess derived from the manifest's waitMs values.
+KEYLOG=""
 
 run_actions() {
   local shot="$1" n i
@@ -372,6 +453,12 @@ run_actions() {
       else
         osascript -e "tell application \"System Events\" to keystroke \"$esc\""
       fi
+      if [ -n "$KEYLOG" ]; then
+        local raw_mods
+        raw_mods=$(echo "$action" | jq -r '(.mods // []) | join(",")')
+        printf '%s\t%s\n' "$(python3 -c 'import time; print(time.time())')" \
+               "$(key_glyphs "$key" "$raw_mods")" >> "$KEYLOG"
+      fi
     elif [ -n "$cli" ]; then
       "$READER" "$FIXTURES/$cli"
     elif [ -n "$ms" ]; then
@@ -391,7 +478,6 @@ assert_dimensions() {
 }
 
 RAW_DIR=$(mktemp -d)
-trap 'rm -rf "$RAW_DIR"' EXIT
 
 count=$(jq '.shots | length' "$MANIFEST")
 for i in $(seq 0 $((count - 1))); do
