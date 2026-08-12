@@ -28,6 +28,19 @@ const toc = headings.filter((h) => h.depth === 2);
   <nav class="docsnav__pages">
     <a href="/docs" class="docsnav__link">← All docs</a>
   </nav>
+  {/* This page's own sections first: they are what a reader wants while
+      reading, and the list of every other page is what they want after. */}
+  {toc.length > 0 && (
+    <>
+      <div class="docsnav__label">ON THIS PAGE</div>
+      <nav class="docsnav__toc">
+        {toc.map((h) => (
+          <a href={`#${h.slug}`} class="docsnav__sublink" data-spy={h.slug}>{h.text}</a>
+        ))}
+      </nav>
+    </>
+  )}
+
   {groups.map((group) => (
     <>
       <div class="docsnav__label">{group.name}</div>
@@ -43,17 +56,6 @@ const toc = headings.filter((h) => h.depth === 2);
       </nav>
     </>
   ))}
-
-  {toc.length > 0 && (
-    <>
-      <div class="docsnav__label docsnav__label--toc">ON THIS PAGE</div>
-      <nav class="docsnav__toc">
-        {toc.map((h) => (
-          <a href={`#${h.slug}`} class="docsnav__sublink" data-spy={h.slug}>{h.text}</a>
-        ))}
-      </nav>
-    </>
-  )}
 </aside>
 
 <script>
@@ -98,8 +100,10 @@ const toc = headings.filter((h) => h.depth === 2);
     margin: 22px 0 8px;
   }
 
-  .docsnav__label--toc {
-    margin-top: 28px;
+  /* The page list is a different kind of navigation from this page's own
+     sections, so it gets a wider gap above it than one category does. */
+  .docsnav__toc + .docsnav__label {
+    margin-top: 30px;
   }
 
   .docsnav__pages,
