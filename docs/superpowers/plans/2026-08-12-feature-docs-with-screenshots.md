@@ -16,7 +16,7 @@
 - **Permissions:** the terminal running the harness needs **Screen Recording** (for `screencapture` and window titles) and **Accessibility** (for System Events). Both are already granted on this machine.
 - **External dependencies:** `ffmpeg` and `jq` only. Both are present (`/opt/homebrew/bin/ffmpeg`, `jq`). `oxipng`, `pngquant`, ImageMagick, and `cliclick` are **not installed and must not be used** — PNG scaling and image comparison both go through `ffmpeg`, and cursor parking goes through a Swift helper.
 - **Isolation:** the harness drives bundle id `com.nahian.reader-md.shots` and must refuse to run against `com.nahian.reader-md`. The real app's preference keys are namespaced `reader.md.*`.
-- **Image budget:** one theme (light) throughout, except the appearance page where dark is the subject. Stills capped at 2400px wide. Five video clips total across all ten pages.
+- **Image budget:** one theme (**dark**) throughout, except the appearance page where light is the contrast case. The site is dark-only, so light shots would glare. Stills capped at 2400px wide. Five video clips total across all ten pages.
 - **Site rules** (from `web/CLAUDE.md`): no CSS framework, no client-side framework; colours/radii/spacing come from tokens in `src/styles/global.css` — a hard-coded hex is a mistake; all motion sits behind `prefers-reduced-motion`.
 - **Publishing is merging:** Cloudflare Pages builds and publishes on any push to `main` touching `web/`. There is no staging step.
 - **Copy rule:** shortcuts are always written parenthesised after the label — "Toggle outline (⇧⌘B)".
@@ -705,7 +705,7 @@ require_shots_domain() {
 seed_prefs() {
   defaults delete "$DOMAIN" 2>/dev/null || true
   # Sensible defaults for every shot; a manifest may override any of them.
-  defaults write "$DOMAIN" reader.md.theme -string light
+  defaults write "$DOMAIN" reader.md.theme -string dark
   defaults write "$DOMAIN" reader.md.showSidebar -bool true
   defaults write "$DOMAIN" reader.md.showTOC -bool false
   defaults write "$DOMAIN" reader.md.contentWidth -string wide
@@ -1052,7 +1052,7 @@ Expected: `PASS`
 
 - [ ] **Step 6: Inspect one capture by eye**
 
-Re-run `./capture.sh /tmp/stills.json`, then open `docs/assets/screenshots/_test/02-doc.png` and confirm: every Mermaid node is drawn, the equation is laid out, no personal paths appear anywhere, and the window is light-themed. Delete `docs/assets/screenshots/_test/` afterwards.
+Re-run `./capture.sh /tmp/stills.json`, then open `docs/assets/screenshots/_test/02-doc.png` and confirm: every Mermaid node is drawn, the equation is laid out, no personal paths appear anywhere, and the window is dark-themed. Delete `docs/assets/screenshots/_test/` afterwards.
 
 - [ ] **Step 7: Commit**
 
@@ -1464,8 +1464,8 @@ Seedable keys, from `Sources/ReaderMd/Models/Settings.swift`:
 ## Rules
 
 - Never reference a path outside the fixture corpus.
-- One theme (light) everywhere except the appearance page, where dark is the
-  subject.
+- One theme (dark) everywhere except the appearance page, where light is the
+  contrast case. The site is dark-only, so light shots glare.
 - Five clips total across all ten pages. A state is a still.
 ````
 
@@ -2156,7 +2156,7 @@ Create `docs/features/reading.shots.json`:
   "window": { "width": 1400, "height": 900 },
   "prefs": {
     "reader.md.folders": ["<fixtures>/field-notes"],
-    "reader.md.theme": "light",
+    "reader.md.theme": "dark",
     "reader.md.contentWidth": "wide",
     "reader.md.showSidebar": true,
     "reader.md.showTOC": false
@@ -2227,7 +2227,7 @@ Expected: `capture: reproducible`.
 
 - [ ] **Step 5: Inspect every asset**
 
-Open each PNG and watch the clip. Confirm for each: light theme, only fixture
+Open each PNG and watch the clip. Confirm for each: dark theme, only fixture
 content visible, no real path or file count anywhere, correct state captured.
 For the clip: no cursor in frame, no tooltip, width change legible. Re-shoot
 anything that fails with `--only <shot-id>`.

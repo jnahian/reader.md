@@ -180,8 +180,11 @@ and unguarded ⌘-keystrokes would have been delivered to it.
 
 **5. Post-processing.** Captures are downscaled to 2400px wide via `sips` and
 losslessly optimised, then written to
-`docs/assets/screenshots/<page>/<id>.png`. Budget: one theme (light) throughout,
-except on the appearance page where dark mode is the subject. Roughly 250KB per
+`docs/assets/screenshots/<page>/<id>.png`. Budget: one theme (dark) throughout,
+except on the appearance page where light is shown as the contrast case. Dark
+is chosen because the site is dark-only (`--bg: #08090c`, no light mode and no
+`prefers-color-scheme` handling), so light screenshots would glare against
+every page that carries them. Roughly 250KB per
 image, ~8MB for a full set of about 35, plus ~2MB for the five video clips —
 against a 19MB repository today. Neither PNGs nor mp4s delta-compress, so each
 full re-sweep adds its full size to history again; that cost is accepted
@@ -237,7 +240,7 @@ One manifest per page, committed beside it as
   "page": "reading",
   "window": { "width": 1400, "height": 900 },
   "prefs": {
-    "reader.md.theme": "light",
+    "reader.md.theme": "dark",
     "reader.md.showTOC": true,
     "reader.md.folders": ["<fixtures>/field-notes"]
   },
