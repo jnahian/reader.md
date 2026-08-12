@@ -135,6 +135,23 @@ Verify the site builds, then ask before pushing:
 cd web && npm run build
 ```
 
+Then check that the push will actually deploy:
+
+```
+git diff --name-only origin/main...HEAD | grep -q '^web/' && echo "will deploy" || echo "WILL NOT DEPLOY"
+```
+
+Cloudflare's build watch paths decide whether a push rebuilds the site. If they
+are still `web/*` only, a commit touching just `docs/` — re-shot screenshots, a
+prose fix — changes nothing under `web/`, the build is skipped, and the live
+site stays stale **with no error anywhere**. Adding a new page usually also
+edits `web/src/pages/docs.astro` to link it, which masks this; updating an
+existing page does not.
+
+If the check says `WILL NOT DEPLOY`, say so at the gate and give the fix: add
+`docs/*` to the include list (Pages → reader-md-web → Settings → Build), per
+`web/DEPLOYMENT.md`. Do not work around it by touching a file under `web/`.
+
 **Gate 3:** state plainly that pushing to `main` publishes the page live, and
 require an explicit yes.
 
