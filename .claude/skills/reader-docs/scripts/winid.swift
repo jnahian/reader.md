@@ -14,11 +14,25 @@ let windows = CGWindowListCopyWindowInfo(
     [.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID
 ) as? [[String: Any]] ?? []
 
+// The app also exposes a small unnamed system dialog at layer 0. Prefer a
+// window with a title — that is the document window. Fall back to any layer-0
+// window only if nothing is titled.
+var fallback: Int?
+
 for w in windows {
     let owner = w[kCGWindowOwnerName as String] as? String ?? ""
+    let name = w[kCGWindowName as String] as? String ?? ""
     let layer = w[kCGWindowLayer as String] as? Int ?? -1
     guard owner.contains(needle), layer == 0,
           let number = w[kCGWindowNumber as String] as? Int else { continue }
+    if !name.isEmpty {
+        print(number)
+        exit(0)
+    }
+    if fallback == nil { fallback = number }
+}
+
+if let number = fallback {
     print(number)
     exit(0)
 }

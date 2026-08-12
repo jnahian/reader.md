@@ -205,11 +205,25 @@ let windows = CGWindowListCopyWindowInfo(
     [.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID
 ) as? [[String: Any]] ?? []
 
+// The app also exposes a small unnamed system dialog at layer 0. Prefer a
+// window with a title — that is the document window. Fall back to any layer-0
+// window only if nothing is titled.
+var fallback: Int?
+
 for w in windows {
     let owner = w[kCGWindowOwnerName as String] as? String ?? ""
+    let name = w[kCGWindowName as String] as? String ?? ""
     let layer = w[kCGWindowLayer as String] as? Int ?? -1
     guard owner.contains(needle), layer == 0,
           let number = w[kCGWindowNumber as String] as? Int else { continue }
+    if !name.isEmpty {
+        print(number)
+        exit(0)
+    }
+    if fallback == nil { fallback = number }
+}
+
+if let number = fallback {
     print(number)
     exit(0)
 }
@@ -710,6 +724,11 @@ seed_prefs() {
   defaults write "$DOMAIN" reader.md.showTOC -bool false
   defaults write "$DOMAIN" reader.md.contentWidth -string wide
   defaults write "$DOMAIN" reader.md.fontScale -float 1.0
+  # A fresh domain has no lastSeenBuild, so AppState.checkWhatsNew() opens the
+  # bundled CHANGELOG over the content pane and hides the sidebar. Seed a build
+  # number far in the future to suppress it. (Found the hard way: the first
+  # fixture capture was a screenshot of the changelog.)
+  defaults write "$DOMAIN" lastSeenBuild -string 999999999999
 
   # Manifest overrides. Types are inferred: arrays -> -array, booleans -> -bool,
   # numbers -> -float, everything else -> -string.
@@ -739,47 +758,85 @@ seed_prefs() {
   killall cfprefsd 2>/dev/null || true
 }
 
+# Waits for BOTH a CGWindowID and an Accessibility window. They do not become
+# available at the same moment: CGWindowList sees the window first, and driving
+# it through System Events before its AX window exists fails with "Can't get
+# window 1 ... Invalid index".
 launch_app() {
   osascript -e "tell application \"$APP_NAME\" to quit" >/dev/null 2>&1 || true
-  sleep 1
+  sleep 1.5
   open -a "$APP"
-  local i
-  for i in $(seq 1 60); do
-    WINID=$(swift "$HERE/winid.swift" "$APP_NAME" 2>/dev/null | head -1) && [ -n "$WINID" ] && return 0
-    sleep 0.2
+  local i ax
+  for i in $(seq 1 80); do
+    WINID=$(swift "$HERE/winid.swift" "$APP_NAME" 2>/dev/null | head -1) || WINID=""
+    if [ -n "$WINID" ]; then
+      # Count only real document windows: the app also exposes an unnamed
+      # AXSystemDialog that sorts ahead of it and is NOT what we want to drive.
+      ax=$(osascript -e "tell application \"System Events\" to tell process \"$APP_NAME\" to count of (windows whose value of attribute \"AXSubrole\" is \"AXStandardWindow\")" 2>/dev/null || echo 0)
+      [ "${ax:-0}" -ge 1 ] && return 0
+    fi
+    sleep 0.25
   done
   echo "capture: app window never appeared" >&2
   exit 5
 }
 
+# Guarantees the app is frontmost before a keystroke is sent. It re-activates
+# first — the terminal reclaims focus routinely and that is not an error — and
+# only fails if activation will not stick, which means something is actively
+# fighting for focus and keystrokes would land in it.
 assert_frontmost() {
-  local front
+  local front attempt
+  for attempt in 1 2 3; do
+    front=$(osascript -e 'tell application "System Events" to get name of first process whose frontmost is true')
+    [ "$front" = "$APP_NAME" ] && return 0
+    osascript -e "tell application \"$APP_NAME\" to activate" >/dev/null 2>&1 || true
+    sleep 0.4
+  done
   front=$(osascript -e 'tell application "System Events" to get name of first process whose frontmost is true')
-  if [ "$front" != "$APP_NAME" ]; then
-    echo "capture: $APP_NAME lost focus to '$front' — aborting rather than" >&2
-    echo "  sending keystrokes to another application." >&2
-    exit 6
-  fi
+  [ "$front" = "$APP_NAME" ] && return 0
+  echo "capture: $APP_NAME will not stay frontmost — '$front' keeps taking focus." >&2
+  echo "  Aborting rather than sending keystrokes to another application." >&2
+  echo "  Close or quiet that app and re-run." >&2
+  exit 6
 }
 
+# The window restores its autosaved frame shortly after launch, which can land
+# AFTER a resize and silently undo it — producing differently-sized shots. So
+# set, verify, and retry rather than setting once and hoping.
 set_geometry() {
-  local w="$1" h="$2"
-  osascript >/dev/null <<EOF
+  local w="$1" h="$2" attempt got
+  for attempt in 1 2 3 4 5; do
+    # Tolerate transient AX errors ("Invalid index" while the window is being
+    # created or replaced) — that is exactly what the retry loop is for.
+    osascript >/dev/null 2>&1 <<EOF || true
 tell application "$APP_NAME" to activate
-delay 0.4
+delay 0.3
 tell application "System Events" to tell process "$APP_NAME"
-  set size of window 1 to {$w, $h}
-  set position of window 1 to {120, 80}
+  set win to first window whose value of attribute "AXSubrole" is "AXStandardWindow"
+  set size of win to {$w, $h}
+  set position of win to {120, 80}
 end tell
 EOF
-  sleep 0.5
+    sleep 0.6
+    got=$(osascript -e "tell application \"System Events\" to tell process \"$APP_NAME\" to get size of (first window whose value of attribute \"AXSubrole\" is \"AXStandardWindow\")" 2>/dev/null | tr -d ' ' || echo "none")
+    [ "$got" = "$w,$h" ] && {
+      # The window id changes if the window was recreated; re-resolve it or
+      # screencapture fails with "could not create image from window".
+      WINID=$(swift "$HERE/winid.swift" "$APP_NAME" | head -1)
+      return 0
+    }
+  done
+  echo "capture: window would not hold ${w}x${h} (got $got)" >&2
+  exit 8
 }
 
 window_bounds() {
   osascript <<EOF
 tell application "System Events" to tell process "$APP_NAME"
-  set p to position of window 1
-  set s to size of window 1
+  set win to first window whose value of attribute "AXSubrole" is "AXStandardWindow"
+  set p to position of win
+  set s to size of win
   return ((item 1 of p) as text) & " " & ((item 2 of p) as text) & " " & ((item 1 of s) as text) & " " & ((item 2 of s) as text)
 end tell
 EOF
