@@ -49,6 +49,12 @@ Lives at `docs/features/<slug>.shots.json`, committed beside the page it feeds.
 | keystroke | `{ "key": "b", "mods": ["shift", "command"] }` |
 | open a file | `{ "reader": "field-notes/guides/setup.md" }` |
 | wait | `{ "waitMs": 1200 }` |
+| edit a fixture | `{ "appendTo": "field-notes/index.md", "text": "\n## New\n" }` |
+
+`appendTo` exists for live reload, where the disk acts and the keyboard does
+not. It is the one action that writes, so the path must stay inside the fixture
+corpus — a leading `/` or a `..` aborts the run. It earns no keystroke badge:
+nothing was pressed.
 
 `mods` are `command`, `shift`, `option`, `control`. Keys are single characters
 as typed; the harness escapes them for AppleScript, so `"\\"` (a literal

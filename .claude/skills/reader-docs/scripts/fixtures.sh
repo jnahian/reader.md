@@ -92,13 +92,11 @@ cat > "$ROOT/field-notes/guides/architecture.md" <<'EOF'
 The shape of the system, and why it is shaped that way.
 
 ```mermaid
-graph TD
+graph LR
   Shell[Native shell] --> State[Shared state]
-  State --> Content[Content pane]
   State --> Sidebar[File tree]
+  State --> Content[Content pane]
   Content --> Render[Renderer]
-  Render --> Diagrams[Diagrams]
-  Render --> Math[Math]
 ```
 
 ## Throughput

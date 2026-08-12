@@ -543,11 +543,12 @@ run_actions() {
   n=$(echo "$shot" | jq '(.actions // []) | length')
   [ "$n" -eq 0 ] && return 0
   for i in $(seq 0 $((n - 1))); do
-    local action key mods ms cli
+    local action key mods ms cli appendTo
     action=$(echo "$shot" | jq -c ".actions[$i]")
     key=$(echo "$action" | jq -r '.key // empty')
     ms=$(echo "$action" | jq -r '.waitMs // empty')
     cli=$(echo "$action" | jq -r '.reader // empty')
+    appendTo=$(echo "$action" | jq -r '.appendTo // empty')
     if [ -n "$key" ]; then
       assert_frontmost
       mods=$(echo "$action" | jq -r '(.mods // []) | map(. + " down") | join(", ")')
@@ -573,6 +574,14 @@ run_actions() {
       fi
     elif [ -n "$cli" ]; then
       "$READER" "$FIXTURES/$cli"
+    elif [ -n "$appendTo" ]; then
+      # Editing a file mid-clip: the only way to film live reload, since it is
+      # the disk that acts and not the keyboard. Fixture-relative like `reader`,
+      # and no escaping out of the corpus — this action writes.
+      case "$appendTo" in
+        /*|*..*) echo "capture: appendTo must stay inside the fixtures: '$appendTo'" >&2; exit 3 ;;
+      esac
+      echo "$action" | jq -r '.text // ""' >> "$FIXTURES/$appendTo"
     elif [ -n "$ms" ]; then
       sleep "$(echo "$ms" | awk '{print $1/1000}')"
     fi
