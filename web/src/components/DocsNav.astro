@@ -1,0 +1,150 @@
+---
+import { getCollection } from "astro:content";
+
+interface Props {
+  current: string;
+  headings: { depth: number; slug: string; text: string }[];
+}
+const { current, headings } = Astro.props;
+
+const pages = (await getCollection("docs")).sort(
+  (a, b) => a.data.order - b.data.order
+);
+
+// Same grouping rule as the /docs hub: a category sits where its lowest-ordered
+// page does, so frontmatter stays the only place ordering is decided.
+const groups: { name: string; pages: typeof pages }[] = [];
+for (const page of pages) {
+  const group = groups.find((g) => g.name === page.data.category);
+  if (group) group.pages.push(page);
+  else groups.push({ name: page.data.category, pages: [page] });
+}
+
+// Only h2s — h3s make the rail noisy on long pages.
+const toc = headings.filter((h) => h.depth === 2);
+---
+
+<aside class="docsnav">
+  <nav class="docsnav__pages">
+    <a href="/docs" class="docsnav__link">← All docs</a>
+  </nav>
+  {/* This page's own sections first: they are what a reader wants while
+      reading, and the list of every other page is what they want after. */}
+  {toc.length > 0 && (
+    <>
+      <div class="docsnav__label">ON THIS PAGE</div>
+      <nav class="docsnav__toc">
+        {toc.map((h) => (
+          <a href={`#${h.slug}`} class="docsnav__sublink" data-spy={h.slug}>{h.text}</a>
+        ))}
+      </nav>
+    </>
+  )}
+
+  {groups.map((group) => (
+    <>
+      <div class="docsnav__label">{group.name}</div>
+      <nav class="docsnav__pages">
+        {group.pages.map((p) => (
+          <a
+            href={`/docs/${p.id}`}
+            class:list={["docsnav__link", { "is-active": p.id === current }]}
+          >
+            {p.data.title}
+          </a>
+        ))}
+      </nav>
+    </>
+  ))}
+</aside>
+
+<script>
+  const links = Array.from(document.querySelectorAll<HTMLAnchorElement>("[data-spy]"));
+  const setActive = (id: string) => {
+    links.forEach((a) => a.classList.toggle("is-active", a.dataset.spy === id));
+  };
+  const sections = document.querySelectorAll<HTMLElement>(".doc__body h2[id]");
+  if (links.length && sections.length) {
+    const io = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]) setActive(visible[0].target.id);
+      },
+      { rootMargin: "-90px 0px -65% 0px", threshold: 0 }
+    );
+    sections.forEach((s) => io.observe(s));
+    setActive(sections[0].id);
+  }
+</script>
+
+<style>
+  .docsnav {
+    position: sticky;
+    top: 92px;
+    align-self: start;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+  }
+
+  .docsnav__label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin: 22px 0 8px;
+  }
+
+  /* The page list is a different kind of navigation from this page's own
+     sections, so it gets a wider gap above it than one category does. */
+  .docsnav__toc + .docsnav__label {
+    margin-top: 30px;
+  }
+
+  .docsnav__pages,
+  .docsnav__toc {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  /* Radii are literals throughout global.css rather than tokens; these match
+     the small-control values already used there. */
+  .docsnav__link,
+  .docsnav__sublink {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 14px;
+    padding: 6px 10px;
+    border-radius: 7px;
+    line-height: 1.35;
+  }
+
+  .docsnav__sublink {
+    font-size: 13px;
+    padding-left: 18px;
+  }
+
+  .docsnav__link:hover,
+  .docsnav__sublink:hover {
+    color: var(--fg);
+  }
+
+  .docsnav__link.is-active,
+  .docsnav__sublink.is-active {
+    color: var(--fg);
+    background: var(--surface);
+  }
+
+  @media (max-width: 900px) {
+    .docsnav {
+      position: static;
+      max-height: none;
+    }
+  }
+</style>

@@ -532,30 +532,44 @@ extension GitDiff {
     }
 
     /// Porcelain paths are relative to git's own top-level, which has every
-    /// symlink resolved. Badge lookups come from `FileNode.url.path`, built by
-    /// descending from the folder the user added — so for a repo reached through
-    /// a symlink (anything under /tmp) the two forms never meet, and the sidebar
-    /// loses every badge. Map git's namespace back onto the user's once, here,
-    /// rather than resolving per row at lookup time: that would be a realpath
-    /// syscall per visible row on every SwiftUI render pass.
-    private static func pathKeyer(root: URL, displayRoot: URL?) -> (String) -> String {
-        let gitNamespace = { (relative: String) in
-            root.appendingPathComponent(relative).standardizedFileURL.path
-        }
-        guard let displayRoot else { return gitNamespace }
-
-        let resolvedRoot = canonical(root)
-        let resolvedDisplay = canonical(displayRoot)
-        // `.path` verbatim, not standardized: FileNode paths are the root's own
-        // path with components appended, so that is the form to match.
-        let displayPath = displayRoot.path
-        guard resolvedDisplay != displayPath else { return gitNamespace }
+    /// symlink resolved. Badge lookups arrive in more than one namespace, so a
+    /// repo reached through a symlink — anything under `/tmp`, or a folder
+    /// added through a link to another volume — needs a key in each:
+    ///
+    /// - tree rows use `FileNode.url.path`, and the scan comes from
+    ///   `contentsOfDirectory(at:)`, which hands back *resolved* URLs, exactly
+    ///   as git reports them and whatever the root was added as;
+    /// - Recents, Favorites and a file opened by path use the string as it was
+    ///   stored or typed, which is not resolved.
+    ///
+    /// `/private` is a third form rather than a detail of the second:
+    /// `standardizedFileURL` and `resolvingSymlinksInPath` both drop a leading
+    /// `/private`, while git and `contentsOfDirectory` both keep it. So git's
+    /// answer verbatim and git's answer canonicalised are different strings, and
+    /// a lookup can arrive as either.
+    ///
+    /// Keying every form here costs a dictionary entry or two per changed file.
+    /// Resolving at lookup time instead would mean a realpath syscall per
+    /// visible row on every SwiftUI render pass.
+    private static func pathKeyer(root: URL, displayRoot: URL?) -> (String) -> [String] {
+        let literalRoot = root.path             // git's own answer: /private/tmp/notes
+        let canonicalRoot = canonical(root)     // the same folder, minus /private: /tmp/notes
+        // `.path` verbatim: this is the form the folder was added as, and so the
+        // form a stored path is written in.
+        let displayPath = displayRoot?.path
+        let canonicalDisplay = displayRoot.map(canonical)
 
         return { relative in
-            let absolute = (resolvedRoot as NSString).appendingPathComponent(relative)
+            let literal = (literalRoot as NSString).appendingPathComponent(relative)
+            let canonicalPath = (canonicalRoot as NSString).appendingPathComponent(relative)
+            var keys = [literal]
+            if canonicalPath != literal { keys.append(canonicalPath) }
             // Outside the added folder — not in the tree, so no badge needs it.
-            guard absolute.hasPrefix(resolvedDisplay + "/") else { return gitNamespace(relative) }
-            return displayPath + absolute.dropFirst(resolvedDisplay.count)
+            if let displayPath, let canonicalDisplay, canonicalDisplay != displayPath,
+               canonicalPath.hasPrefix(canonicalDisplay + "/") {
+                keys.append(displayPath + canonicalPath.dropFirst(canonicalDisplay.count))
+            }
+            return keys
         }
     }
 
@@ -577,7 +591,7 @@ extension GitDiff {
             let ext = (path as NSString).pathExtension.lowercased()
             guard FileScanner.markdownExtensions.contains(ext) else { continue }
 
-            map[key(path)] = status(forCode: code)
+            for k in key(path) { map[k] = status(forCode: code) }
         }
         return map
     }

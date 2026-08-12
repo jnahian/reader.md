@@ -18,9 +18,16 @@ Build**):
 | Root directory | `web` | the site isn't at the repo root |
 | Build command | `npm run build` | |
 | Build output directory | `dist` | |
-| Build watch paths — include | `web/*` | app-only commits don't rebuild the site |
+| Build watch paths — include | `web/*` **and `docs/*`** | app-only commits don't rebuild the site |
 | Build watch paths — exclude | *(empty)* | |
 | Preview deployments | None | `main` is the only branch that deploys |
+
+> **`docs/*` is required, not optional.** Every page under `/docs/` is built from
+> `docs/*.md`, `docs/features/*.md`, and `docs/assets/screenshots/` — all outside
+> `web/`. With only `web/*` watched, editing any documentation page or re-shooting
+> a screenshot — the routine change this setup exists for — changes nothing under
+> `web/`, so Cloudflare **skips the build** and the live site stays stale with no
+> error anywhere. Add `docs/*` to the include list in the Pages project.
 
 Watch paths are matched against repo-root-relative paths, so the prefix is
 `web/`, not `src/` — even though **Root directory** is `web`. A wildcard `*`

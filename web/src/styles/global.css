@@ -46,6 +46,14 @@ html {
   scroll-behavior: smooth;
 }
 
+/* The UA's `[hidden] { display: none }` loses to any class that sets display, so
+   toggling the attribute silently does nothing on a flex card. It lives here
+   rather than in a component: Astro's scoped compiler drops a bare attribute
+   selector, so the same rule in a <style> block is not applied at all. */
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   background: var(--bg);
@@ -397,4 +405,166 @@ pre {
   *::after {
     animation: none !important;
   }
+}
+
+/* Docs media -------------------------------------------------------------- */
+/* Screenshots are captured at 2400px and rendered at ~1200, so they stay crisp
+   on a Retina display. */
+.docs-media {
+  margin: 24px 0;
+}
+
+.docs-media img,
+.docs-media video {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: 13px;
+  border: 1px solid var(--border);
+}
+
+.docs-media figcaption {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--faint);
+}
+
+/* Clips autoplay because they are short, silent, and loop. A reader who asked
+   for reduced motion gets controls instead — the page script pauses them, and
+   the prose beside every clip already carries the same information. */
+@media (prefers-reduced-motion: reduce) {
+  .docs-media--video video {
+    animation: none;
+  }
+}
+
+/* Rendered markdown ------------------------------------------------------- */
+/* Docs pages are markdown from the repo's docs/, rendered by
+   pages/docs/[...slug].astro. Everything inside .doc__body comes from a file no
+   one styles by hand, so the element selectors here carry the whole page. */
+.doc__body {
+  max-width: var(--maxw-prose);
+  font-size: 16px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.doc__body > :first-child {
+  margin-top: 0;
+}
+
+.doc__body h1 {
+  margin: 0 0 20px;
+  font-size: clamp(32px, 4.5vw, 44px);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+  color: var(--fg);
+}
+
+.doc__body h2 {
+  margin: 52px 0 18px;
+  padding-top: 4px;
+  font-size: 27px;
+  letter-spacing: -0.025em;
+  color: var(--fg);
+  scroll-margin-top: 96px;
+}
+
+.doc__body h3 {
+  margin: 34px 0 12px;
+  font-size: 18px;
+  color: var(--fg);
+  scroll-margin-top: 96px;
+}
+
+.doc__body p,
+.doc__body li {
+  margin: 0 0 14px;
+}
+
+.doc__body ul,
+.doc__body ol {
+  margin: 0 0 18px;
+  padding-left: 22px;
+}
+
+.doc__body li {
+  margin-bottom: 8px;
+}
+
+.doc__body li::marker {
+  color: var(--faint);
+}
+
+.doc__body strong {
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 600;
+}
+
+/* Inline code matches .tok, which the hand-written pages already use. */
+.doc__body :not(pre) > code {
+  font-size: 0.86em;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: var(--surface-3);
+  color: var(--cyan-text);
+}
+
+.doc__body pre {
+  margin: 0 0 20px;
+  padding: 18px 20px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--border);
+  overflow-x: auto;
+  font-size: 13.5px;
+  line-height: 1.75;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.doc__body table {
+  width: 100%;
+  margin: 0 0 22px;
+  border-collapse: collapse;
+  font-size: 14.5px;
+  display: block;
+  overflow-x: auto;
+}
+
+.doc__body th,
+.doc__body td {
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-soft);
+  vertical-align: top;
+}
+
+.doc__body th {
+  color: var(--faint);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.doc__body blockquote {
+  margin: 0 0 20px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--purple);
+  background: var(--surface);
+}
+
+.doc__body blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+.doc__body hr {
+  border: none;
+  border-top: 1px solid var(--border-soft);
+  margin: 48px 0;
 }

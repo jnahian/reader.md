@@ -1,0 +1,57 @@
+{
+  "page": "reading",
+  "window": { "width": 1400, "height": 900 },
+  "prefs": {
+    "reader.md.folders": ["<fixtures>/field-notes"],
+    "reader.md.theme": "dark",
+    "reader.md.contentWidth": "wide",
+    "reader.md.showSidebar": true,
+    "reader.md.showTOC": false
+  },
+  "shots": [
+    {
+      "id": "01-document",
+      "open": "field-notes/guides/setup.md",
+      "caption": "A document open in the reading canvas"
+    },
+    {
+      "id": "02-outline",
+      "open": "field-notes/guides/setup.md",
+      "actions": [{ "key": "b", "mods": ["shift", "command"] }],
+      "caption": "The outline pane, opened with ⇧⌘B"
+    },
+    {
+      "id": "03-find",
+      "open": "field-notes/guides/setup.md",
+      "actions": [
+        { "key": "f", "mods": ["command"] },
+        { "waitMs": 500 },
+        { "key": "install" }
+      ],
+      "caption": "In-page find, with the match count and step controls"
+    },
+    {
+      "id": "04-typography",
+      "open": "field-notes/guides/setup.md",
+      "actions": [
+        { "key": "+", "mods": ["command"] },
+        { "waitMs": 250 },
+        { "key": "+", "mods": ["command"] }
+      ],
+      "caption": "Text size increased two steps with ⌘+"
+    },
+    {
+      "id": "05-width",
+      "open": "field-notes/guides/setup.md",
+      "video": { "seconds": 6 },
+      "actions": [
+        { "waitMs": 1400 },
+        { "key": "\\", "mods": ["shift", "command"] },
+        { "waitMs": 2000 },
+        { "key": "\\", "mods": ["shift", "command"] },
+        { "waitMs": 2000 }
+      ],
+      "caption": "Cycling the canvas width (⇧⌘\\)"
+    }
+  ]
+}

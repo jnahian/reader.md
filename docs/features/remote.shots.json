@@ -1,0 +1,72 @@
+{
+  "page": "remote",
+  "window": { "width": 1400, "height": 900 },
+  "prefs": {
+    "reader.md.folders": ["<fixtures>/field-notes"],
+    "reader.md.theme": "dark",
+    "reader.md.contentWidth": "wide",
+    "reader.md.showSidebar": true,
+    "reader.md.showTOC": false
+  },
+  "shots": [
+    {
+      "id": "01-ssh",
+      "open": "field-notes/index.md",
+      "actions": [
+        { "key": "a", "mods": ["command", "option"] },
+        { "waitMs": 1200 },
+        { "click": [778, 420] },
+        { "waitMs": 300 },
+        { "key": "Server notes" },
+        { "click": [778, 452] },
+        { "waitMs": 300 },
+        { "key": "user@example.com" },
+        { "click": [778, 483] },
+        { "waitMs": 300 },
+        { "key": "/srv/notes" },
+        { "waitMs": 600 }
+      ],
+      "caption": "Adding a folder from a server over SSH (⌥⌘A)"
+    },
+    {
+      "id": "02-git",
+      "open": "field-notes/index.md",
+      "actions": [
+        { "key": "a", "mods": ["command", "option"] },
+        { "waitMs": 1200 },
+        { "click": [550, 382] },
+        { "waitMs": 800 },
+        { "click": [736, 427] },
+        { "waitMs": 300 },
+        { "key": "Handbook" },
+        { "click": [736, 459] },
+        { "waitMs": 300 },
+        { "key": "https://github.com/example/handbook.git" },
+        { "waitMs": 600 }
+      ],
+      "caption": "The same sheet, switched to a git repository"
+    },
+    {
+      "id": "03-cloned",
+      "open": "field-notes/index.md",
+      "actions": [
+        { "key": "a", "mods": ["command", "option"] },
+        { "waitMs": 1200 },
+        { "click": [550, 382] },
+        { "waitMs": 800 },
+        { "click": [736, 427] },
+        { "waitMs": 300 },
+        { "key": "Handbook" },
+        { "click": [736, 459] },
+        { "waitMs": 300 },
+        { "key": "/tmp/reader-md-docs/field-guide" },
+        { "waitMs": 400 },
+        { "click": [895, 542] },
+        { "waitMs": 4000 },
+        { "click": [23, 294] },
+        { "waitMs": 1000 }
+      ],
+      "caption": "The cloned repository in the sidebar, with its branch badge"
+    }
+  ]
+}

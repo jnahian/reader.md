@@ -1,3 +1,11 @@
+---
+title: Architecture
+category: Internals
+order: 30
+summary: How the native shell and the WKWebView content pane fit together.
+related: [building, features, cli]
+---
+
 # Architecture
 
 A native macOS markdown viewer: the whole shell — toolbar, sidebar, file search,

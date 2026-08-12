@@ -5,7 +5,9 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 APP_NAME="Reader.md"
-BUNDLE_ID="com.nahian.reader-md"
+# Overridable so the docs harness can build an isolated bundle (its own
+# UserDefaults domain) without touching the real app's saved folders.
+BUNDLE_ID="${BUNDLE_ID:-com.nahian.reader-md}"
 # CFBundleVersion is what Sparkle compares; derive it from the build time so it's
 # always monotonic — no manual bump, no silent "no update" from a stale integer.
 BUILD_NUMBER="$(date +%Y%m%d%H%M)"
@@ -15,7 +17,11 @@ swift build -c release
 
 BIN_DIR="$(swift build -c release --show-bin-path)"
 EXE="${BIN_DIR}/ReaderMd"
-APP="build/${APP_NAME}.app"
+# Overridable alongside BUNDLE_ID so the docs harness can build its isolated
+# bundle without clobbering the normal build at build/Reader.md.app.
+APP_OUT="${APP_OUT:-build}"
+mkdir -p "$APP_OUT"
+APP="${APP_OUT}/${APP_NAME}.app"
 
 echo "Assembling ${APP} ..."
 rm -rf "${APP}"
