@@ -1079,10 +1079,16 @@ run_actions() {
     if [ -n "$key" ]; then
       assert_frontmost
       mods=$(echo "$action" | jq -r '(.mods // []) | map(. + " down") | join(", ")')
+      # AppleScript string literals need \ and " escaped. Without this, the
+      # canvas-width shortcut (⇧⌘\) produces `keystroke "\"` and osascript
+      # dies with 'Expected " but found end of script'.
+      local esc="$key"
+      esc="${esc//\\/\\\\}"
+      esc="${esc//\"/\\\"}"
       if [ -n "$mods" ]; then
-        osascript -e "tell application \"System Events\" to keystroke \"$key\" using {$mods}"
+        osascript -e "tell application \"System Events\" to keystroke \"$esc\" using {$mods}"
       else
-        osascript -e "tell application \"System Events\" to keystroke \"$key\""
+        osascript -e "tell application \"System Events\" to keystroke \"$esc\""
       fi
     elif [ -n "$cli" ]; then
       "$READER" "$FIXTURES/$cli"

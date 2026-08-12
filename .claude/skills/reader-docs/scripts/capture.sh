@@ -319,6 +319,35 @@ settle() {
   exit 7
 }
 
+# --- video -------------------------------------------------------------------
+# Clips exist only for features that ARE a motion. Note two things that differ
+# from stills:
+#   * screencapture -l is IGNORED in video mode (it records the whole screen),
+#     so the window's own bounds are passed to -R instead.
+#   * There is no settle loop — change is the content — so the timing in the
+#     manifest's waitMs actions IS the choreography, and every clip is watched
+#     by a human before it ships.
+record_video() {
+  local shot="$1" id="$2" secs x y w h rec
+  secs=$(echo "$shot" | jq -r '.video.seconds // 6')
+  read -r x y w h <<<"$(window_bounds)"
+
+  # The cursor is always recorded and cannot be hidden, so park it off-window.
+  swift "$HERE/cursor.swift" 10 10
+
+  screencapture -v -V "$secs" -R "$x,$y,$w,$h" "$RAW_DIR/$id.mov" &
+  rec=$!
+  sleep 1
+  run_actions "$shot"
+  wait "$rec"
+
+  ffmpeg -v error -y -i "$RAW_DIR/$id.mov" \
+         -vf "fps=30,scale=1600:-2" -c:v libx264 -crf 26 -preset slow \
+         -movflags +faststart -pix_fmt yuv420p -an "$OUT/$id.mp4"
+  ffmpeg -v error -y -i "$OUT/$id.mp4" -frames:v 1 -q:v 3 "$OUT/$id.poster.jpg"
+  echo "  $id (video, ${secs}s)"
+}
+
 run_actions() {
   local shot="$1" n i
   n=$(echo "$shot" | jq '(.actions // []) | length')
@@ -332,10 +361,16 @@ run_actions() {
     if [ -n "$key" ]; then
       assert_frontmost
       mods=$(echo "$action" | jq -r '(.mods // []) | map(. + " down") | join(", ")')
+      # AppleScript string literals need \ and " escaped. Without this, the
+      # canvas-width shortcut (⇧⌘\) produces `keystroke "\"` and osascript
+      # dies with 'Expected " but found end of script'.
+      local esc="$key"
+      esc="${esc//\\/\\\\}"
+      esc="${esc//\"/\\\"}"
       if [ -n "$mods" ]; then
-        osascript -e "tell application \"System Events\" to keystroke \"$key\" using {$mods}"
+        osascript -e "tell application \"System Events\" to keystroke \"$esc\" using {$mods}"
       else
-        osascript -e "tell application \"System Events\" to keystroke \"$key\""
+        osascript -e "tell application \"System Events\" to keystroke \"$esc\""
       fi
     elif [ -n "$cli" ]; then
       "$READER" "$FIXTURES/$cli"
@@ -379,7 +414,8 @@ for i in $(seq 0 $((count - 1))); do
   run_actions "$shot"
 
   if [ "$(echo "$shot" | jq -r 'has("video")')" = "true" ]; then
-    continue   # video shots are handled in task 6
+    record_video "$shot" "$id"
+    continue
   fi
 
   settle "$WINID" "$RAW_DIR/$id.png"
