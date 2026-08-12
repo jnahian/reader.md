@@ -98,27 +98,36 @@ that will document it.
 
 ## Part 2 — Fixtures
 
-Screenshots are taken against a committed fixture corpus, never the user's real
-folders. This is what keeps captures reproducible and free of private data.
+Screenshots are taken against a fixture corpus, never the user's real folders.
+This is what keeps captures reproducible and free of private data.
 
-`docs/fixtures/` holds a small markdown library — a handbook-shaped folder tree
-with enough files to make the sidebar look real, plus documents that exercise
-specific features: one Mermaid/KaTeX document, one frontmatter document, one
-code-heavy document, one long document with deep headings for the outline.
+The corpus is **generated into a temp directory, not committed**. `FileScanner`
+scans each root recursively for markdown, so a fixture library committed
+anywhere in this repo would show up in the sidebar alongside the real
+documentation for anyone who adds the repo as a root — including inside the
+screenshots, where `docs/features/*.md` and fake handbook files would
+intermingle. Generating it sidesteps that entirely and keeps the fixtures out
+of git.
 
-`fixtures.sh` (all scripts live in the skill directory — see part 4)
-materialises the parts that cannot be committed:
+`fixtures.sh` (all scripts live in the skill directory — see part 4) builds two
+things:
 
-- A **git repository** cannot be nested inside this repo, so the script builds
-  one in a temp directory from the fixture files, with a commit history and a
+- A **markdown library** — a handbook-shaped folder tree with enough files to
+  make the sidebar look real, plus documents that exercise specific features:
+  one Mermaid/KaTeX document, one frontmatter document, one code-heavy
+  document, one long document with deep headings for the outline. The script
+  writes the content, so it is byte-for-byte reproducible on every run.
+- A **git repository**, built from those files with a commit history and a
   branch, plus staged, unstaged, and untracked markdown so the sidebar badges
-  (`M` · `A` · `?` · `U`) and the diff view have real state to show.
-- Commit dates are pinned via `GIT_AUTHOR_DATE` and `GIT_COMMITTER_DATE`.
-  Without this the diff and badge screenshots change on every sweep, producing
-  image churn in git history that reflects nothing but the clock.
+  (`M` · `A` · `?` · `U`) and the diff view have real state to show. Commit
+  dates are pinned via `GIT_AUTHOR_DATE` and `GIT_COMMITTER_DATE` — without
+  this, diff and badge screenshots change on every sweep, producing image churn
+  that reflects nothing but the clock.
 
 Fixture root folders are named neutrally (a "Field Notes"-style handbook), so
-the sidebar breadcrumbs in a screenshot reveal nothing about the machine.
+the sidebar breadcrumbs in a screenshot reveal nothing about the machine. The
+temp location is stable within a run and referred to as `<fixtures>` in
+manifests.
 
 ## Part 3 — The capture harness
 
@@ -152,6 +161,11 @@ and the page layout jitters between screenshots.
 consecutive captures are byte-identical, then keep the second. A shot that never
 settles within the poll budget fails the run rather than landing a half-rendered
 image. Verified to correctly wait out a Mermaid/KaTeX render.
+
+The loop has one edge that must be closed: it terminates on any two identical
+consecutive frames, so a state that has not *started* changing yet reads as
+already settled. A short mandatory delay before the first capture of each shot
+closes it, converting a silent early exit into a correct wait.
 
 **4. Focus assert.** Before every keystroke, verify Reader.md is the frontmost
 process; abort the run otherwise. This is a safety requirement, not a
@@ -372,9 +386,14 @@ nine pages should not begin until the skill has absorbed that feedback.
 - A shots-build launches under `com.nahian.reader-md.shots` and does not read
   the real domain's folders — checked by confirming its sidebar shows only
   fixture roots.
-- `capture.sh` run twice in a row produces byte-identical images for every shot.
-  This is the reproducibility contract; if it fails, the harness has a
-  nondeterminism bug and the docs will churn.
+- `capture.sh` run twice in a row produces **visually** identical images for
+  every shot: dimensions equal, and pixel difference under a small threshold
+  (`compare -metric AE`). This is the reproducibility contract. Byte-equality is
+  deliberately *not* the criterion here — Liquid Glass and vibrancy materials
+  sample what is behind the window, and PNG encoding is not contractually
+  stable, so exact-bytes would fail falsely across runs. Byte-equality is used
+  only inside the settle loop, where the question is merely "did anything
+  change" between two captures moments apart.
 - `capture.sh` aborts with a clear message when the app is not frontmost, when
   the geometry assert fails, and when pointed at the real preference domain.
 - No screenshot contains a path, filename, or count originating outside the
