@@ -1,0 +1,79 @@
+{
+  "page": "library",
+  "window": { "width": 1400, "height": 900 },
+  "prefs": {
+    "reader.md.folders": [
+      "<fixtures>/field-notes",
+      "<fixtures>/field-guide"
+    ],
+    "reader.md.recents": [
+      "<fixtures>/field-notes/guides/architecture.md",
+      "<fixtures>/field-guide/decisions.md",
+      "<fixtures>/field-notes/reference/shortcuts.md"
+    ],
+    "reader.md.favorites": [
+      "<fixtures>/field-notes/guides/setup.md",
+      "<fixtures>/field-guide/README.md"
+    ],
+    "reader.md.theme": "dark",
+    "reader.md.contentWidth": "wide",
+    "reader.md.showSidebar": true,
+    "reader.md.showTOC": false
+  },
+  "shots": [
+    {
+      "id": "01-sidebar",
+      "open": "field-notes/index.md",
+      "caption": "The sidebar: two folders, with Recents and Favorites above them"
+    },
+    {
+      "id": "02-filter",
+      "open": "field-notes/index.md",
+      "actions": [
+        { "key": "f", "mods": ["shift", "command"] },
+        { "waitMs": 500 },
+        { "key": "re" }
+      ],
+      "caption": "Filtering the tree (⇧⌘F), matching file names in both folders"
+    },
+    {
+      "id": "03-commands",
+      "open": "field-notes/guides/setup.md",
+      "actions": [
+        { "key": "p", "mods": ["command"] },
+        { "waitMs": 500 },
+        { "key": ">" }
+      ],
+      "caption": "Quick Open in command mode, reached with a > prefix"
+    },
+    {
+      "id": "04-headings",
+      "open": "field-notes/guides/setup.md",
+      "actions": [
+        { "key": "p", "mods": ["command"] },
+        { "waitMs": 500 },
+        { "key": "#" }
+      ],
+      "caption": "Quick Open listing the open document's headings, with a # prefix"
+    },
+    {
+      "id": "05-quickopen",
+      "open": "field-notes/guides/setup.md",
+      "video": { "seconds": 7 },
+      "actions": [
+        { "waitMs": 900 },
+        { "key": "p", "mods": ["command"] },
+        { "waitMs": 1100 },
+        { "key": "g" },
+        { "waitMs": 400 },
+        { "key": "l" },
+        { "waitMs": 400 },
+        { "key": "o" },
+        { "waitMs": 400 },
+        { "key": "s" },
+        { "waitMs": 1300 }
+      ],
+      "caption": "Quick Open (⌘P) narrowing the list as the query is typed"
+    }
+  ]
+}

@@ -1,9 +1,9 @@
 ---
 title: Reading a document
 category: Guides
-order: 10
+order: 12
 summary: The outline, in-page find, text size, and canvas width.
-related: [features, cli, install]
+related: [library, features, cli]
 ---
 
 # Reading a document
