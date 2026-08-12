@@ -10,12 +10,14 @@ no native equivalent.
 
 ## Highlights
 
-- **Multi-folder browser** with ⌘P fuzzy quick-open across every root
+- **Multi-folder browser** with ⌘P fuzzy quick-open across every root, plus a pinned Favorites section (⌘D) and a document that reopens where you left it
+- **Highlights and notes** — five highlight colours, notes and comment threads with replies and Resolve, anchored to the words rather than a position and never written into your markdown
 - **Remote folders** — `rsync`'d read-only from a VPS or cloned from a git URL, reusing your existing SSH and git credentials, storing none
-- **Git-aware** — status badges in the sidebar, ⇧⌘D for a side-by-side diff against unstaged / staged / the last commit / any branch, and `.gitignore`d files kept out of the tree
+- **Git-aware** — status badges in the sidebar, ⇧⌘D for a side-by-side diff against unstaged / staged / all / any branch, and `.gitignore`d files kept out of the tree
 - **Mermaid, LaTeX, and syntax highlighting** from bundled engines — no network access
 - **Live reload** — the open file re-renders with scroll preserved the moment it changes on disk
 - **Hand off to your editor** with ⇧⌘E, which turns an editor beside Reader.md into a live preview
+- **Settings in one window** (⌘,) — appearance, Standard / Editorial / Terminal reading themes, typography, and the default PDF layout
 - **Liquid Glass chrome** on macOS 26, falling back to `NSVisualEffectView` on 13–15
 
 ## Install
@@ -35,7 +37,7 @@ download — are in [the install guide](docs/install.md).
 
 | | |
 |---|---|
-| [Features & shortcuts](docs/features.md) | everything the app does, and the keys that do it |
+| [Features & shortcuts](docs/features.md) | everything the app does, the keys that do it, and a page with screenshots per feature area |
 | [Install](docs/install.md) | requirements, Homebrew, direct download, quarantine |
 | [Command line](docs/cli.md) | the `reader` CLI |
 | [Architecture](docs/architecture.md) | how the native shell and web pane fit together |
