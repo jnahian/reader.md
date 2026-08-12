@@ -304,14 +304,26 @@ cleanup() {
 }
 trap cleanup EXIT
 
-seed_prefs
-launch_app
-hide_others
-# Stills need the pointer out of the way just as much as clips do: a tooltip
-# left up by a stale hover shows in every shot taken afterwards.
-swift "$HERE/cursor.swift" 99999 99999
-set_geometry "$WIN_W" "$WIN_H"
-assert_frontmost
+# Every shot starts from the manifest's declared state, not from wherever the
+# previous shot left the app. Without this, state leaks forward: opening the
+# outline for one shot leaves it open in the next, and a find bar full of
+# search matches turns the following typography shot into another find shot.
+#
+# It also makes --only correct. Re-shooting one shot against a leaked state
+# would produce an image that does not match the committed one, and
+# --verify-repro would then fail on a shot nobody had changed.
+reset_state() {
+  seed_prefs
+  launch_app
+  hide_others
+  # Stills need the pointer out of the way just as much as clips do: a tooltip
+  # left up by a stale hover shows in every shot taken afterwards.
+  swift "$HERE/cursor.swift" 99999 99999
+  set_geometry "$WIN_W" "$WIN_H"
+  assert_frontmost
+}
+
+reset_state
 
 echo "capture: $PAGE — window ${WIN_W}x${WIN_H}, fixtures at $FIXTURES"
 
@@ -485,6 +497,9 @@ for i in $(seq 0 $((count - 1))); do
   shot=$(jq -c ".shots[$i]" "$MANIFEST")
   id=$(echo "$shot" | jq -r '.id')
   [ -n "$ONLY" ] && [ "$ONLY" != "$id" ] && continue
+
+  # The first shot already has a clean app from the setup above.
+  [ "$i" -gt 0 ] && reset_state
 
   if [ "$(echo "$shot" | jq -r '.manual // false')" = "true" ]; then
     if [ -f "$FINAL_OUT/$id.png" ]; then
