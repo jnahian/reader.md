@@ -84,6 +84,12 @@ require_shots_app() {
   if [ ! -d "$APP" ]; then
     echo "capture: building the isolated app (first run) …"
     ( cd "$REPO" && BUNDLE_ID="$DOMAIN" APP_OUT="$APP_DIR" ./make-app.sh >/dev/null )
+  # Built only when missing, this would photograph an app one build behind for
+  # the rest of the project — and a page written from those shots documents
+  # behaviour that has already been fixed or changed.
+  elif [ -n "$(find "$REPO/Sources" -newer "$APP/Contents/MacOS/$APP_NAME" -print -quit 2>/dev/null)" ]; then
+    echo "capture: rebuilding the isolated app (sources are newer) …"
+    ( cd "$REPO" && BUNDLE_ID="$DOMAIN" APP_OUT="$APP_DIR" ./make-app.sh >/dev/null )
   fi
 
   local got

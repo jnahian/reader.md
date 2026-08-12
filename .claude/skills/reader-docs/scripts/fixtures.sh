@@ -151,7 +151,10 @@ EOF
 # pinned; without that, every sweep produces new commit SHAs and new diffs.
 REPO="$ROOT/field-guide"
 mkdir -p "$REPO"
-git init -q "$REPO"
+# -b main: without it the branch name comes from the machine's
+# init.defaultBranch, and the diff-scope popover lists whatever that happened
+# to be — main on one machine, master on the next.
+git init -q -b main "$REPO"
 git -C "$REPO" config user.name "Field Guide"
 git -C "$REPO" config user.email "guide@example.com"
 git -C "$REPO" config commit.gpgsign false
@@ -159,6 +162,8 @@ git -C "$REPO" config commit.gpgsign false
 export GIT_AUTHOR_DATE="2026-01-15T09:00:00+00:00"
 export GIT_COMMITTER_DATE="2026-01-15T09:00:00+00:00"
 
+# Long enough that the working-copy edits below land in two separate hunks —
+# a short file collapses them into one, and the diff outline lists a single row.
 cat > "$REPO/README.md" <<'EOF'
 # Field Guide
 
@@ -167,6 +172,15 @@ Notes that travel with the project.
 ## Scope
 
 One page per decision. If it needs two, it was two decisions.
+
+## Format
+
+Every page opens with the decision itself, then the reasoning, then whatever we
+ruled out along the way.
+
+## Review
+
+A page is revisited when something it assumed stops being true.
 EOF
 
 cat > "$REPO/decisions.md" <<'EOF'
@@ -202,9 +216,33 @@ EOF
 git -C "$REPO" add -A
 git -C "$REPO" commit -qm "Record the search decision"
 
+# Two more refs, so the diff-scope popover has a Branches section to show — the
+# checked-out branch is dropped from that list, so `main` alone leaves it empty.
+# Cut at the earlier commit, so comparing against either is a real diff.
+git -C "$REPO" branch release HEAD~1
+git -C "$REPO" branch drafts HEAD~1
+
 # Dirty state, so the sidebar badges and the diff view have something to show.
-# Modified (M):
-cat >> "$REPO/README.md" <<'EOF'
+# Modified (M). The working copy rewrites a sentence as well as appending a
+# section: an append-only change diffs as whole added lines, and the word-level
+# highlighting has nothing to highlight.
+cat > "$REPO/README.md" <<'EOF'
+# Field Guide
+
+Short notes that travel with the code.
+
+## Scope
+
+One page per decision. If it needs two, it was two decisions.
+
+## Format
+
+Every page opens with the decision itself, then the reasoning, then whatever we
+ruled out along the way.
+
+## Review
+
+A page is revisited when something it assumed stops being true.
 
 ## Conventions
 

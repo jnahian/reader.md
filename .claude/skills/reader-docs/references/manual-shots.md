@@ -34,6 +34,7 @@ ffmpeg -v error -y -i in.png -vf scale=2400:-1 -compression_level 100 \
 
 | Shot | Page | State to reach |
 |---|---|---|
+| Diff scope popover | git | ⇧⌘D, then click the scope button in the toolbar |
 | Context menu on a file | navigating | Right-click a file in the tree |
 | Context menu on a root | library | Right-click a root header |
 | Drag and drop | library | Mid-drag of a markdown file over the content pane |
