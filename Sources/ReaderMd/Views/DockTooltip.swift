@@ -50,7 +50,9 @@ final class TrackerNSView: NSView {
     /// came into existence was never hovered — opening the window under a
     /// stationary pointer put a "Toggle sidebar" bubble on screen at launch.
     /// Arming needs a real crossing: AppKit's own `mouseEntered`, or an
-    /// outside→inside transition seen by `syncHover`.
+    /// outside→inside transition seen by `syncHover`. Switching away from the
+    /// app and back gives the latch up and takes it again, because the
+    /// enter/exit pair AppKit sends around that is not the pointer moving.
     private var inside: Bool?
 
     /// Never take a mouse event. This view exists only to observe hover, and its
@@ -133,10 +135,31 @@ final class TrackerNSView: NSView {
         }
     }
 
-    // A real crossing — AppKit sends these only for a moving mouse.
-    override func mouseEntered(with event: NSEvent) { beginHover() }
+    override func mouseEntered(with event: NSEvent) {
+        // Undetermined here means the exit below gave the latch back, so this
+        // is the reactivation half of a deactivate/reactivate pair rather than
+        // a crossing: adopt it silently, exactly like a first look.
+        guard inside != nil else {
+            inside = true
+            return
+        }
+        beginHover()
+    }
 
-    override func mouseExited(with event: NSEvent) { endHover() }
+    override func mouseExited(with event: NSEvent) {
+        // An exit delivered once the window is no longer key isn't the pointer
+        // leaving — it is AppKit standing the .activeInKeyWindow area down, and
+        // it pairs with an enter when the app comes back. Reading that pair as a
+        // crossing put a bubble up on every ⌘-tab back onto a parked pointer.
+        // Take the bubble down, but hand back the latch so the paired enter is
+        // silent.
+        guard window?.isKeyWindow == true else {
+            dismissBubble()
+            inside = nil
+            return
+        }
+        endHover()
+    }
 
     private func beginHover() {
         guard inside != true else { return }
