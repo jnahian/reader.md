@@ -14,6 +14,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   toggle — put its bubble on screen unprompted, and ⌘-tabbing back with the
   pointer parked did it again. A bubble now waits for the pointer to actually be
   moved onto a control.
+- **Git badges on a folder reached through a symlink** — a repository added as
+  `/tmp/notes`, or through a link to another volume, showed no `M` · `A` · `?`
+  badges at all. The sidebar looks them up under the resolved path the folder
+  scan returns, and the badge map was keyed only under the path you added.
 
 ## [1.17.0] - 2026-08-12
 
