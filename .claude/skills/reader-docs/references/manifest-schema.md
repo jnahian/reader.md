@@ -81,6 +81,18 @@ following typography shot into a second find shot. It also keeps `--only`
 honest: re-shooting one shot reproduces the committed image rather than
 whatever the preceding shots happened to leave behind.
 
+## A known `--verify-repro` failure
+
+Any shot with the Quick Open palette in it fails the SSIM check — measured at
+0.967 for `library/04-headings`, and `library/03-commands` has the same shape.
+The two runs are identical in content; the palette sits about 3px lower in one
+of them. Its result list is a `LazyVStack` inside a `maxHeight` frame, so the
+height SwiftUI measures depends on how many rows were realised when layout
+settled, and the palette is centred, so a fractional difference moves it.
+
+Treat that one failure as known. A palette shot differing by *content* — a
+different query, a different result order — is a real regression.
+
 ## Keystroke badges
 
 In a video shot, every keystroke automatically gets a badge burned into the
