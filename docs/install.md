@@ -1,3 +1,10 @@
+---
+title: Install
+category: Getting started
+order: 1
+summary: Homebrew or the DMG, what it needs, and clearing the first-launch warning.
+---
+
 # Install
 
 ## Requirements

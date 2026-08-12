@@ -11,8 +11,24 @@ repo above, so **edit the source first, then mirror it down**:
 
 | Site file | Mirrors |
 |---|---|
-| `src/data/content.ts` | `docs/features.md`, `docs/cli.md`, `docs/architecture.md` in the repo root |
+| `src/data/content.ts` | `docs/features.md` — landing-page copy only (highlight cards, the compact shortcut strip) |
 | `src/data/changelog.ts` | `Sources/ReaderMd/Resources/docs/CHANGELOG.md` |
+
+**The docs pages are not mirrored at all.** `/docs/<page>` renders the repo's
+`docs/*.md` and `docs/features/*.md` directly, so the markdown is the only copy
+of that prose — never restate a docs page inside `web/`. Which files publish is
+declared once in [`plugins/docs-pages.mjs`](./plugins/docs-pages.mjs); each needs
+`title`, `category`, `order`, and `summary` frontmatter, and `/docs` builds its
+card grid from the collection, so a new page appears with no edit to the hub.
+`docs/features/<x>.md` publishes at `/docs/<x>` — the directory is a source
+convention, not part of the URL — and a collision with a root file of the same
+name fails the build by name rather than silently dropping a page.
+
+Links between those files are written as real relative paths (`cli.md`,
+`../CONTRIBUTING.md`) so they work in Reader.md and on GitHub;
+`plugins/remark-docs-assets.mjs` rewrites them at build time to a site path or a
+GitHub blob URL. After changing them, `grep -rho 'href="[^"]*\.md[^"]*"' dist`
+should return only absolute GitHub URLs.
 
 A feature described on the site but not in the app's own docs is a bug in the
 site. When a shortcut or behaviour changes, the app's `Resources/docs/` files

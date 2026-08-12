@@ -1,6 +1,7 @@
 ---
 title: Reading a document
-order: 4
+category: Guides
+order: 10
 summary: The outline, in-page find, text size, and canvas width.
 ---
 
@@ -72,6 +73,7 @@ tables and long code blocks.
 
 ## Related
 
-- [All features](/docs#features) — the complete list, including Quick Open, the
+- [All features](../features.md) — the complete list, including Quick Open, the
   file filter, diagrams, and math
-- [Keyboard shortcuts](/docs#shortcuts) — every binding in one table
+- [Keyboard shortcuts](../features.md#keyboard-shortcuts) — every binding in one
+  table

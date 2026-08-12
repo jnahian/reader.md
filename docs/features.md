@@ -1,20 +1,21 @@
+---
+title: Features
+category: Reference
+order: 20
+summary: The complete inventory of what Reader.md does, and the keys that do it.
+---
+
 # Features
 
 Everything Reader.md does, and the keys that do it. The app ships its own copy of
 the shortcut list — **Help → Keyboard Shortcuts** (⌘/) — which is generated from
 the same bindings.
 
-## Pages
+This page is the inventory. Each feature area also has a page of its own under
+`docs/features/`, covering it in depth with screenshots taken from the running
+app.
 
-Detailed documentation, one page per area, each with real screenshots:
-
-- [Reading a document](features/reading.md) — the outline, in-page find, text
-  size, and canvas width
-
-The list below stays as the complete feature inventory; each page above covers
-a slice of it in depth.
-
-## Features
+## What it does
 
 - **Open anything** — a single `.md` file (⌘O or double-click in Finder), whole folders, or a mix; set Reader.md as your default markdown handler
 - **Multi-folder browser** — add any number of roots (multi-select, or drag folders onto the window); each is a collapsible section with hover-to-reveal actions, and roots reorder by drag

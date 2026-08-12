@@ -20,14 +20,14 @@ Build**):
 | Build output directory | `dist` | |
 | Build watch paths — include | `web/*` **and `docs/*`** | app-only commits don't rebuild the site |
 | Build watch paths — exclude | *(empty)* | |
-
-> **`docs/*` is required, not optional.** The `/docs/*` feature pages are built
-> from `docs/features/*.md` and `docs/assets/screenshots/`, which live outside
-> `web/`. With only `web/*` watched, re-shooting a screenshot or editing a page
-> — the routine change this setup exists for — changes nothing under `web/` and
-> Cloudflare **skips the build**, leaving the live site stale with no error
-> anywhere. Add `docs/*` to the include list in the Pages project.
 | Preview deployments | None | `main` is the only branch that deploys |
+
+> **`docs/*` is required, not optional.** Every page under `/docs/` is built from
+> `docs/*.md`, `docs/features/*.md`, and `docs/assets/screenshots/` — all outside
+> `web/`. With only `web/*` watched, editing any documentation page or re-shooting
+> a screenshot — the routine change this setup exists for — changes nothing under
+> `web/`, so Cloudflare **skips the build** and the live site stays stale with no
+> error anywhere. Add `docs/*` to the include list in the Pages project.
 
 Watch paths are matched against repo-root-relative paths, so the prefix is
 `web/`, not `src/` — even though **Root directory** is `web`. A wildcard `*`

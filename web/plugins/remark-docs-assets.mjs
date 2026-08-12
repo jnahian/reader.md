@@ -5,12 +5,40 @@
 //
 // Markdown has no video syntax, so a clip is written with image syntax and
 // swapped to a <video> element here.
+//
+// Links between docs files are written as real relative paths for the same
+// reason, and are rewritten here too: to another docs page if it publishes, and
+// otherwise to the file on GitHub.
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { visit } from "unist-util-visit";
+import { docId, isDocPage } from "./docs-pages.mjs";
 
 const PREFIX = /^\.\.\/assets\/screenshots\//;
+
+// Resolved from web/, which is the cwd for both `astro dev` and `astro build`.
+const REPO_ROOT = path.resolve("..");
+const DOCS_DIR = path.join(REPO_ROOT, "docs");
+const BLOB = "https://github.com/jnahian/reader.md/blob/main/";
+
+// Absolute URLs, site-absolute paths, and bare fragments are already correct.
+const ABSOLUTE = /^(?:[a-z][a-z0-9+.-]*:|\/|#)/i;
+
+function rewriteLink(url, from) {
+  if (!from || ABSOLUTE.test(url)) return null;
+  const cut = url.indexOf("#");
+  const target = cut === -1 ? url : url.slice(0, cut);
+  const hash = cut === -1 ? "" : url.slice(cut);
+  if (!target) return null;
+
+  const abs = path.resolve(path.dirname(from), target);
+  const inDocs = path.relative(DOCS_DIR, abs);
+  if (!inDocs.startsWith("..") && isDocPage(inDocs)) {
+    return `/docs/${docId(inDocs)}${hash}`;
+  }
+  return `${BLOB}${path.relative(REPO_ROOT, abs)}${hash}`;
+}
 
 // Real pixel dimensions, so a full-width media slot does not collapse and
 // reflow the page while it loads. Read once per asset and cached — a page has
@@ -51,7 +79,12 @@ const escapeText = (s) =>
   String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 export function remarkDocsAssets() {
-  return (tree) => {
+  return (tree, file) => {
+    visit(tree, "link", (node) => {
+      const url = rewriteLink(node.url, file?.path);
+      if (url) node.url = url;
+    });
+
     visit(tree, "image", (node, index, parent) => {
       if (!PREFIX.test(node.url) || parent == null || index == null) return;
       const src = node.url.replace(PREFIX, "/screenshots/");
