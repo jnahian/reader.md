@@ -18,8 +18,10 @@ repo above, so **edit the source first, then mirror it down**:
 `docs/*.md` and `docs/features/*.md` directly, so the markdown is the only copy
 of that prose — never restate a docs page inside `web/`. Which files publish is
 declared once in [`plugins/docs-pages.mjs`](./plugins/docs-pages.mjs); each needs
-`title`, `category`, `order`, and `summary` frontmatter, and `/docs` builds its
-card grid from the collection, so a new page appears with no edit to the hub.
+`title`, `category`, `order`, and `summary` frontmatter — plus optional `related`,
+a list of page **ids** (not URLs, so a rename fails the build instead of shipping
+a dead link) offered at the foot of the page — and `/docs` builds its card grid
+from the collection, so a new page appears with no edit to the hub.
 `docs/features/<x>.md` publishes at `/docs/<x>` — the directory is a source
 convention, not part of the URL — and a collision with a root file of the same
 name fails the build by name rather than silently dropping a page.
@@ -29,6 +31,26 @@ Links between those files are written as real relative paths (`cli.md`,
 `plugins/remark-docs-assets.mjs` rewrites them at build time to a site path or a
 GitHub blob URL. After changing them, `grep -rho 'href="[^"]*\.md[^"]*"' dist`
 should return only absolute GitHub URLs.
+
+## Screenshots come from the app, not from `web/`
+
+The images and clips on the docs pages live in `docs/assets/screenshots/<page>/`,
+captured from the running app by the `reader-docs` skill
+(`.claude/skills/reader-docs`) out of the `docs/features/<page>.shots.json`
+manifest beside each page. `npm run prebuild` wipes `public/screenshots/` and
+re-copies that directory, so **`web/public/screenshots/` is generated and
+gitignored** — never add or retouch an image there; fix the manifest and
+re-capture.
+
+The same relative-path rule applies: a page references its assets as
+`../assets/screenshots/<page>/<id>.png`, which resolves in Reader.md and on
+GitHub, and the remark plugin rewrites the prefix to `/screenshots/` and wraps it
+in a `<figure>` with the alt text as the caption. Markdown has no video syntax,
+so a clip is written with image syntax too — `../assets/screenshots/<page>/<id>.mp4`
+becomes an autoplaying muted `<video>`, postered from `<id>.poster.jpg` (the
+capture script emits both). Dimensions are read with `ffprobe` so a media slot
+doesn't collapse while loading; if `ffprobe` is missing the build still passes,
+just without them.
 
 A feature described on the site but not in the app's own docs is a bug in the
 site. When a shortcut or behaviour changes, the app's `Resources/docs/` files
@@ -72,10 +94,12 @@ shipped belongs in the app's `CHANGELOG.md` only.
 - **Motion is optional.** Scroll-reveal, parallax, and typing effects must stay
   behind `prefers-reduced-motion`.
 - **Deploys are automatic** — Cloudflare Pages builds and publishes when a push
-  to `main` touches `web/`, so a site edit that lands goes live on its own.
-  Treat anything you push under this directory as published; a commit outside it
-  deploys nothing, and no branch other than `main` deploys at all. `wrangler
-  pages deploy` remains as a fallback for republishing without a commit, per
+  to `main` touches `web/` **or `docs/`** (both are build-watch paths, because
+  every `/docs/` page and screenshot is built from `docs/`). So a site edit *or a
+  documentation edit* that lands goes live on its own: treat anything you push
+  under either directory as published. A Swift-only commit deploys nothing, and
+  no branch other than `main` deploys at all. `wrangler pages deploy` remains as
+  a fallback for republishing without a commit, per
   [DEPLOYMENT.md](./DEPLOYMENT.md).
 
 ## Verify
