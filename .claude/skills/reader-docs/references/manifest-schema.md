@@ -60,6 +60,20 @@ for a state that settles to a genuinely animating frame. For a clip it *is* the
 choreography, since no settle loop is possible, and the values are what make the
 motion readable.
 
+## Shots are independent
+
+Every shot starts from a freshly launched app with the manifest's `prefs`
+re-seeded — state does **not** carry from one shot to the next. Write each
+shot's `actions` as though nothing has happened yet: if a shot needs the outline
+open, it toggles the outline itself, even if the shot before it already did.
+
+This is why the harness relaunches between shots, and it is worth the seconds
+it costs. When shots did carry state, opening the outline for one shot left it
+open in the next, and a find bar full of highlighted matches turned the
+following typography shot into a second find shot. It also keeps `--only`
+honest: re-shooting one shot reproduces the committed image rather than
+whatever the preceding shots happened to leave behind.
+
 ## Keystroke badges
 
 In a video shot, every keystroke automatically gets a badge burned into the
