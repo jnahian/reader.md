@@ -6,6 +6,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **No more tooltip on launch, or on switching back to Reader.md.** A window
+  that opened under a stationary pointer counted as a hover, so whichever
+  control happened to land under the cursor — usually the toolbar's sidebar
+  toggle — put its bubble on screen unprompted, and ⌘-tabbing back with the
+  pointer parked did it again. A bubble now waits for the pointer to actually be
+  moved onto a control.
+
 ## [1.17.0] - 2026-08-12
 
 ### Added

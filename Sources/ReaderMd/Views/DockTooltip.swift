@@ -36,6 +36,45 @@ private struct TooltipTracker: NSViewRepresentable {
     }
 }
 
+/// Where the pointer was resting when a window last came to the front.
+///
+/// A bubble should only ever be the answer to the pointer being moved onto
+/// something. Two things break that, and neither is distinguishable from a
+/// hover by geometry alone, because in both the pointer genuinely *is* over the
+/// control: a window opening under a stationary cursor at launch (whichever
+/// control landed there — usually the toolbar's sidebar toggle — put its bubble
+/// up unprompted), and AppKit standing an `.activeInKeyWindow` tracking area
+/// back up on ⌘-tab, which arrives as a real `mouseEntered`.
+///
+/// What separates those from a hover is not the control, it is the pointer:
+/// it hasn't moved since the window came forward. Anything the user actually
+/// steered to counts — which is what keeps the sidebar row that slides up under
+/// the cursor when its neighbour is removed (the 1.16.1 fix) arming normally.
+///
+/// Keyed to *window* key changes, not just app activation, because that is what
+/// the tracking areas are keyed to: ⌘, and ⌘W hand key back and forth without
+/// the app ever deactivating, and that alone was enough to put a bubble up on a
+/// pointer that had been parked on the sidebar toggle the whole time.
+@MainActor
+enum PointerRest {
+    private static var restingAt = NSEvent.mouseLocation
+    private static let observe: Void = {
+        for name in [NSApplication.didBecomeActiveNotification, NSWindow.didBecomeKeyNotification] {
+            NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { _ in
+                MainActor.assumeIsolated { restingAt = NSEvent.mouseLocation }
+            }
+        }
+    }()
+
+    /// Whether the pointer has moved since then. The tolerance is for the
+    /// sub-pixel jitter a trackpad reports while resting.
+    static var pointerMoved: Bool {
+        _ = observe
+        let now = NSEvent.mouseLocation
+        return abs(now.x - restingAt.x) > 1 || abs(now.y - restingAt.y) > 1
+    }
+}
+
 final class TrackerNSView: NSView {
     var text: String = ""
     private var timer: Timer?
@@ -60,7 +99,9 @@ final class TrackerNSView: NSView {
             rect: bounds,
             // .assumeInside: a control created under a stationary cursor gets no
             // mouseEntered, so without this AppKit also withholds the matching
-            // mouseExited when the mouse finally leaves, stranding the bubble.
+            // mouseExited when the mouse finally leaves, stranding the bubble —
+            // or, for a control that adopted the hover silently, leaving it
+            // latched "inside" and unable to ever arm.
             options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect, .assumeInside],
             owner: self
         ))
@@ -86,7 +127,9 @@ final class TrackerNSView: NSView {
         let point = convert(window.mouseLocationOutsideOfEventStream, from: nil)
         let over = visibleRect.contains(point)
         if over, !inside {
-            beginHover()
+            // Adopt the hover either way, so the matching exit still pairs up;
+            // only put a bubble up if the pointer earned it. See `PointerRest`.
+            if PointerRest.pointerMoved { beginHover() } else { inside = true }
         } else if !over, inside {
             endHover()
         } else if over {
@@ -95,7 +138,16 @@ final class TrackerNSView: NSView {
         }
     }
 
-    override func mouseEntered(with event: NSEvent) { beginHover() }
+    override func mouseEntered(with event: NSEvent) {
+        // Not always a crossing: AppKit stands an .activeInKeyWindow area back
+        // up when the app reactivates and sends an enter for it, with the
+        // pointer exactly where it has been sitting all along.
+        guard PointerRest.pointerMoved else {
+            inside = true
+            return
+        }
+        beginHover()
+    }
 
     override func mouseExited(with event: NSEvent) { endHover() }
 
