@@ -44,6 +44,14 @@ final class TrackerNSView: NSView {
     /// left implicit in AppKit's enter/exit pairing, because `syncHover` has to
     /// synthesize the events AppKit doesn't send — see there.
     private var inside = false
+    /// Whether hover has ever been determined for this control. The first
+    /// determination only records where the cursor is; it never arms a bubble.
+    /// A control the cursor was *already* over when the control came into
+    /// existence was never hovered — opening the window under a stationary
+    /// pointer put a "Toggle sidebar" bubble on screen at launch. Arming needs a
+    /// real crossing: AppKit's own `mouseEntered`, or an outside→inside
+    /// transition seen by `syncHover`.
+    private var hoverKnown = false
 
     /// Never take a mouse event. This view exists only to observe hover, and its
     /// tracking area delivers that regardless of hit-testing — but a plain NSView
@@ -77,7 +85,9 @@ final class TrackerNSView: NSView {
     /// the removed row's label stayed up over the row that replaced it, and the
     /// replacement's own bubble never armed until the mouse was jiggled.
     /// Tracking areas are rebuilt on every geometry change, which is exactly when
-    /// this can happen, so that is where it runs.
+    /// this can happen, so that is where it runs. Only a control that *moved*
+    /// under the cursor arms a bubble this way — see `hoverKnown` for why the
+    /// first look never does.
     private func syncHover() {
         guard let window, window.isKeyWindow else {
             if inside { endHover() }
@@ -85,6 +95,14 @@ final class TrackerNSView: NSView {
         }
         let point = convert(window.mouseLocationOutsideOfEventStream, from: nil)
         let over = visibleRect.contains(point)
+        guard hoverKnown else {
+            // First look: adopt where the cursor is without arming anything, so
+            // a later exit still pairs up. Nothing is on screen yet, so there is
+            // no bubble to hide either.
+            hoverKnown = true
+            inside = over
+            return
+        }
         if over, !inside {
             beginHover()
         } else if !over, inside {
@@ -95,9 +113,16 @@ final class TrackerNSView: NSView {
         }
     }
 
-    override func mouseEntered(with event: NSEvent) { beginHover() }
+    // A real crossing, so hover is known from here on either way.
+    override func mouseEntered(with event: NSEvent) {
+        hoverKnown = true
+        beginHover()
+    }
 
-    override func mouseExited(with event: NSEvent) { endHover() }
+    override func mouseExited(with event: NSEvent) {
+        hoverKnown = true
+        endHover()
+    }
 
     private func beginHover() {
         guard !inside else { return }
@@ -141,7 +166,14 @@ final class TrackerNSView: NSView {
     // isn't stranded on screen.
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
-        if window == nil { endHover() } else { syncHover() }
+        if window == nil {
+            endHover()
+            // Re-inserted under a stationary cursor is "created there", not
+            // "hovered" — make the next look establish hover silently again.
+            hoverKnown = false
+        } else {
+            syncHover()
+        }
     }
 
     private func removeClickMonitor() {

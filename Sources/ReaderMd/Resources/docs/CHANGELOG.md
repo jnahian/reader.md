@@ -6,6 +6,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **No more tooltip on launch.** A window that opened under a stationary pointer
+  counted as a hover, so whichever control happened to land under the cursor —
+  usually the toolbar's sidebar toggle — put its bubble on screen unprompted. A
+  tooltip now waits for the pointer to actually cross onto its control.
+
 ## [1.17.0] - 2026-08-12
 
 ### Added
