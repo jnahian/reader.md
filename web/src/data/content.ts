@@ -147,6 +147,7 @@ export const shortcuts: Shortcut[] = [
   { action: "Open in editor", keys: "⇧⌘E" },
   { action: "Export PDF", keys: "⌘E" },
   { action: "Reload", keys: "⌘R" },
+  { action: "Close document", keys: "⌘W" },
   { action: "Keyboard shortcuts", keys: "⌘/" },
   { action: "Settings", keys: "⌘," },
 ];

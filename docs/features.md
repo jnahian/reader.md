@@ -10,11 +10,9 @@ the same bindings.
 - **Multi-folder browser** — add any number of roots (multi-select, or drag folders onto the window); each is a collapsible section with hover-to-reveal actions, and roots reorder by drag
 - **Remote (SSH) folders** — add a folder from a VPS: Reader.md `rsync`s it read-only into a local cache and shows it like any root. Auto-syncs on launch (quietly), manual re-sync, edit-the-connection-in-place, and a cloud badge with sync/error state. Reuses your `~/.ssh` config and keys — no credentials stored. Add via the **Add Remote** button in the sidebar footer
 - **Cloned git repositories** — the same sheet takes a clone URL instead: Reader.md `git clone`s it read-only into a local cache and `pull --ff-only`s it on launch, with a branch badge in place of the cloud one. Uses your existing git credentials and never prompts — an unauthenticated repository fails with git's own error rather than hanging
-- **Git-aware** — inside a repository, changed markdown gets a sidebar badge (`M` · `A` · `?` · `U`), ⇧⌘D shows the document as a side-by-side diff (word-level highlighting, hunks in the outline instead of headings), and the scope menu compares against **Unstaged**, **Staged**, **All** (since the last commit), or any branch — "vs main" diffs your working copy, uncommitted edits included, against that branch's tip. `.gitignore`d markdown stays out of the tree
 - **Favorites** — pin files to a **FAVORITES** section between Recents and the folder tree: hover a file in the tree and click its star, right-click any file → **Add to Favorites**, press ⌘D for the open document, or use the ⌘P palette. Reorder by drag, unpin with the hover **×**; the list persists, a pinned file drops out of Recents (opening it never shuffles it away), and the bundled help docs and piped `reader -` documents can't be pinned
 - **Context menus** — right-click any file, folder, root, or recent for Open / Always Open With / Reveal in Finder / Copy Path / Add to Favorites / Remove (and Edit Connection · Re-sync on remote roots)
 - **Git-aware** — inside a repository, changed markdown gets a sidebar badge (`M` · `A` · `?` · `U`), ⇧⌘D shows the document as a side-by-side diff (word-level highlighting, hunks in the outline instead of headings), and the scope popover beside it compares against **Unstaged**, **Staged**, **All** (since the last commit), or any branch — "vs main" diffs your working copy, uncommitted edits included, against that branch's tip, with a filter field for repos with many branches. `.gitignore`d markdown stays out of the tree
-- **Context menus** — right-click any file, folder, root, or recent for Open / Always Open With / Reveal in Finder / Copy Path / Remove (and Edit Connection · Re-sync on remote roots)
 - **Drag-and-drop** — drop a markdown file onto the content pane to open it
 - **Quick open** — ⌘P fuzzy file switcher across all roots, with keyboard navigation
 - **History & recents** — back/forward (⌘[ / ⌘]) plus a managed recent-files list in the sidebar, above Favorites (pinned files are listed only under Favorites)
@@ -48,6 +46,7 @@ the same bindings.
 | ⇧⌘D | Toggle diff | ⇧⌘\ | Cycle canvas width |
 | ⌘+ / ⌘− / ⌘0 | Text bigger / smaller / reset | ⇧⌘E | Open in editor |
 | ⌘E | Export PDF | ⌘R | Reload |
+| ⌘W | Close document | | |
 | ⌘/ | Keyboard shortcuts | ⌘D | Add to / remove from Favorites |
 | ⌘, | Settings | | |
 
