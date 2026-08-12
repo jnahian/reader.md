@@ -62,6 +62,12 @@ was written. None of it is assumed.
 - **CLI driving.** `reader <file.md>` opens a document in the running app, so
   document state is reachable without synthesising an Open dialog. Note the verb
   form: there is no `reader open` subcommand.
+- **Video.** `screencapture -v -V <secs> -R <x,y,w,h>` records the window rect at
+  full retina while scripted actions run during the recording. Verified: a
+  six-second clip at 2800×1800 capturing a ⇧⌘B toggle, a document open, and a
+  ⌘B toggle. **`-l <winid>` is silently ignored in video mode** — passing it
+  yields the entire screen including the menu bar, so rect capture derived from
+  the window's own bounds is the only window-scoped path.
 
 Two hazards surfaced during verification and are designed against below:
 
@@ -176,12 +182,50 @@ and unguarded ⌘-keystrokes would have been delivered to it.
 losslessly optimised, then written to
 `docs/assets/screenshots/<page>/<id>.png`. Budget: one theme (light) throughout,
 except on the appearance page where dark mode is the subject. Roughly 250KB per
-image, ~8MB for a full set of about 35 — against a 19MB repository today. PNGs
-do not delta-compress, so each full re-sweep adds its full size to history
-again; that cost is accepted deliberately in exchange for reproducibility.
+image, ~8MB for a full set of about 35, plus ~2MB for the five video clips —
+against a 19MB repository today. Neither PNGs nor mp4s delta-compress, so each
+full re-sweep adds its full size to history again; that cost is accepted
+deliberately in exchange for reproducibility.
 
 `winid.swift` is the supporting helper that resolves the app's window id from
 `CGWindowListCopyWindowInfo`.
+
+### Video clips
+
+A handful of features are a *motion*, not a state — a still cannot show them.
+Those are recorded as short silent clips rather than photographed. Video is
+used sparingly and deliberately: stills remain the backbone of every page,
+because most features are a state, and a page of autoplaying video is heavier
+and harder to scan than a page of images.
+
+Clips are recorded with `screencapture -v -V <secs> -R <bounds>`, where the rect
+comes from the window's own frame, then encoded to **mp4** (h264, 30fps,
+1600px wide, `yuv420p`, `+faststart`). Measured on a six-second clip: mp4
+0.41MB, VP9 webm 0.36MB, GIF 1.31MB. GIF is rejected — it is three times the
+weight of the mp4 at visibly worse quality, and an mp4 with `loop muted
+playsinline autoplay` gives the same behaviour. webm's marginal saving does not
+justify carrying a second encode plus an mp4 fallback.
+
+Video capture does not inherit the guarantees that make the stills reliable,
+and the harness must compensate:
+
+- **The cursor is always recorded.** Video mode has no hide-cursor flag, whereas
+  `screencapture -l` stills contain no cursor at all. Before recording, the
+  harness parks the pointer at a fixed point outside the window frame, so it
+  neither drifts through the shot nor varies between sweeps.
+- **Tooltips photobomb.** A verification clip caught a "Toggle outline (⇧⌘B)"
+  tooltip mid-recording. This is the same hazard the Shopify skill documents for
+  Polaris skeleton loaders. Cursor parking is the primary mitigation; the
+  choreography must also avoid resting the pointer over chrome.
+- **No settle loop is possible.** Settling is what makes the stills
+  deterministic, and it cannot apply where change *is* the content. Clips are
+  choreographed with explicit waits, so video is the one timing-sensitive part
+  of the harness. Every clip is reviewed by eye after a re-shoot; the spec does
+  not pretend otherwise.
+
+Five clips are the intended full set across all ten pages: quick-open filtering
+as characters are typed, live reload re-rendering on save, diff scope switching,
+Mermaid zoom and pan, and sidebar resizing. Roughly 2MB total.
 
 ### Manifest schema
 
@@ -218,11 +262,21 @@ One manifest per page, committed beside it as
 | `shots[].open` | no | Fixture-relative path opened via the `reader` CLI |
 | `shots[].actions` | no | Keystrokes and CLI calls to reach the state; default `[]` |
 | `shots[].caption` | yes | Alt text and caption in the page |
+| `shots[].video` | no | `{ "seconds": <n> }` — records a clip instead of a still |
+| `shots[].manual` | no | Shot is captured by hand; the harness skips it |
 
 Actions are limited to keystrokes, `reader` CLI invocations, and an explicit
-`waitMs` escape hatch (discouraged — the settle loop is the default and the
-escape hatch exists only for states that settle to a genuinely animating frame).
-No action may mutate anything outside the fixture corpus.
+`waitMs` escape hatch. For stills `waitMs` is discouraged — the settle loop is
+the default, and the escape hatch exists only for states that settle to a
+genuinely animating frame. For video shots the relationship inverts: `waitMs`
+between actions *is* the choreography, since no settle loop is possible, and
+the values are the timing that makes the clip readable. No action may mutate
+anything outside the fixture corpus.
+
+A video shot produces `docs/assets/screenshots/<page>/<id>.mp4` in place of a
+`.png`. Everything else about the shot — geometry, preference seeding, fixture
+paths, caption — is identical, so the two kinds live in one manifest and one
+capture run.
 
 ### Manual shots
 
@@ -310,10 +364,14 @@ docs/
     └── reading/01-outline.png
 ```
 
-Pages reference images by true relative path
-(`../assets/screenshots/reading/01-outline.png`). That path is correct on disk,
-so the pages render correctly in three places with no rewriting: in Reader.md
-itself, on GitHub, and — after one build-time rewrite — on the site.
+Pages reference assets by true relative path
+(`../assets/screenshots/reading/01-outline.png`), stills and clips alike. That
+path is correct on disk, so the pages render correctly in three places with no
+rewriting: in Reader.md itself, on GitHub, and — after one build-time rewrite —
+on the site. Clips are the one asset that does not render in all three: a
+`.mp4` referenced with image syntax degrades to a broken-image line in Reader.md
+and on GitHub, which is why every clip is accompanied by prose describing what
+it shows.
 
 `docs/features.md` is reduced to an index. It keeps working as the entry point
 the README and the app's own docs link to, and it remains the human-readable
@@ -350,6 +408,22 @@ Images render at 1200px CSS width from 2400px files, giving 2× on retina, with
 `loading="lazy"`, explicit `width`/`height` to prevent layout shift, and a
 caption beneath.
 
+Video clips render as `<video autoplay loop muted playsinline>` with explicit
+dimensions and a `poster` frame extracted from the clip, so the slot is filled
+before the video loads. Two constraints follow from the site's existing rules:
+autoplay must be suppressed under `prefers-reduced-motion` — `web/CLAUDE.md`
+already requires this of every motion effect — leaving a poster frame and
+player controls, and a clip must never be the only way to learn something, since
+a reader who cannot play it would otherwise lose the content. Every clip is
+accompanied by prose describing what it shows.
+
+Markdown cannot express a `<video>` element through image syntax, so clips are
+referenced in the page with the same relative-path image syntax as stills
+(`![caption](../assets/screenshots/reading/05-width.mp4)`) and the remark plugin
+that rewrites those paths also swaps `.mp4` references to the video component.
+That keeps the pages plain markdown, so they still open cleanly in Reader.md —
+where the clip degrades to a broken-image line rather than breaking the page.
+
 **Migration:** `content.ts` currently links to `/docs#shortcuts`; those anchors
 become `/docs/shortcuts`. Internal links are updated as part of this work.
 Inbound external links to old anchors still land on `/docs`, which remains a
@@ -365,9 +439,16 @@ seeding, geometry, keystrokes, and the settle loop. `git` is the hardest page,
 but piloting on the outlier risks fitting the skill to it. The fixture git
 repository is still built in part 2, so `git` is unblocked later.
 
+The pilot includes **one video clip** — cycling the canvas width with ⇧⌘\ —
+even though the other four intended clips belong to later pages. Without it the
+video path would ship unproven and the first page to need a clip would be
+discovering the choreography, cursor-parking, and rendering rules from scratch.
+One clip in the pilot exercises both capture paths before either scales.
+
 **Explicitly deferred to a follow-up plan:** the remaining nine pages.
 
-**Out of scope:** video or animated capture; localisation; documenting anything
+**Out of scope:** narrated or edited video (clips are silent, unedited, and
+under ten seconds); animated GIF output; localisation; documenting anything
 that is not a shipped feature; any change to the app itself beyond the one-line
 `BUNDLE_ID` default in `make-app.sh`.
 
@@ -398,6 +479,13 @@ nine pages should not begin until the skill has absorbed that feedback.
   the geometry assert fails, and when pointed at the real preference domain.
 - No screenshot contains a path, filename, or count originating outside the
   fixture corpus. Checked by eye against every captured image at gate 2.
+- Every video clip is watched end to end at gate 2 — not sampled as a frame.
+  Confirm no tooltip appears, the cursor stays parked outside the frame, and the
+  motion the clip exists to show is legible at its chosen pace. Clips are the
+  timing-sensitive part of the harness and get no automated equivalent of the
+  settle loop.
+- `/docs/reading` renders its clip with autoplay suppressed under
+  `prefers-reduced-motion`, falling back to a poster frame with controls.
 - `cd web && npm run build` succeeds, and `/docs/reading` renders with all
   screenshots resolving.
 - The pilot page's prose matches the app: every shortcut it names is checked
