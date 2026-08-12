@@ -111,6 +111,10 @@ If a vendored directory has no `SKILL.md` (not yet vendored — see
 `vendored/VERSIONS.md`), note it once and write with the page template and
 voice rules alone.
 
+Do not hand-write a "Related" list — the card row at the foot of the page comes
+from the `related` frontmatter. See `references/page-template.md` for every
+required field and the slugs already taken.
+
 Reference assets by true relative path so the page also reads correctly in
 Reader.md itself:
 
