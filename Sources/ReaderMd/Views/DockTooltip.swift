@@ -36,7 +36,7 @@ private struct TooltipTracker: NSViewRepresentable {
     }
 }
 
-/// Where the pointer was resting when the app last came to the front.
+/// Where the pointer was resting when a window last came to the front.
 ///
 /// A bubble should only ever be the answer to the pointer being moved onto
 /// something. Two things break that, and neither is distinguishable from a
@@ -47,22 +47,27 @@ private struct TooltipTracker: NSViewRepresentable {
 /// back up on ⌘-tab, which arrives as a real `mouseEntered`.
 ///
 /// What separates those from a hover is not the control, it is the pointer:
-/// it hasn't moved since the app came forward. Anything the user actually
+/// it hasn't moved since the window came forward. Anything the user actually
 /// steered to counts — which is what keeps the sidebar row that slides up under
 /// the cursor when its neighbour is removed (the 1.16.1 fix) arming normally.
+///
+/// Keyed to *window* key changes, not just app activation, because that is what
+/// the tracking areas are keyed to: ⌘, and ⌘W hand key back and forth without
+/// the app ever deactivating, and that alone was enough to put a bubble up on a
+/// pointer that had been parked on the sidebar toggle the whole time.
 @MainActor
 enum PointerRest {
     private static var restingAt = NSEvent.mouseLocation
     private static let observe: Void = {
-        NotificationCenter.default.addObserver(
-            forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main
-        ) { _ in
-            MainActor.assumeIsolated { restingAt = NSEvent.mouseLocation }
+        for name in [NSApplication.didBecomeActiveNotification, NSWindow.didBecomeKeyNotification] {
+            NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { _ in
+                MainActor.assumeIsolated { restingAt = NSEvent.mouseLocation }
+            }
         }
     }()
 
-    /// Whether the pointer has moved since the app was last activated. The
-    /// tolerance is for the sub-pixel jitter a trackpad reports while resting.
+    /// Whether the pointer has moved since then. The tolerance is for the
+    /// sub-pixel jitter a trackpad reports while resting.
     static var pointerMoved: Bool {
         _ = observe
         let now = NSEvent.mouseLocation
