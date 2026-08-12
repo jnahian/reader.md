@@ -17,13 +17,15 @@ root=$(.claude/skills/reader-docs/scripts/fixtures.sh)
 BUNDLE_ID=com.nahian.reader-md.shots APP_OUT=build/shots ./make-app.sh
 defaults write com.nahian.reader-md.shots reader.md.folders -array "$root/field-notes" "$root/field-guide"
 defaults write com.nahian.reader-md.shots reader.md.theme -string dark
-defaults write com.nahian.reader-md.shots lastSeenBuild -string 999999999999
+defaults write com.nahian.reader-md.shots lastSeenBuild -string \
+  "$(defaults read build/shots/Reader.md.app/Contents/Info CFBundleVersion)"
 killall cfprefsd
 open -a build/shots/Reader.md.app
 ```
 
-That `lastSeenBuild` line is not optional — without it the app opens its What's
-New changelog over the content pane and you photograph that instead.
+That `lastSeenBuild` line is not optional, and it has to be the build's *own*
+`CFBundleVersion`: the app opens its What's New changelog whenever the stored
+value is set and differs, so any other number opens it every launch.
 
 Set the window to 1400×900 at (120, 80), hide your other apps (⌥⌘H — Liquid
 Glass samples what is behind the window), then capture with ⇧⌘4 followed by
@@ -50,8 +52,11 @@ image simply renders narrower.
 | Context menu on a file | navigating | Right-click a file in the tree | yes |
 | Context menu on a root | library | Right-click a root header | not yet |
 | Drag and drop | library | Mid-drag of a markdown file over the content pane | not yet |
-| Add Remote sheet | library | Sidebar footer → **Add Remote** | not yet |
 | Always Open With | exporting | Right-click a file → **Always Open With** submenu | not yet |
+
+The Add Remote sheet is no longer on this list: it is a sheet on the document
+window, so the harness captures it like any other state — see
+`docs/features/remote.shots.json`.
 
 Check each for leaked personal data before it ships — a Finder-adjacent shot is
 the easiest place for a real path to appear, and the Add Remote sheet will show

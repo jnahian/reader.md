@@ -122,11 +122,13 @@ seed_prefs() {
   defaults write "$DOMAIN" reader.md.showTOC -bool false
   defaults write "$DOMAIN" reader.md.contentWidth -string wide
   defaults write "$DOMAIN" reader.md.fontScale -float 1.0
-  # A fresh domain has no lastSeenBuild, so AppState.checkWhatsNew() opens the
-  # bundled CHANGELOG over the content pane and hides the sidebar. Seed a build
-  # number far in the future to suppress it. (Found the hard way: the first
-  # fixture capture was a screenshot of the changelog.)
-  defaults write "$DOMAIN" lastSeenBuild -string 999999999999
+  # checkWhatsNew() opens the bundled CHANGELOG when lastSeenBuild is set and
+  # differs from CFBundleVersion — so it must be seeded with the build's OWN
+  # version, not a large sentinel. A sentinel guarantees the mismatch and opens
+  # the changelog every launch; that went unnoticed because every shot then
+  # opened a document over it, until one shot didn't and photographed it.
+  defaults write "$DOMAIN" lastSeenBuild -string \
+    "$(defaults read "$APP/Contents/Info" CFBundleVersion)"
 
   # Manifest overrides. Types are inferred: arrays -> -array, booleans -> -bool,
   # numbers -> -float, everything else -> -string.
@@ -296,6 +298,22 @@ require_shots_domain
 require_shots_app
 
 FIXTURES=$("$HERE/fixtures.sh")
+
+# A remote root syncs into ~/Library/Application Support/Reader.md/remotes/<id>
+# — no bundle id in that path either, so the shots app writes beside the real
+# app's caches. The id is a fresh UUID, so there is nothing to compute: record
+# what was there before, and remove only what this run adds.
+REMOTES_DIR="$HOME/Library/Application Support/Reader.md/remotes"
+REMOTES_BEFORE=$(ls "$REMOTES_DIR" 2>/dev/null || true)
+
+reset_remotes() {
+  [ -d "$REMOTES_DIR" ] || return 0
+  local entry
+  for entry in "$REMOTES_DIR"/*; do
+    [ -e "$entry" ] || continue
+    grep -qxF "$(basename "$entry")" <<<"$REMOTES_BEFORE" || rm -rf "$entry"
+  done
+}
 PAGE=$(jq -r '.page' "$MANIFEST")
 WIN_W=$(jq -r '.window.width  // 1400' "$MANIFEST")
 WIN_H=$(jq -r '.window.height // 900'  "$MANIFEST")
@@ -347,6 +365,11 @@ cleanup() {
   # Leave no app behind, especially on failure: a surviving instance keeps
   # whatever was on screen when the run died, and the next run inherits it.
   pkill -f "$QUIT_MATCH" 2>/dev/null || true
+  # Marks made during the last shot outlive the run — reset_marks only clears
+  # them on the way IN. Leaving them puts fixture files in a directory shared
+  # with the real app, and any manual poke at the app afterwards would show them.
+  reset_marks
+  reset_remotes
   restore_others
 }
 trap cleanup EXIT
