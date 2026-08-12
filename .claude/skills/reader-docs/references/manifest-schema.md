@@ -1,0 +1,97 @@
+# Shot Manifest Schema
+
+Lives at `docs/features/<slug>.shots.json`, committed beside the page it feeds.
+`scripts/capture.sh` executes it.
+
+## Top level
+
+```json
+{
+  "page": "reading",
+  "window": { "width": 1400, "height": 900 },
+  "prefs": { "reader.md.folders": ["<fixtures>/field-notes"] },
+  "shots": [ ... ]
+}
+```
+
+| Field | Required | Meaning |
+|---|---|---|
+| `page` | yes | Must match `docs/features/<page>.md`; also the asset directory name |
+| `window` | no | Logical window size, default 1400×900. Captured at 2× |
+| `domain` | no | Preference domain; defaults to `com.nahian.reader-md.shots`. Setting it to the real domain is refused |
+| `prefs` | no | Seeded before launch. `<fixtures>` expands to the generated corpus root |
+| `shots` | yes | Ordered array |
+
+## Shot
+
+```json
+{
+  "id": "03-outline",
+  "open": "field-notes/guides/setup.md",
+  "actions": [ { "key": "b", "mods": ["shift", "command"] } ],
+  "caption": "The outline pane, opened with ⇧⌘B"
+}
+```
+
+| Field | Required | Meaning |
+|---|---|---|
+| `id` | yes | Zero-padded and ordered; becomes the filename |
+| `open` | no | Fixture-relative path opened via the `reader` CLI |
+| `actions` | no | Run in order after `open`; default `[]` |
+| `caption` | yes | Alt text and caption |
+| `video` | no | `{ "seconds": n }` — records a clip instead of a still |
+| `manual` | no | Captured by hand; the harness skips it and warns if the file is absent |
+
+## Actions
+
+| Action | Shape |
+|---|---|
+| keystroke | `{ "key": "b", "mods": ["shift", "command"] }` |
+| open a file | `{ "reader": "field-notes/guides/setup.md" }` |
+| wait | `{ "waitMs": 1200 }` |
+
+`mods` are `command`, `shift`, `option`, `control`. Keys are single characters
+as typed; the harness escapes them for AppleScript, so `"\\"` (a literal
+backslash, for ⇧⌘\) is fine.
+
+**`waitMs` means opposite things for stills and clips.** For a still it is a
+discouraged escape hatch — the settle loop is the default, and it exists only
+for a state that settles to a genuinely animating frame. For a clip it *is* the
+choreography, since no settle loop is possible, and the values are what make the
+motion readable.
+
+## Keystroke badges
+
+In a video shot, every keystroke automatically gets a badge burned into the
+clip — a large light pill showing the shortcut in Apple's glyph order (⌃⌥⇧⌘),
+timed to the frame the key actually fired. Nothing in the manifest turns this
+on; it follows from the `key` actions. Choreograph `waitMs` so badges do not
+overlap: ~1.5s between keystrokes reads comfortably, since a badge lingers
+1.4s.
+
+## Preference keys
+
+Seedable keys, from `Sources/ReaderMd/Models/Settings.swift`:
+
+| Key | Type | Values |
+|---|---|---|
+| `reader.md.folders` | array of paths | Use `<fixtures>/…` |
+| `reader.md.theme` | string | `light`, `dark`, `system` |
+| `reader.md.contentWidth` | string | `narrow`, `wide`, `full` |
+| `reader.md.showSidebar` | bool | |
+| `reader.md.showTOC` | bool | |
+| `reader.md.fontScale` | number | `1.0` is default |
+| `reader.md.readingTheme` | string | see `ReadingTheme` |
+| `reader.md.diffMode` | bool | |
+
+The harness always seeds `lastSeenBuild` itself. Without it a fresh domain
+looks like a first launch after an update and the app opens its What's New
+changelog over the content pane — which is what the first fixture capture
+photographed.
+
+## Rules
+
+- Never reference a path outside the fixture corpus.
+- One theme (dark) everywhere except the appearance page, where light is the
+  contrast case. The site is dark-only, so light shots glare.
+- Five clips total across all ten pages. A state is a still.
