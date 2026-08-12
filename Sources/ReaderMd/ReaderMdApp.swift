@@ -165,12 +165,10 @@ struct ReaderMdApp: App {
                     .keyboardShortcut("/", modifiers: .command)
                 Button("Release Notes") { state.openBundledDoc("CHANGELOG") }
                 Divider()
-                Button("Report an Issue…") {
-                    NSWorkspace.shared.open(URL(string: "https://github.com/jnahian/reader.md/issues/new")!)
-                }
-                Button("View on GitHub") {
-                    NSWorkspace.shared.open(URL(string: "https://github.com/jnahian/reader.md")!)
-                }
+                Button("Reader.md Website") { NSWorkspace.shared.open(Links.home) }
+                Button("Documentation") { NSWorkspace.shared.open(Links.docs) }
+                Button("Report an Issue…") { NSWorkspace.shared.open(Links.issues) }
+                Button("View on GitHub") { NSWorkspace.shared.open(Links.repo) }
             }
         }
 
@@ -188,17 +186,50 @@ struct ReaderMdApp: App {
     }
 }
 
+/// The addresses the app points at, in one place: the Help menu and the About
+/// panel both offer them, and a URL typed twice is a URL that goes stale once.
+private enum Links {
+    static let home = URL(string: "https://reader-md.jnahian.me")!
+    static let docs = URL(string: "https://reader-md.jnahian.me/docs")!
+    static let issues = URL(string: "https://github.com/jnahian/reader.md/issues/new")!
+    static let repo = URL(string: "https://github.com/jnahian/reader.md")!
+}
+
 // ponytail: fallback version for `swift run` (no Info.plist); keep in sync with make-app.sh.
 private func showAboutPanel() {
     let info = Bundle.main.infoDictionary
     let version = info?["CFBundleShortVersionString"] as? String ?? "1.17.0"
     let build = info?["CFBundleVersion"] as? String ?? "dev"
-    let credits = NSAttributedString(
-        string: "A native macOS markdown viewer.\nMermaid & LaTeX, live reload, PDF export.",
+    let center = NSMutableParagraphStyle()
+    center.alignment = .center
+    let credits = NSMutableAttributedString(
+        string: "A native macOS markdown viewer.\nMermaid & LaTeX, live reload, PDF export.\n\n",
         attributes: [
             .font: NSFont.systemFont(ofSize: 11),
             .foregroundColor: NSColor.secondaryLabelColor,
+            .paragraphStyle: center,
         ])
+    // The standard panel renders credits in a text view, so `.link` runs are
+    // live — clicking one opens it, no button needed.
+    for (index, link) in [("Website", Links.home), ("Docs", Links.docs),
+                          ("Report an Issue", Links.issues)].enumerated() {
+        if index > 0 {
+            credits.append(NSAttributedString(
+                string: "  ·  ",
+                attributes: [
+                    .font: NSFont.systemFont(ofSize: 11),
+                    .foregroundColor: NSColor.tertiaryLabelColor,
+                    .paragraphStyle: center,
+                ]))
+        }
+        credits.append(NSAttributedString(
+            string: link.0,
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 11),
+                .link: link.1,
+                .paragraphStyle: center,
+            ]))
+    }
     NSApp.orderFrontStandardAboutPanel(options: [
         .applicationName: "Reader.md",
         .applicationVersion: version,

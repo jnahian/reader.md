@@ -6,6 +6,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Links in the About panel** — **Website**, **Docs**, and **Report an Issue**,
+  clickable straight from **Reader.md ▸ About Reader.md**. The Help menu carries
+  the same destinations, with **Reader.md Website** and **Documentation** joining
+  the two GitHub items already there.
+
 ### Fixed
 
 - **No more tooltip on launch, or on switching back to Reader.md.** A window

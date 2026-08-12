@@ -105,7 +105,9 @@ No page of its own — this is the whole of it.
 - **Liquid Glass** — on macOS 26 the toolbar, sidebar, outline, find bar, and Quick Open all read as Liquid Glass; on macOS 13–15 they fall back to translucent `NSVisualEffectView` material
 - **Finder-style chrome** — a capsule search field, toolbar controls grouped into capsules by function, a **FOLDERS** header with tinted icons and a full-width selection pill, and the document carried in the title as a standard proxy icon
 - **Auto-update** — the packaged app checks for and installs new releases through Sparkle, and opens the changelog once afterwards. See [Install](install.md)
-- **About panel** — version and credits, from the standard macOS window
+- **About panel** — version and credits in the standard macOS window, with
+  clickable **Website**, **Docs**, and **Report an Issue** links; the Help menu
+  carries the same destinations
 - **A command-line companion** — see [the CLI reference](cli.md)
 
 ## Keyboard shortcuts
