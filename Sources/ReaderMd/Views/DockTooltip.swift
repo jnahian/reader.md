@@ -92,7 +92,10 @@ final class TrackerNSView: NSView {
     /// under the cursor arms a bubble this way — see `inside` for why the first
     /// look never does.
     private func syncHover() {
-        guard let window else { return }
+        guard let window else {
+            if inside == true { endHover() }
+            return
+        }
         let point = convert(window.mouseLocationOutsideOfEventStream, from: nil)
         let over = visibleRect.contains(point)
         guard let wasInside = inside else {
