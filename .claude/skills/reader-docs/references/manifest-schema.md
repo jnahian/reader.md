@@ -51,6 +51,19 @@ Lives at `docs/features/<slug>.shots.json`, committed beside the page it feeds.
 | open a file | `{ "reader": "field-notes/guides/setup.md" }` |
 | wait | `{ "waitMs": 1200 }` |
 | edit a fixture | `{ "appendTo": "field-notes/index.md", "text": "\n## New\n" }` |
+| click | `{ "click": [1092, 26] }` |
+| right-click | `{ "rclick": [108, 268] }` |
+| drag | `{ "drag": [190, 213, 410, 213] }` |
+
+Pointer coordinates are **window points**, not screen points and not pixels of a
+captured image: the harness adds the window's origin itself, so a shot survives
+the window moving and the numbers read as a position in the UI. Measuring one
+off a committed 2400px capture means dividing by 2400/1400 ≈ 1.714, *not* 2.
+
+A pointer action earns no keystroke badge — nothing was pressed. Prefer a
+keystroke whenever one exists; a coordinate is the most fragile thing a manifest
+can hold, and it is worth it only for a state with no keyboard route at all (the
+markup popover needs a real drag; a context menu needs a right-click).
 
 `appendTo` exists for live reload, where the disk acts and the keyboard does
 not. It is the one action that writes, so the path must stay inside the fixture

@@ -359,8 +359,25 @@ trap cleanup EXIT
 # It also makes --only correct. Re-shooting one shot against a leaked state
 # would produce an image that does not match the committed one, and
 # --verify-repro would then fail on a shot nobody had changed.
+# Marks (highlights, notes, threads) do NOT live in the preference domain —
+# MarkStore writes ~/Library/Application Support/Reader.md/marks/<sha256(path)>
+# with no bundle id in the path, so the shots app and the real app share one
+# directory. Deleting the whole directory would take the user's own annotations
+# with it. Delete exactly the files keyed to fixture paths instead: nothing else
+# can hash to those names.
+reset_marks() {
+  local dir="$HOME/Library/Application Support/Reader.md/marks"
+  [ -d "$dir" ] || return 0
+  local path sha
+  while IFS= read -r path; do
+    sha=$(printf '%s' "$path" | shasum -a 256 | awk '{print $1}')
+    rm -f "$dir/$sha.json"
+  done < <(find "$FIXTURES" -type f \( -name '*.md' -o -name '*.markdown' \))
+}
+
 reset_state() {
   seed_prefs "${1:-\{\}}"
+  reset_marks
   launch_app
   hide_others
   # Stills need the pointer out of the way just as much as clips do: a tooltip
@@ -546,12 +563,14 @@ run_actions() {
   n=$(echo "$shot" | jq '(.actions // []) | length')
   [ "$n" -eq 0 ] && return 0
   for i in $(seq 0 $((n - 1))); do
-    local action key mods ms cli appendTo
+    local action key mods ms cli appendTo pointer verb
     action=$(echo "$shot" | jq -c ".actions[$i]")
     key=$(echo "$action" | jq -r '.key // empty')
     ms=$(echo "$action" | jq -r '.waitMs // empty')
     cli=$(echo "$action" | jq -r '.reader // empty')
     appendTo=$(echo "$action" | jq -r '.appendTo // empty')
+    verb=$(echo "$action" | jq -r 'if .click then "click" elif .rclick then "rclick" elif .drag then "drag" else empty end')
+    pointer=$(echo "$action" | jq -r '(.click // .rclick // .drag // []) | map(tostring) | join(" ")')
     if [ -n "$key" ]; then
       assert_frontmost
       mods=$(echo "$action" | jq -r '(.mods // []) | map(. + " down") | join(", ")')
@@ -575,6 +594,16 @@ run_actions() {
         printf '%s\t%s\n' "$(python3 -c 'import time; print(time.time())')" \
                "$(key_glyphs "$key" "$raw_mods")" >> "$KEYLOG"
       fi
+    elif [ -n "$verb" ]; then
+      assert_frontmost
+      # Manifest coordinates are window points, so a shot survives the window
+      # moving and reads as a position in the UI rather than a spot on a screen.
+      local ox oy _w _h screen
+      read -r ox oy _w _h <<<"$(window_bounds)"
+      screen=$(echo "$pointer" | awk -v ox="$ox" -v oy="$oy" \
+        '{ for (j = 1; j <= NF; j += 2) printf "%s %s ", $j + ox, $(j+1) + oy }')
+      # shellcheck disable=SC2086 — the coordinates are separate arguments.
+      swift "$HERE/pointer.swift" "$verb" $screen
     elif [ -n "$cli" ]; then
       "$READER" "$FIXTURES/$cli"
     elif [ -n "$appendTo" ]; then
@@ -634,6 +663,11 @@ for i in $(seq 0 $((count - 1))); do
   fi
 
   run_actions "$shot"
+  # A pointer action leaves the cursor wherever it clicked, and whatever is
+  # under it is drawn hovered — a heading's anchor link, a code block's Copy
+  # button. Park it again before the shutter. A no-op for keystroke-only shots,
+  # which never moved it. Popovers survive this; they are not hover-held.
+  swift "$HERE/cursor.swift" 99999 99999
   settle "$WINID" "$RAW_DIR/$id.png"
   assert_dimensions "$RAW_DIR/$id.png" "$((WIN_W * 2))"
   # ffmpeg does the downscale and re-encode: oxipng/pngquant are not installed
