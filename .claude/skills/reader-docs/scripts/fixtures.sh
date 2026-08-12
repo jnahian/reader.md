@@ -8,7 +8,12 @@
 # badge screenshots don't churn on every sweep.
 set -euo pipefail
 
-ROOT="${TMPDIR:-/tmp}/reader-md-fixtures"
+# Deliberately NOT $TMPDIR. Quick Open renders a file's full folder chain, so a
+# fixture under $TMPDIR puts /var/folders/9h/xb4dkknn74z968nc1dmynjp00000gn/T
+# — a per-machine identifier — into a published screenshot. A short fixed path
+# keeps the breadcrumb clean and makes it identical on every machine, which is
+# what --verify-repro compares.
+ROOT="/tmp/reader-md-docs"
 rm -rf "$ROOT"
 mkdir -p "$ROOT/field-notes/guides" "$ROOT/field-notes/reference"
 
