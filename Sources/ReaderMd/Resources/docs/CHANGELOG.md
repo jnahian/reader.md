@@ -264,6 +264,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Highlight, annotate, and comment on what you read.** Select any text to
+  highlight it in one of five colours, attach a note to it, or start a comment
+  thread with replies and a **Resolve** button; the toolbar keeps a count of
+  resolved threads, which doubles as a switch for hiding them. Marks are
+  anchored to the words rather than to a position in the file, so an edit
+  elsewhere leaves them where they were — and if the text one was made on
+  disappears entirely, it is flagged as orphaned rather than quietly dropped.
+  Nothing is written into your markdown: annotations live beside the file,
+  keyed by its path, which is why renaming a file loses them.
 - **Documents remember where you stopped.** Reopening a long file returns you to
   the place you left off instead of the top. A document you barely started, or
   one you finished, still opens at the top — resuming into the last screen of
