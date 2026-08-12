@@ -4,6 +4,16 @@ Everything Reader.md does, and the keys that do it. The app ships its own copy o
 the shortcut list — **Help → Keyboard Shortcuts** (⌘/) — which is generated from
 the same bindings.
 
+## Pages
+
+Detailed documentation, one page per area, each with real screenshots:
+
+- [Reading a document](features/reading.md) — the outline, in-page find, text
+  size, and canvas width
+
+The list below stays as the complete feature inventory; each page above covers
+a slice of it in depth.
+
 ## Features
 
 - **Open anything** — a single `.md` file (⌘O or double-click in Finder), whole folders, or a mix; set Reader.md as your default markdown handler

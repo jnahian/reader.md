@@ -69,6 +69,16 @@ import { repo, releasesLatest, releases, website } from "../data/site";
 
       <section id="features" class="doc__section">
         <h2 class="doc__h2">Features</h2>
+        <p class="doc__lead">
+          Each area has its own page, with screenshots taken from the running
+          app. Everything is summarised below.
+        </p>
+        <ul class="doc__pages">
+          <li>
+            <a href="/docs/reading">Reading a document</a> — the outline,
+            in-page find, text size, and canvas width
+          </li>
+        </ul>
         <div class="frows">
           {
             featureRows.map((f) => (
@@ -343,6 +353,33 @@ import { repo, releasesLatest, releases, website } from "../data/site";
   }
 
   /* feature rows */
+  /* Index of the per-area docs pages, above the summary rows. */
+  .doc__pages {
+    list-style: none;
+    margin: 0 0 28px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .doc__pages li {
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  .doc__pages a {
+    color: var(--link);
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .doc__pages a:hover {
+    color: var(--link-hover);
+    text-decoration: underline;
+  }
+
   .frows {
     display: flex;
     flex-direction: column;
