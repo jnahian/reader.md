@@ -16,7 +16,12 @@ REPO="$(git -C "$HERE" rev-parse --show-toplevel)"
 APP_NAME="Reader.md"
 SHOTS_DOMAIN="com.nahian.reader-md.shots"
 REAL_DOMAIN="com.nahian.reader-md"
-APP="$REPO/build/$APP_NAME.app"
+# The harness drives its OWN build, never build/Reader.md.app. Sharing that
+# path is how a run ends up against the real preference domain: seeding
+# com.nahian.reader-md.shots does nothing if the app you launch is the default
+# build, and the capture silently fills with real folders and real filenames.
+APP_DIR="$REPO/build/shots"
+APP="$APP_DIR/$APP_NAME.app"
 READER="$APP/Contents/MacOS/reader"
 
 MANIFEST="${1:-}"
@@ -69,6 +74,32 @@ require_shots_domain() {
     exit 4
   fi
   DOMAIN="$domain"
+}
+
+# Builds the isolated app if missing, then ASSERTS that the bundle actually
+# carries the shots identifier. Seeding a preference domain is worthless if the
+# app being launched reads a different one — the assert is the guard that
+# catches it, and it is not skippable.
+require_shots_app() {
+  if [ ! -d "$APP" ]; then
+    echo "capture: building the isolated app (first run) …"
+    ( cd "$REPO" && BUNDLE_ID="$DOMAIN" APP_OUT="$APP_DIR" ./make-app.sh >/dev/null )
+  fi
+
+  local got
+  got=$(defaults read "$APP/Contents/Info" CFBundleIdentifier 2>/dev/null || echo "none")
+  if [ "$got" != "$DOMAIN" ]; then
+    echo "capture: rebuilding the isolated app (id was '$got', expected '$DOMAIN') …"
+    ( cd "$REPO" && BUNDLE_ID="$DOMAIN" APP_OUT="$APP_DIR" ./make-app.sh >/dev/null )
+    got=$(defaults read "$APP/Contents/Info" CFBundleIdentifier 2>/dev/null || echo "none")
+  fi
+
+  if [ "$got" != "$DOMAIN" ]; then
+    echo "capture: '$APP' has bundle id '$got', expected '$DOMAIN'." >&2
+    echo "  Refusing to run: this app would read the real preference domain and" >&2
+    echo "  the screenshots would contain real folders and filenames." >&2
+    exit 4
+  fi
 }
 
 # --- app control -------------------------------------------------------------
@@ -128,12 +159,32 @@ launch_app() {
       # Count only real document windows: the app also exposes an unnamed
       # AXSystemDialog that sorts ahead of it and is NOT what we want to drive.
       ax=$(osascript -e "tell application \"System Events\" to tell process \"$APP_NAME\" to count of (windows whose value of attribute \"AXSubrole\" is \"AXStandardWindow\")" 2>/dev/null || echo 0)
-      [ "${ax:-0}" -ge 1 ] && return 0
+      [ "${ax:-0}" -ge 1 ] && { assert_running_is_shots_app; return 0; }
     fi
     sleep 0.25
   done
   echo "capture: app window never appeared" >&2
   exit 5
+}
+
+# Both builds are called "Reader.md", so `tell application "Reader.md"` is
+# ambiguous if the normal build is also running — and would happily drive the
+# real one. Require exactly one, and require it to be ours.
+assert_running_is_shots_app() {
+  local n id
+  n=$(osascript -e "tell application \"System Events\" to count of (processes whose name is \"$APP_NAME\")" 2>/dev/null || echo 0)
+  if [ "${n:-0}" -ne 1 ]; then
+    echo "capture: $n processes named '$APP_NAME' are running." >&2
+    echo "  Quit your normal Reader.md before capturing — otherwise AppleScript" >&2
+    echo "  cannot tell the two apart and may drive the wrong one." >&2
+    exit 4
+  fi
+  id=$(osascript -e "tell application \"System Events\" to get bundle identifier of first process whose name is \"$APP_NAME\"" 2>/dev/null || echo none)
+  if [ "$id" != "$DOMAIN" ]; then
+    echo "capture: the running '$APP_NAME' is '$id', not '$DOMAIN'." >&2
+    echo "  Refusing to drive the real app." >&2
+    exit 4
+  fi
 }
 
 # Guarantees the app is frontmost before a keystroke is sent. It re-activates
@@ -201,6 +252,7 @@ EOF
 
 preflight
 require_shots_domain
+require_shots_app
 
 FIXTURES=$("$HERE/fixtures.sh")
 PAGE=$(jq -r '.page' "$MANIFEST")
@@ -217,13 +269,160 @@ else
 fi
 mkdir -p "$OUT" "$FINAL_OUT"
 
+# Liquid Glass samples whatever sits behind the window, so a terminal or chat
+# window behind it bleeds into the sidebar and makes two runs of the same
+# manifest differ. Hiding everything else leaves only the desktop wallpaper
+# back there, which is constant. Without this, cross-run SSIM lands around
+# 0.95–0.99 purely from backdrop bleed.
+hide_others() {
+  osascript >/dev/null 2>&1 <<EOF || true
+tell application "$APP_NAME" to activate
+tell application "System Events"
+  set visible of (every process whose visible is true and name is not "$APP_NAME") to false
+end tell
+EOF
+  sleep 0.8
+}
+
 seed_prefs
 launch_app
+hide_others
 set_geometry "$WIN_W" "$WIN_H"
 assert_frontmost
 
 echo "capture: $PAGE — window ${WIN_W}x${WIN_H}, fixtures at $FIXTURES"
 
-# Shots are executed in task 5.
+# --- settling ----------------------------------------------------------------
+# There is no selector to wait on, so "has it finished rendering?" is answered
+# empirically: capture, wait, capture again, compare. Verified stable — five
+# consecutive captures of a static window are byte-identical, and a
+# Mermaid/KaTeX document needs two polls before it stops changing.
+#
+# The mandatory first delay matters: without it a state that has not STARTED
+# changing yet reads as already settled.
+settle() {
+  local win="$1" out="$2" tries=0
+  sleep 0.4
+  screencapture -l "$win" -o -x "$out.a"
+  while [ "$tries" -lt 40 ]; do
+    sleep 0.15
+    screencapture -l "$win" -o -x "$out.b"
+    if cmp -s "$out.a" "$out.b"; then
+      mv "$out.b" "$out"; rm -f "$out.a"
+      return 0
+    fi
+    mv "$out.b" "$out.a"
+    tries=$((tries + 1))
+  done
+  rm -f "$out.a" "$out.b"
+  echo "capture: '$out' never settled after $tries polls" >&2
+  exit 7
+}
+
+run_actions() {
+  local shot="$1" n i
+  n=$(echo "$shot" | jq '(.actions // []) | length')
+  [ "$n" -eq 0 ] && return 0
+  for i in $(seq 0 $((n - 1))); do
+    local action key mods ms cli
+    action=$(echo "$shot" | jq -c ".actions[$i]")
+    key=$(echo "$action" | jq -r '.key // empty')
+    ms=$(echo "$action" | jq -r '.waitMs // empty')
+    cli=$(echo "$action" | jq -r '.reader // empty')
+    if [ -n "$key" ]; then
+      assert_frontmost
+      mods=$(echo "$action" | jq -r '(.mods // []) | map(. + " down") | join(", ")')
+      if [ -n "$mods" ]; then
+        osascript -e "tell application \"System Events\" to keystroke \"$key\" using {$mods}"
+      else
+        osascript -e "tell application \"System Events\" to keystroke \"$key\""
+      fi
+    elif [ -n "$cli" ]; then
+      "$READER" "$FIXTURES/$cli"
+    elif [ -n "$ms" ]; then
+      sleep "$(echo "$ms" | awk '{print $1/1000}')"
+    fi
+  done
+}
+
+assert_dimensions() {
+  local file="$1" expect_w="$2" got_w
+  got_w=$(sips -g pixelWidth "$file" | awk '/pixelWidth/{print $2}')
+  if [ "$got_w" != "$expect_w" ]; then
+    echo "capture: '$file' is ${got_w}px wide, expected ${expect_w}px." >&2
+    echo "  The window was resized mid-run; layout will jitter between shots." >&2
+    exit 8
+  fi
+}
+
+RAW_DIR=$(mktemp -d)
+trap 'rm -rf "$RAW_DIR"' EXIT
+
+count=$(jq '.shots | length' "$MANIFEST")
+for i in $(seq 0 $((count - 1))); do
+  [ "$count" -eq 0 ] && break
+  shot=$(jq -c ".shots[$i]" "$MANIFEST")
+  id=$(echo "$shot" | jq -r '.id')
+  [ -n "$ONLY" ] && [ "$ONLY" != "$id" ] && continue
+
+  if [ "$(echo "$shot" | jq -r '.manual // false')" = "true" ]; then
+    if [ -f "$FINAL_OUT/$id.png" ]; then
+      echo "  $id — manual, keeping existing file"
+    else
+      echo "  $id — MANUAL SHOT MISSING (see references/manual-shots.md)" >&2
+    fi
+    continue
+  fi
+
+  open_path=$(echo "$shot" | jq -r '.open // empty')
+  [ -n "$open_path" ] && "$READER" "$FIXTURES/$open_path"
+  run_actions "$shot"
+
+  if [ "$(echo "$shot" | jq -r 'has("video")')" = "true" ]; then
+    continue   # video shots are handled in task 6
+  fi
+
+  settle "$WINID" "$RAW_DIR/$id.png"
+  assert_dimensions "$RAW_DIR/$id.png" "$((WIN_W * 2))"
+  # ffmpeg does the downscale and re-encode: oxipng/pngquant are not installed
+  # and ffmpeg is already required for clips.
+  ffmpeg -v error -y -i "$RAW_DIR/$id.png" -vf scale=2400:-1 \
+         -compression_level 100 "$OUT/$id.png"
+  echo "  $id"
+done
+
+# --- reproducibility ---------------------------------------------------------
+# Byte-equality is deliberately NOT the criterion across runs: Liquid Glass
+# samples what is behind the window and PNG encoding is not contractually
+# stable, so exact bytes would fail falsely. SSIM below 0.99 means the two runs
+# genuinely disagree.
+if [ "$VERIFY" -eq 1 ]; then
+  echo "capture: verifying reproducibility against $FINAL_OUT"
+  fail=0
+  for i in $(seq 0 $((count - 1))); do
+    [ "$count" -eq 0 ] && break
+    shot=$(jq -c ".shots[$i]" "$MANIFEST")
+    id=$(echo "$shot" | jq -r '.id')
+    [ "$(echo "$shot" | jq -r '.manual // false')" = "true" ] && continue
+    [ "$(echo "$shot" | jq -r 'has("video")')" = "true" ] && continue
+    if [ ! -f "$FINAL_OUT/$id.png" ]; then
+      echo "capture: '$id' has no committed image to compare against" >&2
+      fail=1; continue
+    fi
+    # Fresh capture (in $OUT, a temp dir) vs the committed one.
+    score=$(ffmpeg -hide_banner -i "$OUT/$id.png" -i "$FINAL_OUT/$id.png" \
+            -filter_complex "ssim=stats_file=-" -f null - 2>/dev/null \
+            | awk '{for(j=1;j<=NF;j++) if($j ~ /^All:/){sub("All:","",$j); print $j}}' | head -1)
+    [ -n "$score" ] || { echo "capture: could not compare '$id'" >&2; fail=1; continue; }
+    ok=$(awk -v s="$score" 'BEGIN{print (s >= 0.99) ? "1" : "0"}')
+    if [ "$ok" != "1" ]; then
+      echo "capture: '$id' differs between runs (SSIM $score)" >&2
+      fail=1
+    fi
+  done
+  rm -rf "$OUT"
+  [ "$fail" -eq 0 ] || exit 9
+  echo "capture: reproducible"
+fi
 
 osascript -e "tell application \"$APP_NAME\" to quit" >/dev/null 2>&1 || true

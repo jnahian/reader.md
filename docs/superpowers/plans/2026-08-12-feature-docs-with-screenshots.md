@@ -55,7 +55,7 @@
 The spec's only unverified assumption. Do it first: if the one-line change fights Sparkle or signing, the fallback decision must happen before anything depends on it.
 
 **Files:**
-- Modify: `make-app.sh:8`
+- Modify: `make-app.sh:8` (BUNDLE_ID) and `make-app.sh:20` (APP_OUT)
 
 **Interfaces:**
 - Produces: an app bundle at `build/Reader.md.app` whose `CFBundleIdentifier` is `${BUNDLE_ID:-com.nahian.reader-md}`, so `BUNDLE_ID=com.nahian.reader-md.shots ./make-app.sh` yields a shots build.
@@ -100,6 +100,17 @@ with:
 # Overridable so the docs harness can build an isolated bundle (its own
 # UserDefaults domain) without touching the real app's saved folders.
 BUNDLE_ID="${BUNDLE_ID:-com.nahian.reader-md}"
+```
+
+Then, at line 20, replace `APP="build/${APP_NAME}.app"` with an overridable
+output directory, so the harness's isolated build never clobbers the normal one:
+
+```bash
+# Overridable alongside BUNDLE_ID so the docs harness can build its isolated
+# bundle without clobbering the normal build at build/Reader.md.app.
+APP_OUT="${APP_OUT:-build}"
+mkdir -p "$APP_OUT"
+APP="${APP_OUT}/${APP_NAME}.app"
 ```
 
 - [ ] **Step 4: Run it to verify it passes**
@@ -659,7 +670,12 @@ REPO="$(git -C "$HERE" rev-parse --show-toplevel)"
 APP_NAME="Reader.md"
 SHOTS_DOMAIN="com.nahian.reader-md.shots"
 REAL_DOMAIN="com.nahian.reader-md"
-APP="$REPO/build/$APP_NAME.app"
+# The harness drives its OWN build, never build/Reader.md.app. Sharing that
+# path is how a run ends up against the real preference domain: seeding
+# com.nahian.reader-md.shots does nothing if the app you launch is the default
+# build, and the capture silently fills with real folders and real filenames.
+APP_DIR="$REPO/build/shots"
+APP="$APP_DIR/$APP_NAME.app"
 READER="$APP/Contents/MacOS/reader"
 
 MANIFEST="${1:-}"
@@ -712,6 +728,50 @@ require_shots_domain() {
     exit 4
   fi
   DOMAIN="$domain"
+}
+
+# Builds the isolated app if missing, then ASSERTS that the bundle actually
+# carries the shots identifier. Seeding a preference domain is worthless if the
+# app being launched reads a different one — the assert is the guard that
+# catches it, and it is not skippable.
+require_shots_app() {
+  if [ ! -d "$APP" ]; then
+    echo "capture: building the isolated app (first run) …"
+    ( cd "$REPO" && BUNDLE_ID="$DOMAIN" APP_OUT="$APP_DIR" ./make-app.sh >/dev/null )
+  fi
+  local got
+  got=$(defaults read "$APP/Contents/Info" CFBundleIdentifier 2>/dev/null || echo "none")
+  if [ "$got" != "$DOMAIN" ]; then
+    echo "capture: rebuilding the isolated app (id was '$got', expected '$DOMAIN') …"
+    ( cd "$REPO" && BUNDLE_ID="$DOMAIN" APP_OUT="$APP_DIR" ./make-app.sh >/dev/null )
+    got=$(defaults read "$APP/Contents/Info" CFBundleIdentifier 2>/dev/null || echo "none")
+  fi
+  if [ "$got" != "$DOMAIN" ]; then
+    echo "capture: '$APP' has bundle id '$got', expected '$DOMAIN'." >&2
+    echo "  Refusing to run: this app would read the real preference domain and" >&2
+    echo "  the screenshots would contain real folders and filenames." >&2
+    exit 4
+  fi
+}
+
+# Both builds are called "Reader.md", so `tell application "Reader.md"` is
+# ambiguous if the normal build is also running — and would happily drive the
+# real one. Require exactly one, and require it to be ours.
+assert_running_is_shots_app() {
+  local n id
+  n=$(osascript -e "tell application \"System Events\" to count of (processes whose name is \"$APP_NAME\")" 2>/dev/null || echo 0)
+  if [ "${n:-0}" -ne 1 ]; then
+    echo "capture: $n processes named '$APP_NAME' are running." >&2
+    echo "  Quit your normal Reader.md before capturing — otherwise AppleScript" >&2
+    echo "  cannot tell the two apart and may drive the wrong one." >&2
+    exit 4
+  fi
+  id=$(osascript -e "tell application \"System Events\" to get bundle identifier of first process whose name is \"$APP_NAME\"" 2>/dev/null || echo none)
+  if [ "$id" != "$DOMAIN" ]; then
+    echo "capture: the running '$APP_NAME' is '$id', not '$DOMAIN'." >&2
+    echo "  Refusing to drive the real app." >&2
+    exit 4
+  fi
 }
 
 # --- app control -------------------------------------------------------------
@@ -773,7 +833,7 @@ launch_app() {
       # Count only real document windows: the app also exposes an unnamed
       # AXSystemDialog that sorts ahead of it and is NOT what we want to drive.
       ax=$(osascript -e "tell application \"System Events\" to tell process \"$APP_NAME\" to count of (windows whose value of attribute \"AXSubrole\" is \"AXStandardWindow\")" 2>/dev/null || echo 0)
-      [ "${ax:-0}" -ge 1 ] && return 0
+      [ "${ax:-0}" -ge 1 ] && { assert_running_is_shots_app; return 0; }
     fi
     sleep 0.25
   done
@@ -846,6 +906,7 @@ EOF
 
 preflight
 require_shots_domain
+require_shots_app
 
 FIXTURES=$("$HERE/fixtures.sh")
 PAGE=$(jq -r '.page' "$MANIFEST")
@@ -861,8 +922,24 @@ else
 fi
 mkdir -p "$OUT" "$FINAL_OUT"
 
+# Liquid Glass samples whatever sits behind the window, so a terminal or chat
+# window behind it bleeds into the sidebar and makes two runs of the same
+# manifest differ. Hiding everything else leaves only the desktop wallpaper
+# back there, which is constant. Without this, cross-run SSIM lands around
+# 0.95–0.99 purely from backdrop bleed.
+hide_others() {
+  osascript >/dev/null 2>&1 <<EOF || true
+tell application "$APP_NAME" to activate
+tell application "System Events"
+  set visible of (every process whose visible is true and name is not "$APP_NAME") to false
+end tell
+EOF
+  sleep 0.8
+}
+
 seed_prefs
 launch_app
+hide_others
 set_geometry "$WIN_W" "$WIN_H"
 assert_frontmost
 

@@ -17,7 +17,11 @@ swift build -c release
 
 BIN_DIR="$(swift build -c release --show-bin-path)"
 EXE="${BIN_DIR}/ReaderMd"
-APP="build/${APP_NAME}.app"
+# Overridable alongside BUNDLE_ID so the docs harness can build its isolated
+# bundle without clobbering the normal build at build/Reader.md.app.
+APP_OUT="${APP_OUT:-build}"
+mkdir -p "$APP_OUT"
+APP="${APP_OUT}/${APP_NAME}.app"
 
 echo "Assembling ${APP} ..."
 rm -rf "${APP}"
