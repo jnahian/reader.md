@@ -398,3 +398,35 @@ pre {
     animation: none !important;
   }
 }
+
+/* Docs media -------------------------------------------------------------- */
+/* Screenshots are captured at 2400px and rendered at ~1200, so they stay crisp
+   on a Retina display. */
+.docs-media {
+  margin: 24px 0;
+}
+
+.docs-media img,
+.docs-media video {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: 13px;
+  border: 1px solid var(--border);
+}
+
+.docs-media figcaption {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--faint);
+}
+
+/* Clips autoplay because they are short, silent, and loop. A reader who asked
+   for reduced motion gets controls instead — the page script pauses them, and
+   the prose beside every clip already carries the same information. */
+@media (prefers-reduced-motion: reduce) {
+  .docs-media--video video {
+    animation: none;
+  }
+}
