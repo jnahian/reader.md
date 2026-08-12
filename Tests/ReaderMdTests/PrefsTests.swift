@@ -41,6 +41,18 @@ final class PrefsTests: XCTestCase {
         XCTAssertEqual(roots, [Prefs.Root(name: "vps-docs", detail: "me@vps:/srv/docs")])
     }
 
+    /// A git remote has no ssh destination and no remote path — both are empty
+    /// strings — so formatting it the ssh way printed a bare ":" for the whole
+    /// detail column. Its identity is the clone URL.
+    func testAGitRemoteIsListedWithItsCloneURL() throws {
+        let spec = RemoteSpec(id: "B2", name: "handbook",
+                              gitURL: "https://github.com/example/handbook.git")
+        let data = try JSONEncoder().encode([spec])
+        let roots = Prefs.format(folders: [], remotesJSON: data)
+        XCTAssertEqual(roots, [Prefs.Root(name: "handbook",
+                                          detail: "https://github.com/example/handbook.git")])
+    }
+
     func testGarbageRemotesJSONIsIgnoredRatherThanCrashing() {
         XCTAssertEqual(Prefs.format(folders: [], remotesJSON: Data("not json".utf8)), [])
         XCTAssertEqual(Prefs.format(folders: [], remotesJSON: Data("[{}]".utf8)), [])

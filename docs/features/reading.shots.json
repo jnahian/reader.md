@@ -43,7 +43,7 @@
     {
       "id": "05-width",
       "open": "field-notes/guides/setup.md",
-      "video": { "seconds": 8 },
+      "video": { "seconds": 6 },
       "actions": [
         { "waitMs": 1400 },
         { "key": "\\", "mods": ["shift", "command"] },

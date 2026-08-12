@@ -1,63 +1,173 @@
+---
+title: Features
+category: Reference
+order: 20
+summary: Everything Reader.md does, in one list, with the page that covers each in depth.
+related: [reading, cli, install]
+---
+
 # Features
 
-Everything Reader.md does, and the keys that do it. The app ships its own copy of
-the shortcut list — **Help → Keyboard Shortcuts** (⌘/) — which is generated from
-the same bindings.
+One line per feature, and a link to the page that covers it properly. If you are
+looking for *how* something works, follow the link; if you are looking for
+*whether* it exists, this page is the list.
 
-## Pages
+The shortcut tables at the end are the same list the app ships at
+**Help → Keyboard Shortcuts** (⌘/), which is generated from the key bindings
+themselves.
 
-Detailed documentation, one page per area, each with real screenshots:
+## Finding your files
 
-- [Reading a document](features/reading.md) — the outline, in-page find, text
-  size, and canvas width
+See [Finding your files](features/library.md).
 
-The list below stays as the complete feature inventory; each page above covers
-a slice of it in depth.
+- **Any number of folders** — add roots by ⇧⌘A, by dropping folders on the window, or with `reader <folder>`; each is a collapsible section, and they reorder by drag
+- **Recents and Favorites** — a managed recent-files list, and a pinned section above it (⌘D, the hover star, or right-click → **Add to Favorites**); pinning moves a file out of Recents, and the bundled help docs and piped documents can't be pinned
+- **File filter** (⇧⌘F) — filters every root at once by file name, each result labelled with the folder it came from
+- **Quick Open** (⌘P) — fuzzy switcher over every file in every root, matching the folder path as well as the name; `>` runs a command, `#` jumps to a heading, ⌘1–⌘9 open a result directly
 
-## Features
+## Opening and moving between files
 
-- **Open anything** — a single `.md` file (⌘O or double-click in Finder), whole folders, or a mix; set Reader.md as your default markdown handler
-- **Multi-folder browser** — add any number of roots (multi-select, or drag folders onto the window); each is a collapsible section with hover-to-reveal actions, and roots reorder by drag
-- **Remote (SSH) folders** — add a folder from a VPS: Reader.md `rsync`s it read-only into a local cache and shows it like any root. Auto-syncs on launch (quietly), manual re-sync, edit-the-connection-in-place, and a cloud badge with sync/error state. Reuses your `~/.ssh` config and keys — no credentials stored. Add via the **Add Remote** button in the sidebar footer
-- **Cloned git repositories** — the same sheet takes a clone URL instead: Reader.md `git clone`s it read-only into a local cache and `pull --ff-only`s it on launch, with a branch badge in place of the cloud one. Uses your existing git credentials and never prompts — an unauthenticated repository fails with git's own error rather than hanging
-- **Favorites** — pin files to a **FAVORITES** section between Recents and the folder tree: hover a file in the tree and click its star, right-click any file → **Add to Favorites**, press ⌘D for the open document, or use the ⌘P palette. Reorder by drag, unpin with the hover **×**; the list persists, a pinned file drops out of Recents (opening it never shuffles it away), and the bundled help docs and piped `reader -` documents can't be pinned
-- **Context menus** — right-click any file, folder, root, or recent for Open / Always Open With / Reveal in Finder / Copy Path / Add to Favorites / Remove (and Edit Connection · Re-sync on remote roots)
-- **Git-aware** — inside a repository, changed markdown gets a sidebar badge (`M` · `A` · `?` · `U`), ⇧⌘D shows the document as a side-by-side diff (word-level highlighting, hunks in the outline instead of headings), and the scope popover beside it compares against **Unstaged**, **Staged**, **All** (since the last commit), or any branch — "vs main" diffs your working copy, uncommitted edits included, against that branch's tip, with a filter field for repos with many branches. `.gitignore`d markdown stays out of the tree
-- **Drag-and-drop** — drop a markdown file onto the content pane to open it
-- **Quick open** — ⌘P fuzzy file switcher across all roots, with keyboard navigation
-- **History & recents** — back/forward (⌘[ / ⌘]) plus a managed recent-files list in the sidebar, above Favorites (pinned files are listed only under Favorites)
-- **File filter** — ⇧⌘F filters the tree live across all roots
-- **In-page find** — ⌘F native find bar with match highlighting; step matches with the up/down chevrons beside the count, ⌘G / ⇧⌘G, or ⌘↩ / ⇧⌘↩
-- **Outline** — collapsible right pane (⇧⌘B) with a sliding accent rail marker and scrollspy
-- **Typography** — font size (⌘+ / ⌘− / ⌘0) and a narrow/wide/full-width canvas (⇧⌘\, wide by default), both persisted
-- **Finder-style chrome** — capsule search field; native toolbar controls grouped into capsules by function; a "FOLDERS" section header with tinted icons and a full-width selection pill; and a bottom status bar (markdown file count, or word count / reading-time for the open file), mirroring the macOS 26 Finder
-- **Reading feedback** — accent progress bar under the toolbar; word count and reading time in the status bar
-- **Code copy buttons**, **image click-to-zoom** lightbox, and hover **heading anchors**
-- **Export to PDF** (⌘E) and **manual reload** (⌘R) — toolbar buttons on the right; the save dialog's Layout control picks page-by-page or one continuous page for that export, and the default it starts from lives in **Settings ▸ Editing & Export**
-- **Hand off to an editor** (⇧⌘E) — Reader.md stays a reader; pick an editor once (**Settings ▸ Editing & Export**, **File → Set Default Editor…**, or right-click a file → **Always Open With**) and ⇧⌘E sends the open document there. The watcher re-renders on save, so an editor beside Reader.md reads as a live preview. Not offered for the bundled help docs, piped `reader -` documents, or read-only remote folders
-- **Liquid Glass chrome** — on macOS 26 (Tahoe) the native toolbar, sidebar, outline, find bar, and quick-open palette all read as Liquid Glass; on macOS 13–15 they fall back to translucent `NSVisualEffectView` material. Collapsible + resizable sidebar (⌘B, width persisted); the title's proxy icon reveals the file in Finder
-- **Syntax highlighting, Mermaid, LaTeX math** — via the bundled JS engines
-- **YAML frontmatter** — rendered as a clean key/value table at the top of the document
-- **Appearance** — a light → dark → system cycle, applied to both native chrome and web content; System follows macOS live, including on a schedule
-- **Live reload** — the open file re-renders (scroll preserved) and the tree refreshes on disk changes
-- **Auto-update** — the packaged `.app` checks for and installs new releases via Sparkle
-- **Settings** (⌘,) — appearance, reading theme, text size, canvas width, the external editor, and the default PDF export layout in one window. Mostly a second way into preferences the toolbar and menus already carry; the PDF layout default, clearing the external editor, and picking an appearance mode directly rather than cycling to it live only here
-- **About panel** — version and credits from the standard macOS About window
+See [Opening and moving between files](features/navigating.md).
+
+- **Open anything** — a single file (⌘O, Finder, or drag onto the window), whole folders, or a mix; Reader.md registers as a markdown viewer, so it can be the Finder default
+- **Back and forward** (⌘[ / ⌘]) — a history stack across every document you open, links between markdown files included
+- **Context menus** — right-click any file, folder, root, or recent for Open / Always Open With / Reveal in Finder / Copy Path / Add to Favorites / Remove
+- **Sidebar** (⌘B) — collapsible and resizable, width remembered
+
+## Reading a document
+
+See [Reading a document](features/reading.md).
+
+- **Outline** (⇧⌘B) — the heading structure in a right-hand pane, tracking your position as you scroll
+- **Find in page** (⌘F) — match count and highlighting, stepped with the chevrons, ⌘G / ⇧⌘G, or ⌘↩ / ⇧⌘↩
+- **Text size** (⌘+ / ⌘− / ⌘0) and **canvas width** (⇧⌘\\, narrow / wide / full) — both persisted
+- **Reading feedback** — a progress bar under the toolbar, with the word count and reading time under the file name
+- **Resume where you stopped** — a long document reopens at the place you left it
+
+## How a document is rendered
+
+See [How a document is rendered](features/rendering.md).
+
+- **GitHub-flavoured markdown**, with tables, footnotes, and task lists
+- **Syntax highlighting, Mermaid diagrams, and LaTeX math** — from engines bundled with the app, so nothing renders over the network
+- **Diagram controls** — zoom, reset, fullscreen, pinch or ⌘-scroll, and drag to pan
+- **YAML frontmatter** — rendered as a key/value table above the document
+- **Code copy buttons**, **image click-to-zoom**, and hover **heading anchors**
+- **Live reload** (and ⌘R) — the open file re-renders as it changes on disk, scroll preserved, and the tree refreshes with it
+
+## Highlights and notes
+
+See [Highlights and notes](features/annotations.md).
+
+- **Highlight** a selection in one of five colours
+- **Attach a note**, or a whole comment thread with replies and **Resolve** — with a resolved count in the toolbar that doubles as a show/hide switch
+- **Anchored to the words**, not to a position, so an edit elsewhere leaves a mark where it was; one whose text disappears is flagged as orphaned rather than dropped
+- **Never written into your markdown** — annotations live beside the file, keyed by its path
+
+## Working in a git repository
+
+See [Working in a git repository](features/git.md).
+
+- **Change badges** in the sidebar — `M` · `A` · `?` · `U`
+- **Side-by-side diff** (⇧⌘D) with word-level highlighting, and hunks in the outline instead of headings
+- **Diff scope** — **Unstaged**, **Staged**, **All**, or any branch in the repository
+- **`.gitignore` is respected** — ignored markdown never enters the tree
+
+## Remote and cloned folders
+
+See [Remote and cloned folders](features/remote.md).
+
+- **A folder over SSH** (⌥⌘A) — `rsync`ed read-only into a local cache, using your `~/.ssh` config and keys, with no credentials stored
+- **A cloned git repository** — the same sheet takes a clone URL, cloned read-only and `pull --ff-only`ed on launch, using your existing git credentials and never prompting
+- **Sync state in the sidebar** — a cloud or branch badge, a spinner while syncing, and an amber badge carrying the error if a sync fails
+- **Edit connection**, **Re-sync**, and **Remove** on the root itself
+
+## Exporting and editing
+
+See [Exporting and editing](features/exporting.md).
+
+- **Export as PDF** (⌘E) — page-by-page or one continuous page, chosen per export, defaulting to the setting
+- **Hand off to an editor** (⇧⌘E) — pick one once, and every save comes straight back through the watcher
+- **Reader.md never writes to your documents**
+
+## Settings
+
+See [Settings](features/settings.md).
+
+- **Appearance** — light, dark, or system, applied to chrome and content alike; system follows macOS as it changes
+- **Reading themes** — Standard, Editorial, or Terminal, restyling the document without touching the window
+- **Text size, canvas width, external editor, and the default PDF layout** in one window (⌘,)
+
+## Chrome, and the rest
+
+No page of its own — this is the whole of it.
+
+- **Liquid Glass** — on macOS 26 the toolbar, sidebar, outline, find bar, and Quick Open all read as Liquid Glass; on macOS 13–15 they fall back to translucent `NSVisualEffectView` material
+- **Finder-style chrome** — a capsule search field, toolbar controls grouped into capsules by function, a **FOLDERS** header with tinted icons and a full-width selection pill, and the document carried in the title as a standard proxy icon
+- **Auto-update** — the packaged app checks for and installs new releases through Sparkle, and opens the changelog once afterwards. See [Install](install.md)
+- **About panel** — version and credits, from the standard macOS window
+- **A command-line companion** — see [the CLI reference](cli.md)
 
 ## Keyboard shortcuts
 
-| Shortcut | Action | Shortcut | Action |
-|---|---|---|---|
-| ⌘O | Open file | ⌘P | Quick open |
-| ⇧⌘A | Add folder | ⌥⌘A | Add remote folder |
-| ⌘F | Find in page | ⇧⌘F | Filter files |
-| ⌘G / ⇧⌘G (or ⌘↩ / ⇧⌘↩) | Find next / previous | ⌘[ / ⌘] | Back / forward |
-| ⌘B | Toggle sidebar | ⇧⌘B | Toggle outline |
-| ⇧⌘D | Toggle diff | ⇧⌘\ | Cycle canvas width |
-| ⌘+ / ⌘− / ⌘0 | Text bigger / smaller / reset | ⇧⌘E | Open in editor |
-| ⌘E | Export PDF | ⌘R | Reload |
-| ⌘W | Close document | | |
-| ⌘/ | Keyboard shortcuts | ⌘D | Add to / remove from Favorites |
-| ⌘, | Settings | | |
+The same list the app shows at **Help → Keyboard Shortcuts** (⌘/). A test keeps
+the two from drifting: every shortcut in the app's copy has to appear here.
 
-Reader.md also has a command-line companion — see [the CLI reference](cli.md).
+### Files
+
+| Shortcut | Action |
+|---|---|
+| ⌘O | Open File… |
+| ⇧⌘A | Add Folder… |
+| ⌥⌘A | Add Remote Folder… |
+| ⌘P | Quick Open (files, `>` commands, `#` headings) |
+| ⌘D | Add to / Remove from Favorites (the open document) |
+| ⇧⌘E | Open in Editor |
+| ⌘E | Export as PDF… |
+| ⌘R | Reload |
+| ⌘W | Close the open document |
+
+### Navigation
+
+| Shortcut | Action |
+|---|---|
+| ⌘[ | Back |
+| ⌘] | Forward |
+| ⌘B | Toggle Sidebar |
+| ⇧⌘B | Toggle Outline |
+
+### Find
+
+| Shortcut | Action |
+|---|---|
+| ⌘F | Find in Page |
+| ⌘G or ⌘↩ | Find Next |
+| ⇧⌘G or ⇧⌘↩ | Find Previous |
+| ⎋ | Clear the find field |
+| ⇧⌘F | Filter Files (sidebar) |
+
+### Quick Open
+
+| Shortcut | Action |
+|---|---|
+| ↑ ↓ | Move through results |
+| ⏎ | Open / run the selected result |
+| ⌘1–⌘9 | Open the first nine results directly |
+| ⎋ | Dismiss |
+
+### View
+
+| Shortcut | Action |
+|---|---|
+| ⌘+ | Increase Text |
+| ⌘- | Decrease Text |
+| ⌘0 | Actual Size |
+| ⇧⌘\\ | Cycle Canvas Width (Narrow / Wide / Full) |
+| ⇧⌘D | Toggle Diff (in a git repository) |
+
+### Settings and help
+
+| Shortcut | Action |
+|---|---|
+| ⌘, | Open Settings |
+| ⌘/ | Keyboard Shortcuts |

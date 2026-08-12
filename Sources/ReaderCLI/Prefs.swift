@@ -33,8 +33,14 @@ enum Prefs {
                   let array = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
             else { return [] }
             return array.compactMap { entry in
-                guard let name = entry["name"] as? String,
-                      let dest = entry["sshDestination"] as? String,
+                guard let name = entry["name"] as? String else { return nil }
+                // A cloned repository carries its identity in `gitURL` and
+                // leaves the ssh fields empty, so the ssh shaping below printed
+                // a bare ":" for the whole detail column.
+                if let gitURL = entry["gitURL"] as? String, !gitURL.isEmpty {
+                    return Root(name: name, detail: gitURL)
+                }
+                guard let dest = entry["sshDestination"] as? String,
                       let path = entry["remotePath"] as? String
                 else { return nil }
                 return Root(name: name, detail: "\(dest):\(path)")

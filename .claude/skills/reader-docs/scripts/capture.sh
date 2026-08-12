@@ -84,6 +84,12 @@ require_shots_app() {
   if [ ! -d "$APP" ]; then
     echo "capture: building the isolated app (first run) …"
     ( cd "$REPO" && BUNDLE_ID="$DOMAIN" APP_OUT="$APP_DIR" ./make-app.sh >/dev/null )
+  # Built only when missing, this would photograph an app one build behind for
+  # the rest of the project — and a page written from those shots documents
+  # behaviour that has already been fixed or changed.
+  elif [ -n "$(find "$REPO/Sources" -newer "$APP/Contents/MacOS/$APP_NAME" -print -quit 2>/dev/null)" ]; then
+    echo "capture: rebuilding the isolated app (sources are newer) …"
+    ( cd "$REPO" && BUNDLE_ID="$DOMAIN" APP_OUT="$APP_DIR" ./make-app.sh >/dev/null )
   fi
 
   local got
@@ -105,6 +111,10 @@ require_shots_app() {
 # --- app control -------------------------------------------------------------
 
 seed_prefs() {
+  # $1 is a shot's own `prefs`, merged over the manifest's. A page that
+  # documents appearance needs one shot in light and the rest in dark, and the
+  # harness re-seeds per shot anyway, so the override costs nothing.
+  local extra="${1:-\{\}}"
   defaults delete "$DOMAIN" 2>/dev/null || true
   # Sensible defaults for every shot; a manifest may override any of them.
   defaults write "$DOMAIN" reader.md.theme -string dark
@@ -112,33 +122,36 @@ seed_prefs() {
   defaults write "$DOMAIN" reader.md.showTOC -bool false
   defaults write "$DOMAIN" reader.md.contentWidth -string wide
   defaults write "$DOMAIN" reader.md.fontScale -float 1.0
-  # A fresh domain has no lastSeenBuild, so AppState.checkWhatsNew() opens the
-  # bundled CHANGELOG over the content pane and hides the sidebar. Seed a build
-  # number far in the future to suppress it. (Found the hard way: the first
-  # fixture capture was a screenshot of the changelog.)
-  defaults write "$DOMAIN" lastSeenBuild -string 999999999999
+  # checkWhatsNew() opens the bundled CHANGELOG when lastSeenBuild is set and
+  # differs from CFBundleVersion — so it must be seeded with the build's OWN
+  # version, not a large sentinel. A sentinel guarantees the mismatch and opens
+  # the changelog every launch; that went unnoticed because every shot then
+  # opened a document over it, until one shot didn't and photographed it.
+  defaults write "$DOMAIN" lastSeenBuild -string \
+    "$(defaults read "$APP/Contents/Info" CFBundleVersion)"
 
   # Manifest overrides. Types are inferred: arrays -> -array, booleans -> -bool,
   # numbers -> -float, everything else -> -string.
-  local keys key type
-  keys=$(jq -r '(.prefs // {}) | keys[]' "$MANIFEST")
+  local merged keys key type
+  merged=$(jq -c --argjson extra "$extra" '(.prefs // {}) + $extra' "$MANIFEST")
+  keys=$(echo "$merged" | jq -r 'keys[]')
   for key in $keys; do
-    type=$(jq -r --arg k "$key" '.prefs[$k] | type' "$MANIFEST")
+    type=$(echo "$merged" | jq -r --arg k "$key" '.[$k] | type')
     case "$type" in
       array)
         local -a vals=()
         local v
         while IFS= read -r v; do
           vals+=("${v//<fixtures>/$FIXTURES}")
-        done < <(jq -r --arg k "$key" '.prefs[$k][]' "$MANIFEST")
+        done < <(echo "$merged" | jq -r --arg k "$key" '.[$k][]')
         defaults write "$DOMAIN" "$key" -array "${vals[@]}"
         ;;
       boolean)
-        defaults write "$DOMAIN" "$key" -bool "$(jq -r --arg k "$key" '.prefs[$k]' "$MANIFEST")" ;;
+        defaults write "$DOMAIN" "$key" -bool "$(echo "$merged" | jq -r --arg k "$key" '.[$k]')" ;;
       number)
-        defaults write "$DOMAIN" "$key" -float "$(jq -r --arg k "$key" '.prefs[$k]' "$MANIFEST")" ;;
+        defaults write "$DOMAIN" "$key" -float "$(echo "$merged" | jq -r --arg k "$key" '.[$k]')" ;;
       *)
-        defaults write "$DOMAIN" "$key" -string "$(jq -r --arg k "$key" '.prefs[$k]' "$MANIFEST" | sed "s|<fixtures>|$FIXTURES|g")" ;;
+        defaults write "$DOMAIN" "$key" -string "$(echo "$merged" | jq -r --arg k "$key" '.[$k]' | sed "s|<fixtures>|$FIXTURES|g")" ;;
     esac
   done
   killall cfprefsd 2>/dev/null || true
@@ -148,8 +161,35 @@ seed_prefs() {
 # available at the same moment: CGWindowList sees the window first, and driving
 # it through System Events before its AX window exists fails with "Can't get
 # window 1 ... Invalid index".
-launch_app() {
+# Quitting is matched on the shots bundle path, never on the app name: both
+# builds are called "Reader.md" and a name match could take down the user's own.
+QUIT_MATCH="build/shots/$APP_NAME.app"
+
+quit_shots_app() {
+  local i
   osascript -e "tell application \"$APP_NAME\" to quit" >/dev/null 2>&1 || true
+  for i in $(seq 1 24); do
+    pgrep -f "$QUIT_MATCH" >/dev/null || return 0
+    sleep 0.25
+  done
+  # An open sheet or palette can refuse the AppleScript quit, and `open -a` then
+  # just re-activates the survivor instead of launching a clean one. That is not
+  # cosmetic: a run that inherits an open Quick Open palette types on top of the
+  # previous take's query, and the clip records both.
+  pkill -f "$QUIT_MATCH" 2>/dev/null || true
+  for i in $(seq 1 24); do
+    pgrep -f "$QUIT_MATCH" >/dev/null || return 0
+    sleep 0.25
+  done
+  echo "capture: the shots app would not quit; a stale window would leak into" >&2
+  echo "  this run's shots. Quit it by hand and re-run." >&2
+  exit 4
+}
+
+launch_app() {
+  quit_shots_app
+  # LaunchServices keeps the just-killed app registered for a moment; launching
+  # into that window fails with -600/-609 and the run produces nothing.
   sleep 1.5
   open -a "$APP"
   # A previous run may have left it hidden; a hidden app has no on-screen
@@ -258,6 +298,22 @@ require_shots_domain
 require_shots_app
 
 FIXTURES=$("$HERE/fixtures.sh")
+
+# A remote root syncs into ~/Library/Application Support/Reader.md/remotes/<id>
+# — no bundle id in that path either, so the shots app writes beside the real
+# app's caches. The id is a fresh UUID, so there is nothing to compute: record
+# what was there before, and remove only what this run adds.
+REMOTES_DIR="$HOME/Library/Application Support/Reader.md/remotes"
+REMOTES_BEFORE=$(ls "$REMOTES_DIR" 2>/dev/null || true)
+
+reset_remotes() {
+  [ -d "$REMOTES_DIR" ] || return 0
+  local entry
+  for entry in "$REMOTES_DIR"/*; do
+    [ -e "$entry" ] || continue
+    grep -qxF "$(basename "$entry")" <<<"$REMOTES_BEFORE" || rm -rf "$entry"
+  done
+}
 PAGE=$(jq -r '.page' "$MANIFEST")
 WIN_W=$(jq -r '.window.width  // 1400' "$MANIFEST")
 WIN_H=$(jq -r '.window.height // 900'  "$MANIFEST")
@@ -299,7 +355,21 @@ restore_others() {
 # which would have left the user's apps hidden.
 RAW_DIR=""
 cleanup() {
-  [ -n "$RAW_DIR" ] && rm -rf "$RAW_DIR"
+  # CAPTURE_KEEP_RAW=1 keeps the untrimmed take and the keystroke log. A clip
+  # can only be debugged against the footage the trim was computed from.
+  if [ -n "${CAPTURE_KEEP_RAW:-}" ] && [ -n "$RAW_DIR" ]; then
+    echo "capture: raw take kept at $RAW_DIR" >&2
+  elif [ -n "$RAW_DIR" ]; then
+    rm -rf "$RAW_DIR"
+  fi
+  # Leave no app behind, especially on failure: a surviving instance keeps
+  # whatever was on screen when the run died, and the next run inherits it.
+  pkill -f "$QUIT_MATCH" 2>/dev/null || true
+  # Marks made during the last shot outlive the run — reset_marks only clears
+  # them on the way IN. Leaving them puts fixture files in a directory shared
+  # with the real app, and any manual poke at the app afterwards would show them.
+  reset_marks
+  reset_remotes
   restore_others
 }
 trap cleanup EXIT
@@ -312,8 +382,25 @@ trap cleanup EXIT
 # It also makes --only correct. Re-shooting one shot against a leaked state
 # would produce an image that does not match the committed one, and
 # --verify-repro would then fail on a shot nobody had changed.
+# Marks (highlights, notes, threads) do NOT live in the preference domain —
+# MarkStore writes ~/Library/Application Support/Reader.md/marks/<sha256(path)>
+# with no bundle id in the path, so the shots app and the real app share one
+# directory. Deleting the whole directory would take the user's own annotations
+# with it. Delete exactly the files keyed to fixture paths instead: nothing else
+# can hash to those names.
+reset_marks() {
+  local dir="$HOME/Library/Application Support/Reader.md/marks"
+  [ -d "$dir" ] || return 0
+  local path sha
+  while IFS= read -r path; do
+    sha=$(printf '%s' "$path" | shasum -a 256 | awk '{print $1}')
+    rm -f "$dir/$sha.json"
+  done < <(find "$FIXTURES" -type f \( -name '*.md' -o -name '*.markdown' \))
+}
+
 reset_state() {
-  seed_prefs
+  seed_prefs "${1:-\{\}}"
+  reset_marks
   launch_app
   hide_others
   # Stills need the pointer out of the way just as much as clips do: a tooltip
@@ -322,8 +409,6 @@ reset_state() {
   set_geometry "$WIN_W" "$WIN_H"
   assert_frontmost
 }
-
-reset_state
 
 echo "capture: $PAGE — window ${WIN_W}x${WIN_H}, fixtures at $FIXTURES"
 
@@ -367,41 +452,96 @@ record_video() {
   secs=$(echo "$shot" | jq -r '.video.seconds // 6')
   read -r x y w h <<<"$(window_bounds)"
 
+  # A screencapture left running from an earlier take records this one too, so
+  # one clip ends up holding both takes' keystrokes. It cannot be stopped
+  # politely — SIGINT is ignored and SIGTERM leaves no file — so the only
+  # remedy is to refuse to overlap with one.
+  if pgrep -x screencapture >/dev/null; then
+    echo "capture: a screencapture process is already recording." >&2
+    echo "  It would capture this take too. Wait for it, or 'pkill -x screencapture'." >&2
+    exit 3
+  fi
+
   # The cursor is always recorded and cannot be hidden, so park it far off the
   # window — bottom-right of the screen. (10,10) was not enough: a toolbar
   # tooltip was still up and photobombed the clip.
   swift "$HERE/cursor.swift" 99999 99999
-  sleep 0.6
+  # Then let the window go completely still. The trim below finds the action by
+  # looking for the first change in the footage, so the document must have
+  # finished rendering before the take starts or its own settling is found
+  # instead.
+  sleep 2.5
 
   KEYLOG="$RAW_DIR/$id.keys"
   : > "$KEYLOG"
 
-  screencapture -v -V "$secs" -R "$x,$y,$w,$h" "$RAW_DIR/$id.mov" &
+  # Over-record, then trim back to the action. Two measured quirks set the
+  # numbers: screencapture can take ~5s to actually start, and a short -V loses
+  # that time from the footage (-V 6 yields ~1.3s) while a long one does not
+  # (-V 30 yields ~30s). So ask for well more than is needed and lead in past
+  # the lag; the trim makes the surplus free.
+  local lead=6
+  screencapture -v -V "$((secs + lead + 8))" -R "$x,$y,$w,$h" "$RAW_DIR/$id.mov" &
   rec=$!
-  sleep 1
+  sleep "$lead"
   run_actions "$shot"
   wait "$rec"
-  local rec_end
-  rec_end=$(python3 -c 'import time; print(time.time())')
   KEYLOG_DONE="$KEYLOG"
   KEYLOG=""
 
-  # screencapture does not begin recording the instant it is launched, and it
-  # can stop short of -V. So do not time badges from when we started it: derive
-  # the recording window backwards from its ACTUAL duration. The clip covers
-  # [rec_end - duration, rec_end], which is self-correcting whatever the lag.
-  local dur rec_start
+  local dur
   dur=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$RAW_DIR/$id.mov")
-  rec_start=$(awk -v e="$rec_end" -v d="$dur" 'BEGIN{ printf "%.3f", e - d }')
 
-  # Build a keystroke-badge overlay per logged key. Without this a viewer sees
-  # the effect of a shortcut with nothing showing the cause, which for a
-  # keyboard-driven app is most of the point.
-  local inputs="" chain="[0:v]fps=30,scale=1600:-2[base]" prev="base" idx=0 ts label rel bfile
+  # Anchor the trim on the footage, not on the clock. Wall-clock anchoring was
+  # tried and is not sound: the container duration does not tell you when
+  # recording actually began relative to when the process was started, so the
+  # window was computed seconds off and the clip opened after the first
+  # keystroke had already taken effect. The take is still before the actions
+  # run, so the first frame that differs from the opening one IS the first
+  # action landing.
+  local change start_at pre end_at
+  change=$(ffmpeg -i "$RAW_DIR/$id.mov" -vf "select='gt(scene,0.008)',showinfo" \
+                  -f null - 2>&1 | sed -n 's/.*pts_time:\([0-9.][0-9.]*\).*/\1/p' | head -1)
+
+  if [ -n "$change" ]; then
+    # Open a beat before the change so the starting state is legible.
+    start_at=$(awk -v c="$change" 'BEGIN{ d=c-1.2; if (d<0) d=0; printf "%.3f", d }')
+    if awk -v c="$change" -v d="$dur" -v s="$secs" 'BEGIN{ exit !(c > d-1) }'; then
+      echo "capture: '$id' — nothing changed on screen until ${change}s of a ${dur}s" >&2
+      echo "  take, so the actions did not register. Check the manifest's actions." >&2
+      exit 7
+    fi
+  else
+    echo "capture: '$id' — the screen never changed during the take, so there is" >&2
+    echo "  no motion to record. Check the manifest's actions." >&2
+    exit 7
+  fi
+  pre=$(awk -v c="$change" -v t="$start_at" 'BEGIN{ printf "%.3f", c - t }')
+
+  # A badge announces the shortcut that caused a change, so pin the first badge
+  # to the first change and space the rest by the real gaps between keystrokes.
+  # RENDER is how long the app takes to repaint after the key: the badge should
+  # lead the change it explains, not trail it.
+  local inputs="" prev="base" idx=0 ts label rel bfile first_ts=""
+  end_at=$(awk -v s="$start_at" -v n="$secs" 'BEGIN{ printf "%.3f", s + n }')
+  # fps=30 FIRST, then select. screencapture emits no frames at all while the
+  # screen is static, so on the raw stream there is often no frame in the beat
+  # before the action — selecting it yielded a clip that opened on the change
+  # itself and ran short. Normalising to constant rate first gives every instant
+  # a frame, so the window is always exactly `secs` long.
+  #
+  # Trimming with select() rather than -ss keeps this in the same clock
+  # showinfo reported `change` in; -ss works in container time and disagreed.
+  # tpad clones the final frame: fps= cannot invent frames past the last real
+  # one, and the screen is static after the last action, so without this the
+  # clip stops the moment the app stops repainting and `seconds` is a lie.
+  local chain="[0:v]fps=30,tpad=stop_mode=clone:stop_duration=$secs,select='between(t\,$start_at\,$end_at)',setpts=PTS-STARTPTS,scale=1600:-2[base]"
   if [ -s "$KEYLOG_DONE" ]; then
+    first_ts=$(head -1 "$KEYLOG_DONE" | cut -f1)
     while IFS=$'\t' read -r ts label; do
       [ -n "$label" ] || continue
-      rel=$(awk -v a="$ts" -v b="$rec_start" 'BEGIN{ d=a-b; if (d<0) d=0; printf "%.2f", d }')
+      rel=$(awk -v a="$ts" -v f="$first_ts" -v p="$pre" \
+            'BEGIN{ d=p+(a-f)-0.15; if (d<0) d=0; printf "%.2f", d }')
       idx=$((idx + 1))
       bfile="$RAW_DIR/$id.badge$idx.png"
       swift "$HERE/badge.swift" "$label" "$bfile" 42
@@ -417,7 +557,7 @@ record_video() {
          -c:v libx264 -crf 26 -preset slow \
          -movflags +faststart -pix_fmt yuv420p -an "$OUT/$id.mp4"
   ffmpeg -v error -y -i "$OUT/$id.mp4" -frames:v 1 -q:v 3 "$OUT/$id.poster.jpg"
-  echo "  $id (video, ${secs}s, $idx keystroke badge(s))"
+  echo "  $id (video, ${secs}s, $idx badge(s), action at ${change}s of ${dur}s)"
 }
 
 # Renders a shortcut the way the app's own docs write it: ⌃⌥⇧⌘ in Apple's
@@ -446,11 +586,14 @@ run_actions() {
   n=$(echo "$shot" | jq '(.actions // []) | length')
   [ "$n" -eq 0 ] && return 0
   for i in $(seq 0 $((n - 1))); do
-    local action key mods ms cli
+    local action key mods ms cli appendTo pointer verb
     action=$(echo "$shot" | jq -c ".actions[$i]")
     key=$(echo "$action" | jq -r '.key // empty')
     ms=$(echo "$action" | jq -r '.waitMs // empty')
     cli=$(echo "$action" | jq -r '.reader // empty')
+    appendTo=$(echo "$action" | jq -r '.appendTo // empty')
+    verb=$(echo "$action" | jq -r 'if .click then "click" elif .rclick then "rclick" elif .drag then "drag" else empty end')
+    pointer=$(echo "$action" | jq -r '(.click // .rclick // .drag // []) | map(tostring) | join(" ")')
     if [ -n "$key" ]; then
       assert_frontmost
       mods=$(echo "$action" | jq -r '(.mods // []) | map(. + " down") | join(", ")')
@@ -465,14 +608,35 @@ run_actions() {
       else
         osascript -e "tell application \"System Events\" to keystroke \"$esc\""
       fi
-      if [ -n "$KEYLOG" ]; then
-        local raw_mods
-        raw_mods=$(echo "$action" | jq -r '(.mods // []) | join(",")')
+      # A badge announces a shortcut, so only a modified keystroke earns one.
+      # Typing a query is content, not a command: badging it burns one pill per
+      # letter over the very motion the clip exists to show.
+      local raw_mods
+      raw_mods=$(echo "$action" | jq -r '(.mods // []) | join(",")')
+      if [ -n "$KEYLOG" ] && [ -n "$raw_mods" ]; then
         printf '%s\t%s\n' "$(python3 -c 'import time; print(time.time())')" \
                "$(key_glyphs "$key" "$raw_mods")" >> "$KEYLOG"
       fi
+    elif [ -n "$verb" ]; then
+      assert_frontmost
+      # Manifest coordinates are window points, so a shot survives the window
+      # moving and reads as a position in the UI rather than a spot on a screen.
+      local ox oy _w _h screen
+      read -r ox oy _w _h <<<"$(window_bounds)"
+      screen=$(echo "$pointer" | awk -v ox="$ox" -v oy="$oy" \
+        '{ for (j = 1; j <= NF; j += 2) printf "%s %s ", $j + ox, $(j+1) + oy }')
+      # shellcheck disable=SC2086 — the coordinates are separate arguments.
+      swift "$HERE/pointer.swift" "$verb" $screen
     elif [ -n "$cli" ]; then
       "$READER" "$FIXTURES/$cli"
+    elif [ -n "$appendTo" ]; then
+      # Editing a file mid-clip: the only way to film live reload, since it is
+      # the disk that acts and not the keyboard. Fixture-relative like `reader`,
+      # and no escaping out of the corpus — this action writes.
+      case "$appendTo" in
+        /*|*..*) echo "capture: appendTo must stay inside the fixtures: '$appendTo'" >&2; exit 3 ;;
+      esac
+      echo "$action" | jq -r '.text // ""' >> "$FIXTURES/$appendTo"
     elif [ -n "$ms" ]; then
       sleep "$(echo "$ms" | awk '{print $1/1000}')"
     fi
@@ -498,9 +662,6 @@ for i in $(seq 0 $((count - 1))); do
   id=$(echo "$shot" | jq -r '.id')
   [ -n "$ONLY" ] && [ "$ONLY" != "$id" ] && continue
 
-  # The first shot already has a clean app from the setup above.
-  [ "$i" -gt 0 ] && reset_state
-
   if [ "$(echo "$shot" | jq -r '.manual // false')" = "true" ]; then
     if [ -f "$FINAL_OUT/$id.png" ]; then
       echo "  $id — manual, keeping existing file"
@@ -510,15 +671,26 @@ for i in $(seq 0 $((count - 1))); do
     continue
   fi
 
+  reset_state "$(echo "$shot" | jq -c '.prefs // {}')"
+
   open_path=$(echo "$shot" | jq -r '.open // empty')
   [ -n "$open_path" ] && "$READER" "$FIXTURES/$open_path"
-  run_actions "$shot"
 
+  # A clip's actions ARE its content, so record_video runs them itself, on
+  # camera. Running them here as well would play the whole choreography once
+  # before recording and once during it — which typed a Quick Open query twice
+  # and left the clip opening on a query that was already half entered.
   if [ "$(echo "$shot" | jq -r 'has("video")')" = "true" ]; then
     record_video "$shot" "$id"
     continue
   fi
 
+  run_actions "$shot"
+  # A pointer action leaves the cursor wherever it clicked, and whatever is
+  # under it is drawn hovered — a heading's anchor link, a code block's Copy
+  # button. Park it again before the shutter. A no-op for keystroke-only shots,
+  # which never moved it. Popovers survive this; they are not hover-held.
+  swift "$HERE/cursor.swift" 99999 99999
   settle "$WINID" "$RAW_DIR/$id.png"
   assert_dimensions "$RAW_DIR/$id.png" "$((WIN_W * 2))"
   # ffmpeg does the downscale and re-encode: oxipng/pngquant are not installed

@@ -1,7 +1,9 @@
 ---
 title: Reading a document
-order: 4
+category: Guides
+order: 12
 summary: The outline, in-page find, text size, and canvas width.
+related: [library, features, cli]
 ---
 
 # Reading a document
@@ -70,8 +72,5 @@ Width and text size work together: a narrow canvas with larger text gives the
 short line length of a book, while full width with smaller text suits wide
 tables and long code blocks.
 
-## Related
-
-- [All features](/docs#features) — the complete list, including Quick Open, the
-  file filter, diagrams, and math
-- [Keyboard shortcuts](/docs#shortcuts) — every binding in one table
+For everything else Reader.md does — Quick Open, the file filter, diagrams, math
+— and every binding in one table, see [Features](../features.md).

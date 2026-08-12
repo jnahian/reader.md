@@ -10,27 +10,29 @@ const { current, headings } = Astro.props;
 const pages = (await getCollection("docs")).sort(
   (a, b) => a.data.order - b.data.order
 );
+
+// Same grouping rule as the /docs hub: a category sits where its lowest-ordered
+// page does, so frontmatter stays the only place ordering is decided.
+const groups: { name: string; pages: typeof pages }[] = [];
+for (const page of pages) {
+  const group = groups.find((g) => g.name === page.data.category);
+  if (group) group.pages.push(page);
+  else groups.push({ name: page.data.category, pages: [page] });
+}
+
 // Only h2s — h3s make the rail noisy on long pages.
 const toc = headings.filter((h) => h.depth === 2);
 ---
 
 <aside class="docsnav">
-  <div class="docsnav__label">DOCUMENTATION</div>
   <nav class="docsnav__pages">
-    <a href="/docs" class="docsnav__link">Overview</a>
-    {pages.map((p) => (
-      <a
-        href={`/docs/${p.id}`}
-        class:list={["docsnav__link", { "is-active": p.id === current }]}
-      >
-        {p.data.title}
-      </a>
-    ))}
+    <a href="/docs" class="docsnav__link">← All docs</a>
   </nav>
-
+  {/* This page's own sections first: they are what a reader wants while
+      reading, and the list of every other page is what they want after. */}
   {toc.length > 0 && (
     <>
-      <div class="docsnav__label docsnav__label--toc">ON THIS PAGE</div>
+      <div class="docsnav__label">ON THIS PAGE</div>
       <nav class="docsnav__toc">
         {toc.map((h) => (
           <a href={`#${h.slug}`} class="docsnav__sublink" data-spy={h.slug}>{h.text}</a>
@@ -38,6 +40,22 @@ const toc = headings.filter((h) => h.depth === 2);
       </nav>
     </>
   )}
+
+  {groups.map((group) => (
+    <>
+      <div class="docsnav__label">{group.name}</div>
+      <nav class="docsnav__pages">
+        {group.pages.map((p) => (
+          <a
+            href={`/docs/${p.id}`}
+            class:list={["docsnav__link", { "is-active": p.id === current }]}
+          >
+            {p.data.title}
+          </a>
+        ))}
+      </nav>
+    </>
+  ))}
 </aside>
 
 <script>
@@ -74,14 +92,18 @@ const toc = headings.filter((h) => h.depth === 2);
   }
 
   .docsnav__label {
+    font-family: var(--font-mono);
     font-size: 11px;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
     color: var(--faint);
-    margin-bottom: 8px;
+    margin: 22px 0 8px;
   }
 
-  .docsnav__label--toc {
-    margin-top: 28px;
+  /* The page list is a different kind of navigation from this page's own
+     sections, so it gets a wider gap above it than one category does. */
+  .docsnav__toc + .docsnav__label {
+    margin-top: 30px;
   }
 
   .docsnav__pages,

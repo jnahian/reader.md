@@ -1,0 +1,42 @@
+{
+  "page": "rendering",
+  "window": { "width": 1400, "height": 900 },
+  "prefs": {
+    "reader.md.folders": ["<fixtures>/field-notes"],
+    "reader.md.theme": "dark",
+    "reader.md.contentWidth": "wide",
+    "reader.md.showSidebar": true,
+    "reader.md.showTOC": false
+  },
+  "shots": [
+    {
+      "id": "01-frontmatter",
+      "open": "field-notes/index.md",
+      "caption": "YAML frontmatter rendered as a key/value table, above the document"
+    },
+    {
+      "id": "02-code",
+      "open": "field-notes/reference/shortcuts.md",
+      "caption": "A table and a syntax-highlighted code block"
+    },
+    {
+      "id": "03-diagram",
+      "open": "field-notes/guides/architecture.md",
+      "caption": "A Mermaid diagram and LaTeX math in the same document"
+    },
+    {
+      "id": "04-reload",
+      "open": "field-notes/reference/glossary.md",
+      "video": { "seconds": 5 },
+      "actions": [
+        { "waitMs": 2000 },
+        {
+          "appendTo": "field-notes/reference/glossary.md",
+          "text": "\n## Added later\n\n**Hunk** — a block of changed lines in a diff.\n\n**Scope** — what a diff compares against.\n\n**Badge** — the one-letter mark a changed file carries in the sidebar.\n\n**Watcher** — what notices the file changed.\n"
+        },
+        { "waitMs": 3500 }
+      ],
+      "caption": "The open document re-rendering as the file changes on disk"
+    }
+  ]
+}
