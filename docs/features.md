@@ -32,12 +32,12 @@ app.
 - **In-page find** — ⌘F native find bar with match highlighting; step matches with the up/down chevrons beside the count, ⌘G / ⇧⌘G, or ⌘↩ / ⇧⌘↩
 - **Outline** — collapsible right pane (⇧⌘B) with a sliding accent rail marker and scrollspy
 - **Typography** — font size (⌘+ / ⌘− / ⌘0) and a narrow/wide/full-width canvas (⇧⌘\, wide by default), both persisted
-- **Finder-style chrome** — capsule search field; native toolbar controls grouped into capsules by function; a "FOLDERS" section header with tinted icons and a full-width selection pill; and a bottom status bar (markdown file count, or word count / reading-time for the open file), mirroring the macOS 26 Finder
+- **Finder-style chrome** — capsule search field; native toolbar controls grouped into capsules by function; a "FOLDERS" section header with tinted icons and a full-width selection pill; and a window subtitle under the file name (word count and reading time, or the markdown file count when nothing is open), mirroring the macOS 26 Finder
 - **Reading feedback** — accent progress bar under the toolbar; word count and reading time in the status bar
 - **Code copy buttons**, **image click-to-zoom** lightbox, and hover **heading anchors**
 - **Export to PDF** (⌘E) and **manual reload** (⌘R) — toolbar buttons on the right; the save dialog's Layout control picks page-by-page or one continuous page for that export, and the default it starts from lives in **Settings ▸ Editing & Export**
 - **Hand off to an editor** (⇧⌘E) — Reader.md stays a reader; pick an editor once (**Settings ▸ Editing & Export**, **File → Set Default Editor…**, or right-click a file → **Always Open With**) and ⇧⌘E sends the open document there. The watcher re-renders on save, so an editor beside Reader.md reads as a live preview. Not offered for the bundled help docs, piped `reader -` documents, or read-only remote folders
-- **Liquid Glass chrome** — on macOS 26 (Tahoe) the native toolbar, sidebar, outline, find bar, and quick-open palette all read as Liquid Glass; on macOS 13–15 they fall back to translucent `NSVisualEffectView` material. Collapsible + resizable sidebar (⌘B, width persisted); the title's proxy icon reveals the file in Finder
+- **Liquid Glass chrome** — on macOS 26 (Tahoe) the native toolbar, sidebar, outline, find bar, and quick-open palette all read as Liquid Glass; on macOS 13–15 they fall back to translucent `NSVisualEffectView` material. Collapsible + resizable sidebar (⌘B, width persisted); the title carries the document as a standard macOS proxy icon
 - **Syntax highlighting, Mermaid, LaTeX math** — via the bundled JS engines
 - **YAML frontmatter** — rendered as a clean key/value table at the top of the document
 - **Appearance** — a light → dark → system cycle, applied to both native chrome and web content; System follows macOS live, including on a schedule
