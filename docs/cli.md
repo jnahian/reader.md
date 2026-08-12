@@ -3,6 +3,7 @@ title: Command line
 category: Reference
 order: 21
 summary: The reader command — open files, add folders, and mount a folder over SSH.
+related: [install, features, reading]
 ---
 
 # Command line

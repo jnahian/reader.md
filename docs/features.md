@@ -3,6 +3,7 @@ title: Features
 category: Reference
 order: 20
 summary: The complete inventory of what Reader.md does, and the keys that do it.
+related: [reading, cli, install]
 ---
 
 # Features

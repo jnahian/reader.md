@@ -3,6 +3,7 @@ title: Building
 category: Internals
 order: 31
 summary: Build from source, package the .app, and cut a release.
+related: [architecture, install, cli]
 ---
 
 # Building

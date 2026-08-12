@@ -2,6 +2,7 @@
 import { getCollection, render } from "astro:content";
 import Base from "../../layouts/Base.astro";
 import DocsNav from "../../components/DocsNav.astro";
+import RelatedDocs from "../../components/RelatedDocs.astro";
 // Base.astro already renders Nav and Footer itself and takes a `page` prop —
 // importing them here would render each twice.
 
@@ -22,6 +23,7 @@ const { Content, headings } = await render(page);
     <DocsNav current={page.id} headings={headings} />
     <main class="doc__body">
       <Content />
+      <RelatedDocs current={page.id} related={page.data.related} />
     </main>
   </div>
 </Base>

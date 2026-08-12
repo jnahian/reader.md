@@ -31,6 +31,9 @@ const docs = defineCollection({
     category: z.string(),
     order: z.number(),
     summary: z.string(),
+    // Ids of pages to offer at the foot of this one. Ids, not URLs, so a
+    // renamed or missing page fails the build instead of shipping a dead link.
+    related: z.array(z.string()).optional(),
   }),
 });
 
