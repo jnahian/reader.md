@@ -40,18 +40,18 @@ final class TrackerNSView: NSView {
     var text: String = ""
     private var timer: Timer?
     private var clickMonitor: Any?
-    /// Whether the cursor is over this control. Tracked explicitly rather than
-    /// left implicit in AppKit's enter/exit pairing, because `syncHover` has to
-    /// synthesize the events AppKit doesn't send — see there.
-    private var inside = false
-    /// Whether hover has ever been determined for this control. The first
-    /// determination only records where the cursor is; it never arms a bubble.
-    /// A control the cursor was *already* over when the control came into
-    /// existence was never hovered — opening the window under a stationary
-    /// pointer put a "Toggle sidebar" bubble on screen at launch. Arming needs a
-    /// real crossing: AppKit's own `mouseEntered`, or an outside→inside
-    /// transition seen by `syncHover`.
-    private var hoverKnown = false
+    /// Whether the cursor is over this control, `nil` until hover has been
+    /// determined at all. Tracked explicitly rather than left implicit in
+    /// AppKit's enter/exit pairing, because `syncHover` has to synthesize the
+    /// events AppKit doesn't send — see there.
+    ///
+    /// The first determination is silent: it records where the cursor is and
+    /// arms nothing. A control the cursor was *already* over when the control
+    /// came into existence was never hovered — opening the window under a
+    /// stationary pointer put a "Toggle sidebar" bubble on screen at launch.
+    /// Arming needs a real crossing: AppKit's own `mouseEntered`, or an
+    /// outside→inside transition seen by `syncHover`.
+    private var inside: Bool?
 
     /// Never take a mouse event. This view exists only to observe hover, and its
     /// tracking area delivers that regardless of hit-testing — but a plain NSView
@@ -67,8 +67,11 @@ final class TrackerNSView: NSView {
         addTrackingArea(NSTrackingArea(
             rect: bounds,
             // .assumeInside: a control created under a stationary cursor gets no
-            // mouseEntered, so without this AppKit also withholds the matching
-            // mouseExited when the mouse finally leaves, stranding the bubble.
+            // mouseEntered. That part is wanted — the first look adopts the
+            // cursor's position silently (see `inside`) — but AppKit would then
+            // also withhold the matching mouseExited when the mouse finally
+            // leaves, and the control would stay latched "inside", unable to
+            // ever arm again. This restores the exit.
             options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect, .assumeInside],
             owner: self
         ))
@@ -86,26 +89,40 @@ final class TrackerNSView: NSView {
     /// replacement's own bubble never armed until the mouse was jiggled.
     /// Tracking areas are rebuilt on every geometry change, which is exactly when
     /// this can happen, so that is where it runs. Only a control that *moved*
-    /// under the cursor arms a bubble this way — see `hoverKnown` for why the
-    /// first look never does.
+    /// under the cursor arms a bubble this way — see `inside` for why the first
+    /// look never does.
     private func syncHover() {
-        guard let window, window.isKeyWindow else {
-            if inside { endHover() }
-            return
-        }
+        guard let window else { return }
         let point = convert(window.mouseLocationOutsideOfEventStream, from: nil)
         let over = visibleRect.contains(point)
-        guard hoverKnown else {
+        guard let wasInside = inside else {
             // First look: adopt where the cursor is without arming anything, so
             // a later exit still pairs up. Nothing is on screen yet, so there is
             // no bubble to hide either.
-            hoverKnown = true
+            //
+            // Skip a pass with no geometry — SwiftUI runs one before it sizes
+            // the representable, and an empty rect contains nothing, so the
+            // silent look would be spent on a phantom "outside" and the pass
+            // that brings the real frame would arm under a motionless cursor.
+            // Deliberately not gated on the window being key either: the latch
+            // has to be in place before activation, or AppKit's own
+            // mouseEntered at that moment arms the bubble this exists to stop.
+            // Ordering is guaranteed — the area is .inVisibleRect, so it can't
+            // deliver an enter event until it has a non-empty rect.
+            if !visibleRect.isEmpty { inside = over }
+            return
+        }
+        guard window.isKeyWindow else {
+            // A background window shows no bubble, but the cursor is still
+            // wherever it is: take ours down without disowning the hover, or
+            // returning to the front would read as a fresh crossing.
+            dismissBubble()
             inside = over
             return
         }
-        if over, !inside {
+        if over, !wasInside {
             beginHover()
-        } else if !over, inside {
+        } else if !over, wasInside {
             endHover()
         } else if over {
             // Still the hovered control, but it moved — re-aim the pointer.
@@ -113,19 +130,13 @@ final class TrackerNSView: NSView {
         }
     }
 
-    // A real crossing, so hover is known from here on either way.
-    override func mouseEntered(with event: NSEvent) {
-        hoverKnown = true
-        beginHover()
-    }
+    // A real crossing — AppKit sends these only for a moving mouse.
+    override func mouseEntered(with event: NSEvent) { beginHover() }
 
-    override func mouseExited(with event: NSEvent) {
-        hoverKnown = true
-        endHover()
-    }
+    override func mouseExited(with event: NSEvent) { endHover() }
 
     private func beginHover() {
-        guard !inside else { return }
+        guard inside != true else { return }
         inside = true
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: false) { [weak self] _ in
@@ -155,6 +166,12 @@ final class TrackerNSView: NSView {
 
     private func endHover() {
         inside = false
+        dismissBubble()
+    }
+
+    /// Take the bubble down (and cancel a pending one) without touching `inside`
+    /// — for the cases where the bubble has to go but the cursor hasn't moved.
+    private func dismissBubble() {
         removeClickMonitor()
         timer?.invalidate()
         timer = nil
@@ -166,14 +183,13 @@ final class TrackerNSView: NSView {
     // isn't stranded on screen.
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
-        if window == nil {
-            endHover()
-            // Re-inserted under a stationary cursor is "created there", not
-            // "hovered" — make the next look establish hover silently again.
-            hoverKnown = false
-        } else {
-            syncHover()
-        }
+        // `inside` is deliberately left set on removal rather than reset to
+        // "never determined": a view that is re-inserted is a view AppKit kept
+        // alive — a recycled sidebar row — and one that slides back under a
+        // stationary cursor should arm, which is the crossed-bubble fix from
+        // 1.16.1. Only a genuinely new control starts out undetermined, and it
+        // gets that from the property's initial value.
+        if window == nil { endHover() } else { syncHover() }
     }
 
     private func removeClickMonitor() {
