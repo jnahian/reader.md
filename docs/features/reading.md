@@ -58,12 +58,12 @@ size applies to every document, not just the open one, and survives a restart.
 
 ## Canvas width
 
-Cycle the canvas width (⇧⌘\) through three settings: **Narrow** for a tight
+Cycle the canvas width (⇧⌘\\) through three settings: **Narrow** for a tight
 measure, **Wide** for a comfortable one, and **Full Width** to use the whole
 window. Wide is the default. The clip below cycles from Wide to Full Width to
 Narrow, showing how the text column reflows at each step.
 
-![Cycling the canvas width (⇧⌘\)](../assets/screenshots/reading/05-width.mp4)
+![Cycling the canvas width (⇧⌘\\)](../assets/screenshots/reading/05-width.mp4)
 
 Width and text size compose: a narrow canvas with larger text gives a short line
 length that reads like a book, and full width with smaller text suits wide
@@ -71,5 +71,6 @@ tables and code blocks.
 
 ## Related
 
-- [Navigating](/docs/navigating) — Quick Open, the file filter, history, and favorites
-- [Rendering](/docs/rendering) — diagrams, math, code highlighting, and frontmatter
+- [All features](/docs#features) — the complete list, including Quick Open, the
+  file filter, diagrams, and math
+- [Keyboard shortcuts](/docs#shortcuts) — every binding in one table

@@ -22,6 +22,12 @@ docs are direct, second person, and unhedged.
 Write them as glyphs, in Apple's order: ⌃ ⌥ ⇧ ⌘. So ⇧⌘B, never ⌘⇧B or
 "Cmd+Shift+B". Arrow and special keys as glyphs too: ↑ ↓ ⏎ ⎋.
 
+**The canvas-width shortcut needs a doubled backslash.** Written as `(⇧⌘\)`,
+markdown reads `\)` as an escaped parenthesis, swallows the backslash, and the
+page renders "(⇧⌘)". Write `(⇧⌘\\)` — in prose and in image alt text alike.
+This is invisible to every automated check; it was caught by looking at the
+rendered page, which is why gate 2 includes doing that.
+
 ## What the reader already knows
 
 They are a Mac user reading about a markdown viewer. Do not explain what
