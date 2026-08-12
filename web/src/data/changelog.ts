@@ -22,9 +22,30 @@ export interface Release {
 
 export const releasesLog: Release[] = [
   {
+    version: "1.18.0",
+    date: "Aug 13, 2026",
+    badge: "LATEST",
+    groups: [
+      {
+        tag: "ADDED",
+        items: [
+          "<strong>Links in the About panel</strong> — <strong>Website</strong>, <strong>Docs</strong>, and <strong>Report an Issue</strong>, clickable straight from <strong>Reader.md ▸ About Reader.md</strong>. The Help menu carries the same destinations, with <strong>Reader.md Website</strong> and <strong>Documentation</strong> joining the two GitHub items already there.",
+        ],
+      },
+      {
+        tag: "FIXED",
+        items: [
+          "<strong>No more tooltip on launch, or on switching back to Reader.md</strong> — a window that opened under a stationary pointer counted as a hover, so whichever control happened to land under the cursor — usually the toolbar's sidebar toggle — put its bubble on screen unprompted, and ⌘-tabbing back with the pointer parked did it again. A bubble now waits for the pointer to actually be moved onto a control.",
+          "<strong>Git badges on a folder reached through a symlink</strong> — a repository added as <code class=\"tok\">/tmp/notes</code>, or through a link to another volume, showed no <code class=\"tok\">M</code> · <code class=\"tok\">A</code> · <code class=\"tok\">?</code> badges at all. The sidebar looks them up under the resolved path the folder scan returns, and the badge map was keyed only under the path you added.",
+          "<strong><code class=\"tok\">reader ls</code> printed nothing useful for a cloned repository</strong> — just a bare <code class=\"tok\">:</code> where its origin should be. Cloned remotes arrived after that listing was written and never reached it; it now shows the clone URL.",
+          "<strong><code class=\"tok\">brew uninstall --zap</code> left your annotations behind</strong> — highlights, notes, and cached remote folders live under the app's name rather than its bundle id, and only the bundle-id paths were being removed, so a zap reported success and cleaned up nothing of yours.",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.17.0",
     date: "Aug 12, 2026",
-    badge: "LATEST",
     groups: [
       {
         tag: "ADDED",
