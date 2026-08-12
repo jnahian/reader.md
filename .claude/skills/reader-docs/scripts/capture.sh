@@ -111,6 +111,10 @@ require_shots_app() {
 # --- app control -------------------------------------------------------------
 
 seed_prefs() {
+  # $1 is a shot's own `prefs`, merged over the manifest's. A page that
+  # documents appearance needs one shot in light and the rest in dark, and the
+  # harness re-seeds per shot anyway, so the override costs nothing.
+  local extra="${1:-\{\}}"
   defaults delete "$DOMAIN" 2>/dev/null || true
   # Sensible defaults for every shot; a manifest may override any of them.
   defaults write "$DOMAIN" reader.md.theme -string dark
@@ -126,25 +130,26 @@ seed_prefs() {
 
   # Manifest overrides. Types are inferred: arrays -> -array, booleans -> -bool,
   # numbers -> -float, everything else -> -string.
-  local keys key type
-  keys=$(jq -r '(.prefs // {}) | keys[]' "$MANIFEST")
+  local merged keys key type
+  merged=$(jq -c --argjson extra "$extra" '(.prefs // {}) + $extra' "$MANIFEST")
+  keys=$(echo "$merged" | jq -r 'keys[]')
   for key in $keys; do
-    type=$(jq -r --arg k "$key" '.prefs[$k] | type' "$MANIFEST")
+    type=$(echo "$merged" | jq -r --arg k "$key" '.[$k] | type')
     case "$type" in
       array)
         local -a vals=()
         local v
         while IFS= read -r v; do
           vals+=("${v//<fixtures>/$FIXTURES}")
-        done < <(jq -r --arg k "$key" '.prefs[$k][]' "$MANIFEST")
+        done < <(echo "$merged" | jq -r --arg k "$key" '.[$k][]')
         defaults write "$DOMAIN" "$key" -array "${vals[@]}"
         ;;
       boolean)
-        defaults write "$DOMAIN" "$key" -bool "$(jq -r --arg k "$key" '.prefs[$k]' "$MANIFEST")" ;;
+        defaults write "$DOMAIN" "$key" -bool "$(echo "$merged" | jq -r --arg k "$key" '.[$k]')" ;;
       number)
-        defaults write "$DOMAIN" "$key" -float "$(jq -r --arg k "$key" '.prefs[$k]' "$MANIFEST")" ;;
+        defaults write "$DOMAIN" "$key" -float "$(echo "$merged" | jq -r --arg k "$key" '.[$k]')" ;;
       *)
-        defaults write "$DOMAIN" "$key" -string "$(jq -r --arg k "$key" '.prefs[$k]' "$MANIFEST" | sed "s|<fixtures>|$FIXTURES|g")" ;;
+        defaults write "$DOMAIN" "$key" -string "$(echo "$merged" | jq -r --arg k "$key" '.[$k]' | sed "s|<fixtures>|$FIXTURES|g")" ;;
     esac
   done
   killall cfprefsd 2>/dev/null || true
@@ -355,7 +360,7 @@ trap cleanup EXIT
 # would produce an image that does not match the committed one, and
 # --verify-repro would then fail on a shot nobody had changed.
 reset_state() {
-  seed_prefs
+  seed_prefs "${1:-\{\}}"
   launch_app
   hide_others
   # Stills need the pointer out of the way just as much as clips do: a tooltip
@@ -364,8 +369,6 @@ reset_state() {
   set_geometry "$WIN_W" "$WIN_H"
   assert_frontmost
 }
-
-reset_state
 
 echo "capture: $PAGE — window ${WIN_W}x${WIN_H}, fixtures at $FIXTURES"
 
@@ -607,9 +610,6 @@ for i in $(seq 0 $((count - 1))); do
   id=$(echo "$shot" | jq -r '.id')
   [ -n "$ONLY" ] && [ "$ONLY" != "$id" ] && continue
 
-  # The first shot already has a clean app from the setup above.
-  [ "$i" -gt 0 ] && reset_state
-
   if [ "$(echo "$shot" | jq -r '.manual // false')" = "true" ]; then
     if [ -f "$FINAL_OUT/$id.png" ]; then
       echo "  $id — manual, keeping existing file"
@@ -618,6 +618,8 @@ for i in $(seq 0 $((count - 1))); do
     fi
     continue
   fi
+
+  reset_state "$(echo "$shot" | jq -c '.prefs // {}')"
 
   open_path=$(echo "$shot" | jq -r '.open // empty')
   [ -n "$open_path" ] && "$READER" "$FIXTURES/$open_path"

@@ -30,10 +30,16 @@ ffmpeg -v error -y -i in.png -vf scale=2400:-1 -compression_level 100 \
   docs/assets/screenshots/<page>/<id>.png
 ```
 
+A shot of a window that is *not* the 1400pt document window — the Settings
+window is 420pt — keeps its own 2× size instead. Upscaling a 420pt window to
+2400px blurs it, and the site lays every image out responsively, so a narrower
+image simply renders narrower.
+
 ## The list
 
 | Shot | Page | State to reach |
 |---|---|---|
+| Settings window | settings | ⌘, — a second window, and 420pt wide |
 | Diff scope popover | git | ⇧⌘D, then click the scope button in the toolbar |
 | Context menu on a file | navigating | Right-click a file in the tree |
 | Context menu on a root | library | Right-click a root header |

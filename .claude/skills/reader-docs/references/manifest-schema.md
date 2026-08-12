@@ -37,6 +37,7 @@ Lives at `docs/features/<slug>.shots.json`, committed beside the page it feeds.
 |---|---|---|
 | `id` | yes | Zero-padded and ordered; becomes the filename |
 | `open` | no | Fixture-relative path opened via the `reader` CLI |
+| `prefs` | no | Merged over the manifest's before this shot launches — one light shot on an otherwise dark page |
 | `actions` | no | Run in order after `open`; default `[]` |
 | `caption` | yes | Alt text and caption |
 | `video` | no | `{ "seconds": n }` — records a clip instead of a still |
