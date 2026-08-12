@@ -1,5 +1,11 @@
 # Voice
 
+**This file outranks the vendored skills.** `vendored/copy-editing` and
+`vendored/product-marketing` come from a marketing skill set and speak in terms
+of conversion, benefits, and driving action. Use their mechanics — plain
+English, one idea per sentence, cutting hedges — and drop everything else. If
+their guidance and this file disagree, this file wins.
+
 Match the existing documentation rather than inventing a tone. The app's own
 docs are direct, second person, and unhedged.
 

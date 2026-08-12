@@ -87,9 +87,32 @@ and the keystroke badge on the right frame.
 
 ## 4. Write
 
-Follow `references/page-template.md` for structure and `references/voice.md`
-for tone. Reference assets by true relative path so the page also reads
-correctly in Reader.md itself:
+Four steps, in order:
+
+1. **Read the product context.** If `.agents/product-marketing.md` exists, read
+   it first — it carries who the reader is and the words they actually use, so
+   every page describes the same product to the same person. If it is missing,
+   say so once ("pages will lack shared audience grounding — the
+   `vendored/product-marketing` skill creates it") and carry on. Do not stop to
+   create it mid-page.
+2. **Draft** against `references/page-template.md`.
+3. **Apply `references/voice.md`.**
+4. **Polish with `vendored/copy-editing`**, invoked explicitly. Use its
+   focused-pass method and `references/plain-english-alternatives.md`.
+
+**`voice.md` wins, always.** The vendored skills are marketing skills: they
+speak of conversion, benefits, and driving action. That framing suits a landing
+page and is wrong here. Take their *mechanics* — plain English, one idea per
+sentence, cutting hedges and filler — and ignore any pull toward
+feature-marketing adjectives, benefit-led restructuring, or a call to action.
+A feature doc's job is to be accurate and quick to scan, not to sell.
+
+If a vendored directory has no `SKILL.md` (not yet vendored — see
+`vendored/VERSIONS.md`), note it once and write with the page template and
+voice rules alone.
+
+Reference assets by true relative path so the page also reads correctly in
+Reader.md itself:
 
 ```markdown
 ![The outline pane, opened with ⇧⌘B](../assets/screenshots/reading/01-outline.png)
@@ -114,6 +137,21 @@ cd web && npm run build
 
 **Gate 3:** state plainly that pushing to `main` publishes the page live, and
 require an explicit yes.
+
+## Vendored skills
+
+`vendored/` holds two skills from
+[coreyhaines31/marketingskills](https://github.com/coreyhaines31/marketingskills)
+(MIT), pinned to a commit by `scripts/vendor-skills.sh`:
+
+| Skill | Role |
+|---|---|
+| `product-marketing` | Creates `.agents/product-marketing.md` — audience, positioning, customer vocabulary. Run it **once per project**, not per page. It writes no page content |
+| `copy-editing` | The polish pass in step 4 |
+
+Re-vendor with `./scripts/vendor-skills.sh` (latest) or with a commit SHA. See
+`vendored/VERSIONS.md` for why the other three upstream writing skills are
+deliberately not vendored.
 
 ## Output contract
 
