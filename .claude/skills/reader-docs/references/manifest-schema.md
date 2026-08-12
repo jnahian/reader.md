@@ -106,6 +106,12 @@ settled, and the palette is centred, so a fractional difference moves it.
 Treat that one failure as known. A palette shot differing by *content* — a
 different query, a different result order — is a real regression.
 
+`annotations/04-thread` is machine-dependent for a different reason: a comment's
+author is `NSFullUserName()`, which the app takes from macOS and no preference
+overrides. The committed shot carries the maintainer's name, deliberately.
+Re-shooting it elsewhere will put a different name in the thread — expected, not
+a leak, but worth noticing before committing the result.
+
 ## Keystroke badges
 
 In a video shot, every keystroke automatically gets a badge burned into the
