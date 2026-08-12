@@ -131,6 +131,23 @@ const steps = [
 </Base>
 
 <script>
+  // /docs was one page with anchored sections before it became a hub, and those
+  // URLs were published. A bookmark or an outside link would otherwise land here
+  // on a fragment that matches nothing and scroll nowhere, with no error.
+  const LEGACY: Record<string, string> = {
+    "#install": "/docs/install",
+    "#features": "/docs/features",
+    "#shortcuts": "/docs/features#keyboard-shortcuts",
+    "#cli": "/docs/cli",
+    "#architecture": "/docs/architecture",
+    "#build": "/docs/building",
+    "#requirements": "/docs/install#requirements",
+  };
+  const moved = LEGACY[location.hash];
+  if (moved) location.replace(moved);
+</script>
+
+<script>
   // Nine-ish pages: a filter, not a search index. Matching is a plain substring
   // over title, summary, and category, and everything that is not a card is
   // hidden while the field has text so the results are the whole page.
