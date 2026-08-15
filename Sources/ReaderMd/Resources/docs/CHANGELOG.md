@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.18.1] - 2026-08-16
+
 ### Changed
 
 - **The update prompt's dismiss button now reads "Remind Later"** instead of
