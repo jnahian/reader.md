@@ -1,6 +1,10 @@
 ---
 // Fixed top navigation. `page` picks the link set + optional badge;
 // `solid` forces the blurred background (home starts transparent, JS toggles).
+//
+// Narrow screens get the same links from a drop-down panel instead of the row:
+// the row is hidden below 640px, so without the panel a phone had no way to
+// reach Features, Docs, or the Changelog at all.
 import { navLinksFor, type Page } from "../data/site";
 import Icon from "./Icon.astro";
 interface Props {
@@ -37,8 +41,67 @@ const linkIcon: Record<string, "home" | "grid" | "book" | "history"> = {
         Download on Mac
       </a>
     </div>
+    <button
+      type="button"
+      class="nav__toggle"
+      data-nav-toggle
+      aria-controls="nav-menu"
+      aria-expanded="false"
+      aria-label="Menu"
+    >
+      <span class="nav__toggle-icon nav__toggle-icon--open"><Icon name="menu" size={20} /></span>
+      <span class="nav__toggle-icon nav__toggle-icon--close"><Icon name="close" size={20} /></span>
+    </button>
+  </div>
+
+  {/* Rendered expanded and collapsed by the script below, so the links are
+      still reachable if the script never runs. */}
+  <div class="nav__menu" id="nav-menu" data-nav-menu>
+    {links.map((l) => (
+      <a href={l.href} class="nav__menu-link">
+        {linkIcon[l.label] && <Icon name={linkIcon[l.label]} size={17} />}
+        {l.label}
+      </a>
+    ))}
+    <a href="/#install" class="nav__menu-cta">
+      <Icon name="download" size={16} />
+      Download on Mac
+    </a>
   </div>
 </nav>
+
+<script is:inline>
+  // Inline (not a bundled module) so the menu is collapsed before first paint —
+  // a deferred script would flash the expanded panel on every page load.
+  (() => {
+    const nav = document.querySelector("[data-nav]");
+    const toggle = nav && nav.querySelector("[data-nav-toggle]");
+    if (!nav || !toggle) return;
+
+    nav.classList.add("nav--js");
+
+    const close = () => {
+      nav.classList.remove("is-open");
+      toggle.setAttribute("aria-expanded", "false");
+    };
+
+    toggle.addEventListener("click", () => {
+      const open = nav.classList.toggle("is-open");
+      toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+
+    // A link to /#install or /#features on the page it already points at only
+    // moves the hash, so nothing else would take the panel back down.
+    nav.querySelectorAll("[data-nav-menu] a").forEach((a) => a.addEventListener("click", close));
+    document.addEventListener("keydown", (e) => e.key === "Escape" && close());
+    document.addEventListener("click", (e) => {
+      if (!nav.contains(e.target)) close();
+    });
+    // Widening past the breakpoint shows the row again; a panel left open would
+    // hang under it.
+    window.matchMedia("(min-width: 641px)").addEventListener("change", close);
+  })();
+</script>
 
 <style>
   .nav {
@@ -61,6 +124,7 @@ const linkIcon: Record<string, "home" | "grid" | "book" | "history"> = {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 12px;
   }
   .nav--solid,
   .nav.is-scrolled {
@@ -72,6 +136,7 @@ const linkIcon: Record<string, "home" | "grid" | "book" | "history"> = {
     align-items: center;
     gap: 11px;
     color: inherit;
+    min-width: 0;
   }
   .nav__logo {
     border-radius: 9px;
@@ -126,13 +191,124 @@ const linkIcon: Record<string, "home" | "grid" | "book" | "history"> = {
     color: #0a0b0e;
     background: #fff;
   }
+
+  /* Narrow screens -------------------------------------------------------- */
+  /* The button and the panel are the same control, so both are desktop-hidden
+     and both appear at the one breakpoint where the link row goes away. */
+  .nav__toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    /* 44px: the smallest comfortable touch target. */
+    width: 44px;
+    height: 44px;
+    margin-right: -10px;
+    padding: 0;
+    border: none;
+    border-radius: 11px;
+    background: none;
+    color: rgba(255, 255, 255, 0.82);
+    cursor: pointer;
+  }
+  .nav__toggle:hover {
+    background: var(--surface-2);
+    color: #fff;
+  }
+  .nav__toggle-icon {
+    display: flex;
+  }
+  .nav__toggle-icon--close,
+  .nav.is-open .nav__toggle-icon--open {
+    display: none;
+  }
+  .nav.is-open .nav__toggle-icon--close {
+    display: flex;
+  }
+
+  .nav__menu {
+    max-width: var(--maxw);
+    margin: 14px auto 2px;
+    padding-inline: var(--pad-x);
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .nav__menu-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 14px;
+    border-radius: 11px;
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+    color: var(--fg);
+    font-size: 15px;
+    font-weight: 500;
+  }
+  .nav__menu-link:hover {
+    color: #fff;
+    background: var(--surface-2);
+  }
+  .nav__menu-cta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    margin-top: 6px;
+    padding: 14px;
+    border-radius: 11px;
+    background: rgba(255, 255, 255, 0.95);
+    color: #0a0b0e;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .nav__menu-cta:hover {
+    color: #0a0b0e;
+    background: #fff;
+  }
+
   @media (max-width: 640px) {
-    .nav__name,
-    .nav__link {
+    .nav__links {
       display: none;
     }
-    .nav__badge {
-      display: inline-block;
+    /* With the script running the panel starts collapsed behind the button;
+       without it, the panel stays expanded and no button is offered. */
+    .nav__menu {
+      display: flex;
+    }
+    .nav--js .nav__toggle {
+      display: flex;
+    }
+    .nav--js .nav__menu {
+      display: none;
+    }
+    .nav--js.is-open .nav__menu {
+      display: flex;
+      animation: menuDrop 0.18s ease;
+    }
+    /* Opaque rather than glass while open: the bar is transparent on the home
+       page until you scroll, and even at 0.97 a hero heading read through the
+       gaps between the rows. */
+    .nav.is-open {
+      background: #0a0b0e;
+      border-bottom-color: var(--border-soft);
+    }
+  }
+
+  @media (max-width: 380px) {
+    .nav__name {
+      display: none;
+    }
+  }
+
+  @keyframes menuDrop {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
     }
   }
 </style>

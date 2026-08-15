@@ -55,10 +55,11 @@ const { Content, headings } = await render(page);
     min-width: 0;
   }
 
+  /* Stacked as a block rather than a one-column grid: DocsNav collapses to a
+     sticky control here, and a grid item can only stick inside its own row. */
   @media (max-width: 900px) {
     .doc {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 24px;
+      display: block;
     }
   }
 </style>

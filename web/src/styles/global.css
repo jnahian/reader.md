@@ -33,6 +33,10 @@
 
   /* Layout */
   --nav-h: 60px;
+  /* Where a control parks when it sticks under the fixed nav: the bar's real
+     height plus a gap, so it reads as floating below it rather than fused to
+     it. --nav-h is the padding allowance pages use, which is a few px short. */
+  --nav-stick: 74px;
   --maxw: 1180px;
   --maxw-prose: 820px;
   --pad-x: clamp(20px, 5vw, 40px);
@@ -548,6 +552,16 @@ pre {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   white-space: nowrap;
+}
+
+/* Below 900px the docs rail collapses into a control that sticks under the nav
+   (DocsNav.astro), so a heading jumped to from the section list has to clear
+   both or it lands underneath. */
+@media (max-width: 900px) {
+  .doc__body h2,
+  .doc__body h3 {
+    scroll-margin-top: 144px;
+  }
 }
 
 .doc__body blockquote {
