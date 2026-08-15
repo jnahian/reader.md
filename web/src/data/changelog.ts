@@ -22,9 +22,27 @@ export interface Release {
 
 export const releasesLog: Release[] = [
   {
+    version: "1.18.1",
+    date: "Aug 16, 2026",
+    badge: "LATEST",
+    groups: [
+      {
+        tag: "IMPROVED",
+        items: [
+          "<strong>The update prompt's dismiss button now reads \"Remind Later\"</strong> — instead of \"Remind Me Later\". Other languages keep their own wording.",
+        ],
+      },
+      {
+        tag: "FIXED",
+        items: [
+          "<strong>Check for Updates… can't be left doing nothing</strong> — Sparkle drops the request whenever it still believes it's showing an update whose window is already gone, and says so only in the system log, so the menu item would have answered a click with no window and no error. <strong>Reader.md ▸ Check for Updates…</strong> now recognises that state and starts over rather than letting the click fall through.",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.18.0",
     date: "Aug 13, 2026",
-    badge: "LATEST",
     groups: [
       {
         tag: "ADDED",
