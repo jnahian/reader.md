@@ -121,6 +121,11 @@ authenticate to fails with git's own error instead of hanging.
 Reader.md checks for updates automatically. You can also trigger it from
 **Reader.md → Check for Updates…**. Updates are delivered to Apple-silicon Macs.
 
+**I dismissed the update prompt — how do I get it back?**
+**Remind Later** only defers an offer, so the next check — automatic or from
+**Check for Updates…** — brings it back. **Skip This Version** is the one that
+passes on a release for good; a later release is still offered.
+
 ## Something's wrong
 
 Found a bug or have a request? **Help → Report an Issue…** opens the GitHub

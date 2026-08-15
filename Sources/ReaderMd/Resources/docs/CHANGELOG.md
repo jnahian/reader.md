@@ -6,6 +6,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **The update prompt's dismiss button now reads "Remind Later"** instead of
+  "Remind Me Later". Other languages keep their own wording.
+
+### Fixed
+
+- **Check for Updates… can't be left doing nothing.** Sparkle drops the request
+  whenever it still believes it's showing an update whose window is already
+  gone, and says so only in the system log — so the menu item would have
+  answered a click with no window and no error. **Reader.md → Check for
+  Updates…** now recognises that state and starts over rather than letting the
+  click fall through.
+
 ## [1.18.0] - 2026-08-13
 
 ### Added

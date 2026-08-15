@@ -52,6 +52,9 @@ The packaged app checks for updates through Sparkle on launch and offers what
 it finds; accepting installs it in place. **Reader.md → Check for Updates…**
 asks straight away.
 
+**Remind Later** dismisses an offer without taking it; the next check offers it
+again. **Skip This Version** passes on that release for good.
+
 The first launch after an update opens the changelog, so you can see what
 changed without going looking for it.
 
