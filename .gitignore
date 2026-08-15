@@ -4,3 +4,5 @@ build/
 *.xcodeproj
 .swiftpm/
 .playwright-mcp/
+.code-notes/
+.vscode/
