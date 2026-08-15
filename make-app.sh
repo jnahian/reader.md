@@ -40,6 +40,30 @@ mkdir -p "${APP}/Contents/Frameworks"
 cp -R "${SPARKLE_FW}" "${APP}/Contents/Frameworks/"
 install_name_tool -add_rpath "@executable_path/../Frameworks" "${APP}/Contents/MacOS/${APP_NAME}" 2>/dev/null || true
 
+# Sparkle draws the update alert itself, and its dismiss button reads "Remind Me
+# Later" — we ship it as "Remind Later". The string comes from the framework's own
+# strings table (the prebuilt XCFramework is compiled with SPARKLE_COPY_LOCALIZATIONS,
+# so it never falls back to the app bundle and Swift can't override it), which
+# leaves patching the copy we ship. English lives in Base.lproj — Sparkle has no
+# en.lproj — and every other language keeps its own wording. Runs before the
+# codesign below, which re-seals the framework over the edit.
+PATCHED_STRINGS=0
+while IFS= read -r STRINGS; do
+  plutil -replace "Remind Me Later" -string "Remind Later" "${STRINGS}" || {
+    echo "error: Sparkle no longer has a \"Remind Me Later\" key in ${STRINGS}." >&2
+    echo "The update alert would ship Sparkle's stock label. Update make-app.sh." >&2
+    exit 1
+  }
+  PATCHED_STRINGS=$((PATCHED_STRINGS + 1))
+done < <(find "${APP}/Contents/Frameworks/Sparkle.framework/Versions" -name Sparkle.strings \
+           \( -path '*/Base.lproj/*' -o -path '*/en.lproj/*' \))
+if [ "${PATCHED_STRINGS}" -eq 0 ]; then
+  echo "error: found no English Sparkle.strings under Sparkle.framework to patch." >&2
+  echo "Sparkle moved its localizations; the update alert would ship the stock" >&2
+  echo "\"Remind Me Later\" label. Update make-app.sh." >&2
+  exit 1
+fi
+
 # Copy resources into Contents/Resources (standard, signable). Bundle.resources
 # loads them via Bundle.main there. Placing the SwiftPM .bundle at the .app root
 # (where Bundle.module looks) is unsignable — codesign rejects contents at root.

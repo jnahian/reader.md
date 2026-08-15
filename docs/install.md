@@ -50,7 +50,10 @@ once the app is running. See [the CLI reference](cli.md).
 
 The packaged app checks for updates through Sparkle on launch and offers what
 it finds; accepting installs it in place. **Reader.md → Check for Updates…**
-asks straight away.
+asks straight away — greyed out for as long as a check is already running.
+
+**Remind Later** dismisses an offer without taking it; the next check offers it
+again. **Skip This Version** passes on that release for good.
 
 The first launch after an update opens the changelog, so you can see what
 changed without going looking for it.

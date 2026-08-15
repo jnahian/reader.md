@@ -6,6 +6,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **The update prompt's dismiss button now reads "Remind Later"** instead of
+  "Remind Me Later". Other languages keep their own wording.
+
+### Fixed
+
+- **Dismissing the update prompt no longer breaks Check for Updates…** Turning
+  down the first offer could leave the updater believing it was still showing
+  something, and every later **Reader.md → Check for Updates…** then did
+  nothing at all — no window, no error. The menu item now also greys out while
+  a check is actually running, instead of swallowing the clicks.
+
 ## [1.18.0] - 2026-08-13
 
 ### Added
