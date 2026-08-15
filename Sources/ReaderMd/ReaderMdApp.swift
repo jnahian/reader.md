@@ -65,7 +65,7 @@ struct ReaderMdApp: App {
             CommandGroup(replacing: .appInfo) {
                 Button("About Reader.md") { showAboutPanel() }
                 Button("Check for Updates…") { updater.checkForUpdates() }
-                    .disabled(!updater.canCheck)
+                    .disabled(!updater.hasFeed)
             }
 
             CommandGroup(replacing: .newItem) {

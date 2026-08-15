@@ -13,11 +13,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
-- **Dismissing the update prompt no longer breaks Check for Updates…** Turning
-  down the first offer could leave the updater believing it was still showing
-  something, and every later **Reader.md → Check for Updates…** then did
-  nothing at all — no window, no error. The menu item now also greys out while
-  a check is actually running, instead of swallowing the clicks.
+- **Check for Updates… can't be left doing nothing.** Sparkle drops the request
+  whenever it still believes it's showing an update whose window is already
+  gone, and says so only in the system log — so the menu item would have
+  answered a click with no window and no error. **Reader.md → Check for
+  Updates…** now recognises that state and starts over rather than letting the
+  click fall through.
 
 ## [1.18.0] - 2026-08-13
 

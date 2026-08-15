@@ -49,11 +49,15 @@ install_name_tool -add_rpath "@executable_path/../Frameworks" "${APP}/Contents/M
 # codesign below, which re-seals the framework over the edit.
 PATCHED_STRINGS=0
 while IFS= read -r STRINGS; do
-  plutil -replace "Remind Me Later" -string "Remind Later" "${STRINGS}" || {
+  # Checked before the edit because `plutil -replace` *creates* a missing key and
+  # still exits 0 — so a Sparkle rename would otherwise ship the stock label plus
+  # a dead orphan key, with the build none the wiser.
+  plutil -extract "Remind Me Later" raw "${STRINGS}" >/dev/null 2>&1 || {
     echo "error: Sparkle no longer has a \"Remind Me Later\" key in ${STRINGS}." >&2
     echo "The update alert would ship Sparkle's stock label. Update make-app.sh." >&2
     exit 1
   }
+  plutil -replace "Remind Me Later" -string "Remind Later" "${STRINGS}"
   PATCHED_STRINGS=$((PATCHED_STRINGS + 1))
 done < <(find "${APP}/Contents/Frameworks/Sparkle.framework/Versions" -name Sparkle.strings \
            \( -path '*/Base.lproj/*' -o -path '*/en.lproj/*' \))
