@@ -125,7 +125,7 @@ final class TrackerNSView: NSView {
             return
         }
         let point = convert(window.mouseLocationOutsideOfEventStream, from: nil)
-        let over = visibleRect.contains(point)
+        let over = Self.hoverRect(bounds: bounds, visibleRect: visibleRect).contains(point)
         if over, !inside {
             // Adopt the hover either way, so the matching exit still pairs up;
             // only put a bubble up if the pointer earned it. See `PointerRest`.
@@ -136,6 +136,27 @@ final class TrackerNSView: NSView {
             // Still the hovered control, but it moved — re-aim the pointer.
             TooltipController.shared.reanchor(owner: self)
         }
+    }
+
+    /// The part of the control the cursor can actually be over.
+    ///
+    /// `visibleRect` alone is not that. For the backing view of a SwiftUI
+    /// representable it comes back as the *enclosing panel's* rect expressed in
+    /// this view's coordinates rather than a subrect of `bounds` — a 40x14
+    /// "Clear recent files" button answers with the whole 260x365 sidebar — so
+    /// it read as a hover for a pointer anywhere in the panel. Every layout pass
+    /// then looked like the pointer arriving on every control at once: opening a
+    /// file put five bubbles on screen, none of them near the cursor, and
+    /// pointing at a row named the × beside it instead of the row. Intersecting
+    /// with `bounds` gives back what the rect was meant to be — this control,
+    /// minus whatever clips it.
+    ///
+    /// The trade: on an unsettled pass the converted point is in the ancestor's
+    /// space too, so the control that genuinely holds the cursor can read as not
+    /// hovered and drop its bubble until the pointer moves again. Deliberate —
+    /// one bubble that blinks beats five that were never asked for.
+    static func hoverRect(bounds: CGRect, visibleRect: CGRect) -> CGRect {
+        bounds.intersection(visibleRect)
     }
 
     override func mouseEntered(with event: NSEvent) {
