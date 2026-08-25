@@ -22,9 +22,21 @@ export interface Release {
 
 export const releasesLog: Release[] = [
   {
+    version: "1.18.2",
+    date: "Aug 26, 2026",
+    badge: "LATEST",
+    groups: [
+      {
+        tag: "FIXED",
+        items: [
+          "<strong>Tooltips no longer appear on their own, or name the wrong control</strong> — a tooltip asked the system for the part of its control still on screen and was answered with the whole sidebar or toolbar, so a pointer resting anywhere in that panel counted as resting on every control in it. Opening a file relaid the panel out and put up to five unrelated bubbles on screen at once, and pointing at a file in the sidebar named the \u00d7 beside it instead of the file, whose own tooltip never arrived. A bubble now belongs to the control actually under the pointer.",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.18.1",
     date: "Aug 16, 2026",
-    badge: "LATEST",
     groups: [
       {
         tag: "IMPROVED",
