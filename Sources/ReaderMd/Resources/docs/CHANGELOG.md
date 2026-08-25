@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.18.2] - 2026-08-26
+
 ### Fixed
 
 - **Tooltips no longer appear on their own, or name the wrong control.** A
