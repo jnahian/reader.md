@@ -64,18 +64,16 @@ reading style → width → outline → focus.
 
 ```swift
 Button { state.toggleFocusMode() } label: {
-    Image(systemName: state.focusMode
-        ? "rectangle.center.inset.filled"
-        : "rectangle.inset.filled")
+    Image(systemName: "rectangle.inset.filled")
 }
 .dockTooltip("Focus mode (⌥⌘F)")
 ```
 
-Both symbols are believed to be SF Symbols 3, and therefore present on macOS 13 —
-**confirm this for the `center` variant specifically before the icon pair is
-locked.** A symbol missing from the deployment target's catalogue renders blank
-rather than falling back. If it is unavailable, use `rectangle.inset.filled` for
-both states and carry the on-state with the toolbar item's own selected styling. The filled-centre variant
+One icon, no on-state variant — matching the sidebar and outline toggles beside it,
+which do not vary either. In the default configuration the button is hidden the
+moment it is pressed, so an on-state would only ever show in the "Hide the toolbar
+off" configuration: not worth a second symbol, or the availability question a
+newer one would raise. The filled-centre variant
 carries the on-state without a second control; AppKit draws the capsule.
 
 Consequence, accepted rather than fixed: in the default configuration this button
@@ -163,9 +161,8 @@ mode hides the toolbar with no reveal**; ⌥⌘F or Esc is the way back. This as
 between the two configurations is deliberate.
 
 `window(_:willUseFullScreenPresentationOptions:)` delivering the reveal is one of
-two assumptions in this design that must be confirmed against the running app
-before the implementation commits to them (the other is the toolbar icon pair —
-see below). If it does not, the fallback is to hide the toolbar
+the one assumption in this design that must be confirmed against the running app
+before the implementation commits to it. If it does not, the fallback is to hide the toolbar
 manually via `state.documentWindow` in both configurations and drop hover reveal
 entirely — the mode still works, it just loses the mouse-only path out.
 
