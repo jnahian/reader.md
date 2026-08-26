@@ -57,6 +57,34 @@ struct SettingsView: View {
                 }
             }
 
+            Section("Focus Mode") {
+                Toggle("Enter fullscreen", isOn: Binding(
+                    get: { state.focusFullscreen },
+                    set: { state.setFocusFullscreen($0) }
+                ))
+                Toggle("Dim other sections", isOn: Binding(
+                    get: { state.focusDimSections },
+                    set: { state.setFocusDimSections($0) }
+                ))
+                Toggle("Narrow the canvas", isOn: Binding(
+                    get: { state.focusNarrowCanvas },
+                    set: { state.setFocusNarrowCanvas($0) }
+                ))
+                Toggle("Hide the toolbar", isOn: Binding(
+                    get: { state.focusHideToolbar },
+                    set: { state.setFocusHideToolbar($0) }
+                ))
+
+                // Every switch off is allowed rather than forbidden — but ⌥⌘F then
+                // does nothing visible, which reads as a broken shortcut without a
+                // word of explanation.
+                if state.focusModeDoesNothing {
+                    Text("With all four off, Focus Mode (⌥⌘F) has no visible effect.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             Section("Editing & Export") {
                 LabeledContent("External editor") {
                     HStack {
