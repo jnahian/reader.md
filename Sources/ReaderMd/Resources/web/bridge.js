@@ -108,6 +108,11 @@ window.ReaderMd = {
     document.documentElement.style.setProperty('--content-width', css);
   },
 
+  setFocusDim(on) {
+    focusDim = on;
+    applyFocusDim();
+  },
+
   applyMarks(marksJSON) {
     applyMarks(marksJSON);
   },
@@ -234,6 +239,7 @@ async function render(text, dir, keepScroll, resume) {
   window.scrollTo(0, keepScroll ? prevScroll : (resume > 0 && max > 0 ? resume * max : 0));
   reportActiveHeading();
   reportProgress();
+  applyFocusDim();
   post('rendered', true);
 }
 
@@ -521,11 +527,17 @@ function setFullscreenButton(view, open) {
 }
 
 // One listener for the whole document rather than one per diagram; inert unless
-// something is actually open.
+// something is actually open. Anything Escape does NOT consume in the page is
+// handed to Swift, which owns the precedence (find, quick open, focus mode).
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
   const open = document.querySelector('.mm-view.fs');
-  if (open) exitFullscreen(open);
+  if (open) { exitFullscreen(open); return; }
+  // The lightbox has its own listener further down; it fires after this one, so
+  // check the state directly rather than relying on ordering.
+  const lightbox = document.getElementById('lightbox');
+  if (lightbox && lightbox.classList.contains('open')) return;
+  post('exitFocus', true);
 });
 
 function addDiagramZoom(view) {
@@ -630,6 +642,38 @@ function postTOC() {
   post('toc', entries);
 }
 
+let focusDim = false;
+
+// Classes the top-level blocks OUTSIDE the active heading's region. Deliberately
+// no <section> wrappers: marked emits a flat h2/p/p/h2 sibling list, and mark
+// anchoring, find, footnotes and diff hunks all read that flat structure.
+//
+// The region ends at the next heading of ANY level. Ending it at the next
+// same-or-higher heading would make a 20px scroll across a nested heading swing
+// the lit region between a paragraph and its whole parent section.
+function applyFocusDim() {
+  const blocks = [...contentEl.children];
+  for (const b of blocks) b.classList.remove('focus-dim');
+
+  // Suspended while a search is active (a match inside a dimmed section is hard
+  // to spot) and in diff mode (the spy tracks hunks, and the layout is
+  // side-by-side).
+  if (!focusDim || diffMode || findQuery) return;
+
+  const headings = [];
+  blocks.forEach((b, i) => { if (/^H[1-4]$/.test(b.tagName)) headings.push(i); });
+  // One region means dimming has nothing to say.
+  if (headings.length < 2) return;
+
+  let active = headings[0];
+  for (const i of headings) {
+    if (blocks[i].getBoundingClientRect().top <= 100) active = i;
+    else break;
+  }
+  const next = headings.find((i) => i > active) ?? blocks.length;
+  blocks.forEach((b, i) => { if (i < active || i >= next) b.classList.add('focus-dim'); });
+}
+
 function reportActiveHeading() {
   // In diff mode the outline is hunks, not headings, so the spy scans hunk
   // containers instead. Same "topmost element above 100px" rule, same
@@ -648,6 +692,7 @@ function reportActiveHeading() {
     else break;
   }
   post('activeHeading', activeId);
+  applyFocusDim();
 }
 
 let spyTimer = null;
@@ -951,7 +996,7 @@ function applyFindQuery(query, wantFocus, scroll) {
   clearFind();
   findQuery = query || '';
   const q = findQuery.toLowerCase();
-  if (!q) { findFocus = 0; post('findResult', { count: 0, index: 0 }); return; }
+  if (!q) { findFocus = 0; post('findResult', { count: 0, index: 0 }); applyFocusDim(); return; }
 
   const { segments, text } = findTextSegments();
   const lower = text.toLowerCase();
@@ -961,7 +1006,7 @@ function applyFindQuery(query, wantFocus, scroll) {
     occurrences.push([idx, idx + q.length]);
     idx = lower.indexOf(q, idx + q.length); // non-overlapping
   }
-  if (!occurrences.length) { findFocus = 0; post('findResult', { count: 0, index: 0 }); return; }
+  if (!occurrences.length) { findFocus = 0; post('findResult', { count: 0, index: 0 }); applyFocusDim(); return; }
 
   // Wrap last-to-first so wrapping a later occurrence can't invalidate the
   // offsets of an earlier one that shares a text node.
@@ -974,6 +1019,7 @@ function applyFindQuery(query, wantFocus, scroll) {
   const focus = Math.min(Math.max(wantFocus, 0), findMatches.length - 1);
   setCurrentFind(focus, scroll);
   post('findResult', { count: findMatches.length, index: focus });
+  applyFocusDim();
 }
 
 function findStep(forward) {

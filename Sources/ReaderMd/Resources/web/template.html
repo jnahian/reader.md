@@ -269,6 +269,11 @@
       .mermaid, img { break-inside: avoid; }
       .mm-controls, .copy-btn, .anchor { display: none; }
     }
+
+    /* Focus mode: everything outside the current heading's region. Dimmed, not
+       hidden — 0.38 stays legible, so glancing back at the previous section
+       does not require leaving the mode. */
+    .focus-dim { opacity: .38; transition: opacity .2s ease; }
   </style>
 </head>
 <body>
