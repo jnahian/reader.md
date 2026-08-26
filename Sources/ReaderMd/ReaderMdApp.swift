@@ -103,7 +103,10 @@ struct ReaderMdApp: App {
             }
 
             CommandMenu("Find") {
-                Button("Find in Page") { state.focusFind.toggle() }
+                Button("Find in Page") {
+                    state.revealToolbarForFind()
+                    state.focusFind.toggle()
+                }
                     .keyboardShortcut("f", modifiers: .command)
                     .disabled(state.selectedFile == nil)
                 Button("Find Next") { state.triggerFindNext() }

@@ -818,15 +818,85 @@ final class AppState: ObservableObject {
         showSidebar = false
         showTOC = false
         if focusNarrowCanvas { contentWidth = .narrow }
+        applyFocusWindowChrome()
     }
 
     private func exitFocusMode() {
         focusMode = false
         guard let stash = focusStash else { return }
         focusStash = nil
+        restoreWindowChrome(wasAlreadyFullscreen: stash.wasAlreadyFullscreen)
         showSidebar = stash.showSidebar
         showTOC = stash.showTOC
         contentWidth = stash.contentWidth
+    }
+
+    /// The window half of focus mode. In fullscreen it is AppKit that hides the
+    /// toolbar — `.autoHideToolbar` is also what supplies the top-edge hover
+    /// reveal — so the two switches are not independent.
+    ///
+    /// Set through `NSApp.presentationOptions` on the fullscreen notification
+    /// rather than `NSWindowDelegate`: SwiftUI owns the window's delegate, and
+    /// proxying it for one optional method is more machinery than this needs.
+    private func applyFocusWindowChrome() {
+        guard let window = documentWindow else { return }
+        let alreadyFullscreen = window.styleMask.contains(.fullScreen)
+
+        if focusFullscreen && !alreadyFullscreen {
+            observeFullScreenEntry()
+            window.toggleFullScreen(nil)
+        } else if focusFullscreen && alreadyFullscreen {
+            applyFullScreenPresentationOptions()
+        } else if focusHideToolbar {
+            // Windowed: no OS reveal mechanism, so ⌥⌘F or Esc is the way back.
+            window.toolbar?.isVisible = false
+        }
+    }
+
+    private func applyFullScreenPresentationOptions() {
+        var options: NSApplication.PresentationOptions = [.autoHideMenuBar]
+        if focusHideToolbar { options.insert(.autoHideToolbar) }
+        NSApp.presentationOptions = options
+    }
+
+    /// `toggleFullScreen` is animated; the presentation options only take once the
+    /// window is actually in fullscreen.
+    private func observeFullScreenEntry() {
+        guard let window = documentWindow else { return }
+        var token: NSObjectProtocol?
+        token = NotificationCenter.default.addObserver(
+            forName: NSWindow.didEnterFullScreenNotification,
+            object: window, queue: .main
+        ) { [weak self] _ in
+            if let token { NotificationCenter.default.removeObserver(token) }
+            Task { @MainActor in
+                guard let self, self.focusMode else { return }
+                self.applyFullScreenPresentationOptions()
+            }
+        }
+    }
+
+    private func restoreWindowChrome(wasAlreadyFullscreen: Bool) {
+        NSApp.presentationOptions = []
+        guard let window = documentWindow else { return }
+        window.toolbar?.isVisible = true
+        // Entering focus mode from a window that was already in fullscreen leaves
+        // it there — focus mode did not put it in fullscreen, so it does not take
+        // it out.
+        if window.styleMask.contains(.fullScreen) && !wasAlreadyFullscreen {
+            window.toggleFullScreen(nil)
+        }
+    }
+
+    /// ⌘F in focus mode: bring the toolbar back rather than leaving the mode, so a
+    /// search does not cost it. Un-suspended on exit via `restoreWindowChrome()`.
+    func revealToolbarForFind() {
+        guard focusMode, let window = documentWindow else { return }
+        if window.styleMask.contains(.fullScreen) {
+            NSApp.presentationOptions = [.autoHideMenuBar]
+        } else {
+            window.toolbar?.isVisible = true
+        }
     }
 
     func setFocusFullscreen(_ value: Bool) {
