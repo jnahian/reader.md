@@ -233,6 +233,21 @@ final class AppState: ObservableObject {
     }
     private(set) var focusStash: FocusStash?
 
+    /// Observes `didEnterFullScreenNotification` while `toggleFullScreen(nil)`'s
+    /// animation is in flight. Stored rather than captured-and-self-removed, so the
+    /// closure doesn't need to close over its own token — see `clearFullScreenObserver()`.
+    private var fullScreenObserver: NSObjectProtocol?
+
+    private func clearFullScreenObserver() {
+        if let fullScreenObserver { NotificationCenter.default.removeObserver(fullScreenObserver) }
+        fullScreenObserver = nil
+    }
+
+    /// Set when ⌘F reveals the toolbar mid-animation, so the fullscreen-entry
+    /// notification that lands afterward doesn't hide it right back — see
+    /// `focusPresentationOptions(hideToolbar:toolbarRevealed:)`.
+    private var focusToolbarRevealed = false
+
     /// The WindowGroup's window, tagged by `WindowAccessor` on ContentView.
     /// Deliberately not @Published — nothing renders from it, and republishing
     /// on every window change would churn the view tree. Weak so closing the
@@ -813,6 +828,7 @@ final class AppState: ObservableObject {
                                 contentWidth: contentWidth,
                                 wasAlreadyFullscreen: alreadyFullscreen)
         focusMode = true
+        focusToolbarRevealed = false
 
         // Direct writes, not the setters — see FocusStash.
         showSidebar = false
@@ -823,6 +839,7 @@ final class AppState: ObservableObject {
 
     private func exitFocusMode() {
         focusMode = false
+        focusToolbarRevealed = false
         guard let stash = focusStash else { return }
         focusStash = nil
         restoreWindowChrome(wasAlreadyFullscreen: stash.wasAlreadyFullscreen)
@@ -854,29 +871,30 @@ final class AppState: ObservableObject {
     }
 
     private func applyFullScreenPresentationOptions() {
-        var options: NSApplication.PresentationOptions = [.autoHideMenuBar]
-        if focusHideToolbar { options.insert(.autoHideToolbar) }
-        NSApp.presentationOptions = options
+        NSApp.presentationOptions = focusPresentationOptions(hideToolbar: focusHideToolbar,
+                                                              toolbarRevealed: focusToolbarRevealed)
     }
 
     /// `toggleFullScreen` is animated; the presentation options only take once the
     /// window is actually in fullscreen.
     private func observeFullScreenEntry() {
         guard let window = documentWindow else { return }
-        var token: NSObjectProtocol?
-        token = NotificationCenter.default.addObserver(
+        clearFullScreenObserver()
+        fullScreenObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.didEnterFullScreenNotification,
             object: window, queue: .main
         ) { [weak self] _ in
-            if let token { NotificationCenter.default.removeObserver(token) }
             Task { @MainActor in
-                guard let self, self.focusMode else { return }
+                guard let self else { return }
+                self.clearFullScreenObserver()
+                guard self.focusMode else { return }
                 self.applyFullScreenPresentationOptions()
             }
         }
     }
 
     private func restoreWindowChrome(wasAlreadyFullscreen: Bool) {
+        clearFullScreenObserver()
         NSApp.presentationOptions = []
         guard let window = documentWindow else { return }
         window.toolbar?.isVisible = true
@@ -893,7 +911,11 @@ final class AppState: ObservableObject {
     func revealToolbarForFind() {
         guard focusMode, let window = documentWindow else { return }
         if window.styleMask.contains(.fullScreen) {
-            NSApp.presentationOptions = [.autoHideMenuBar]
+            // `styleMask` can already read `.fullScreen` while `toggleFullScreen`'s
+            // animation is still in flight — see `focusPresentationOptions`. The flag
+            // survives the entry notification that lands after this.
+            focusToolbarRevealed = true
+            applyFullScreenPresentationOptions()
         } else {
             window.toolbar?.isVisible = true
         }
@@ -1538,4 +1560,17 @@ func escapeAction(findQuery: String, showQuickOpen: Bool, focusMode: Bool) -> Es
     if showQuickOpen { return .dismissQuickOpen }
     if focusMode { return .exitFocusMode }
     return .ignore
+}
+
+/// What `NSApp.presentationOptions` should be while focus mode holds the window in
+/// fullscreen.
+///
+/// A free function over two booleans, same reasoning as `escapeAction`: the matrix
+/// is small but not obvious, and testable without a window is worth more than a
+/// method would be. See `FocusPresentationOptionsTests` for why `toolbarRevealed`
+/// exists at all.
+func focusPresentationOptions(hideToolbar: Bool, toolbarRevealed: Bool) -> NSApplication.PresentationOptions {
+    var options: NSApplication.PresentationOptions = [.autoHideMenuBar]
+    if hideToolbar && !toolbarRevealed { options.insert(.autoHideToolbar) }
+    return options
 }
