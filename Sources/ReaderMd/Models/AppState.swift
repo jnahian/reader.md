@@ -202,6 +202,37 @@ final class AppState: ObservableObject {
     @Published var showSidebar: Bool = true
     @Published var sidebarWidth: Double = 260
 
+    // MARK: - Focus mode
+
+    @Published var focusMode: Bool = false
+
+    @Published var focusFullscreen: Bool = Settings.loadFocusFullscreen()
+    @Published var focusDimSections: Bool = Settings.loadFocusDimSections()
+    @Published var focusNarrowCanvas: Bool = Settings.loadFocusNarrowCanvas()
+    @Published var focusHideToolbar: Bool = Settings.loadFocusHideToolbar()
+
+    /// What the web view is told. Dimming needs both the mode and its switch.
+    var focusDimActive: Bool { focusMode && focusDimSections }
+
+    /// Every switch off makes ⌥⌘F a no-op. Settings shows a note when this is true.
+    var focusModeDoesNothing: Bool {
+        !focusFullscreen && !focusDimSections && !focusNarrowCanvas && !focusHideToolbar
+    }
+
+    /// The layout as it was before focus mode took it over.
+    ///
+    /// Deliberately not `@Published` — nothing renders from it. Deliberately not
+    /// written through `toggleSidebar()` / `setShowTOC()` / `setContentWidth()`
+    /// either: those persist to UserDefaults, and focus mode's values must never
+    /// become the user's saved preferences.
+    struct FocusStash {
+        var showSidebar: Bool
+        var showTOC: Bool
+        var contentWidth: ContentWidth
+        var wasAlreadyFullscreen: Bool
+    }
+    private(set) var focusStash: FocusStash?
+
     /// The WindowGroup's window, tagged by `WindowAccessor` on ContentView.
     /// Deliberately not @Published — nothing renders from it, and republishing
     /// on every window change would churn the view tree. Weak so closing the
@@ -760,6 +791,7 @@ final class AppState: ObservableObject {
     func setShowTOC(_ value: Bool) {
         showTOC = value
         Settings.saveShowTOC(value)
+        focusStash?.showTOC = value
     }
 
     // MARK: - Layout
@@ -767,6 +799,54 @@ final class AppState: ObservableObject {
     func toggleSidebar() {
         showSidebar.toggle()
         Settings.saveShowSidebar(showSidebar)
+        focusStash?.showSidebar = showSidebar
+    }
+
+    func toggleFocusMode() {
+        focusMode ? exitFocusMode() : enterFocusMode()
+    }
+
+    private func enterFocusMode() {
+        let alreadyFullscreen = documentWindow?.styleMask.contains(.fullScreen) ?? false
+        focusStash = FocusStash(showSidebar: showSidebar,
+                                showTOC: showTOC,
+                                contentWidth: contentWidth,
+                                wasAlreadyFullscreen: alreadyFullscreen)
+        focusMode = true
+
+        // Direct writes, not the setters — see FocusStash.
+        showSidebar = false
+        showTOC = false
+        if focusNarrowCanvas { contentWidth = .narrow }
+    }
+
+    private func exitFocusMode() {
+        focusMode = false
+        guard let stash = focusStash else { return }
+        focusStash = nil
+        showSidebar = stash.showSidebar
+        showTOC = stash.showTOC
+        contentWidth = stash.contentWidth
+    }
+
+    func setFocusFullscreen(_ value: Bool) {
+        focusFullscreen = value
+        Settings.saveFocusFullscreen(value)
+    }
+
+    func setFocusDimSections(_ value: Bool) {
+        focusDimSections = value
+        Settings.saveFocusDimSections(value)
+    }
+
+    func setFocusNarrowCanvas(_ value: Bool) {
+        focusNarrowCanvas = value
+        Settings.saveFocusNarrowCanvas(value)
+    }
+
+    func setFocusHideToolbar(_ value: Bool) {
+        focusHideToolbar = value
+        Settings.saveFocusHideToolbar(value)
     }
 
     func setSidebarWidth(_ w: Double) {
@@ -790,6 +870,7 @@ final class AppState: ObservableObject {
     func setContentWidth(_ value: ContentWidth) {
         contentWidth = value
         Settings.saveContentWidth(value)
+        focusStash?.contentWidth = value
     }
 
     func setExportLayout(_ value: ExportLayout) {

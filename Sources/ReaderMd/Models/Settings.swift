@@ -10,6 +10,10 @@ enum Settings {
     private static let wideKey = "reader.md.wideReading"   // legacy Bool; read once for migration
     private static let contentWidthKey = "reader.md.contentWidth"
     private static let showSidebarKey = "reader.md.showSidebar"
+    private static let focusFullscreenKey = "reader.md.focus.fullscreen"
+    private static let focusDimSectionsKey = "reader.md.focus.dimSections"
+    private static let focusNarrowCanvasKey = "reader.md.focus.narrowCanvas"
+    private static let focusHideToolbarKey = "reader.md.focus.hideToolbar"
     private static let sidebarWidthKey = "reader.md.sidebarWidth"
     private static let recentsKey = "reader.md.recents"
     private static let favoritesKey = "reader.md.favorites"
@@ -110,6 +114,36 @@ enum Settings {
     }
     static func saveSidebarWidth(_ value: Double) {
         defaults.set(value, forKey: sidebarWidthKey)
+    }
+
+    // Focus mode. All four default on: the mode's advertised behaviour is the
+    // full takeover, and each switch only subtracts from it.
+    static func loadFocusFullscreen() -> Bool {
+        defaults.object(forKey: focusFullscreenKey) as? Bool ?? true
+    }
+    static func saveFocusFullscreen(_ value: Bool) {
+        defaults.set(value, forKey: focusFullscreenKey)
+    }
+
+    static func loadFocusDimSections() -> Bool {
+        defaults.object(forKey: focusDimSectionsKey) as? Bool ?? true
+    }
+    static func saveFocusDimSections(_ value: Bool) {
+        defaults.set(value, forKey: focusDimSectionsKey)
+    }
+
+    static func loadFocusNarrowCanvas() -> Bool {
+        defaults.object(forKey: focusNarrowCanvasKey) as? Bool ?? true
+    }
+    static func saveFocusNarrowCanvas(_ value: Bool) {
+        defaults.set(value, forKey: focusNarrowCanvasKey)
+    }
+
+    static func loadFocusHideToolbar() -> Bool {
+        defaults.object(forKey: focusHideToolbarKey) as? Bool ?? true
+    }
+    static func saveFocusHideToolbar(_ value: Bool) {
+        defaults.set(value, forKey: focusHideToolbarKey)
     }
 
     // Recents
