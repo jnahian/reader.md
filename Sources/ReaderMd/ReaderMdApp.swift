@@ -122,6 +122,8 @@ struct ReaderMdApp: App {
                     .keyboardShortcut("b", modifiers: .command)
                 Button("Toggle Outline") { state.setShowTOC(!state.showTOC) }
                     .keyboardShortcut("b", modifiers: [.command, .shift])
+                Button("Focus Mode") { state.toggleFocusMode() }
+                    .keyboardShortcut("f", modifiers: [.command, .option])
                 Button("Toggle Diff") { state.toggleDiffMode() }
                     .keyboardShortcut("d", modifiers: [.command, .shift])
                     .disabled(!state.diffAvailable)

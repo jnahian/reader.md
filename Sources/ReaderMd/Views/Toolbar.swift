@@ -39,7 +39,7 @@ private struct ReaderToolbar: ViewModifier {
                     OrphanedMarksBadge()
                 }
 
-                // View: reading style + canvas width + outline.
+                // View: reading style + canvas width + outline + focus.
                 ToolbarItemGroup(placement: .primaryAction) {
                     readingStyleMenu
                     canvasWidthMenu
@@ -50,6 +50,11 @@ private struct ReaderToolbar: ViewModifier {
                         }
                         .dockTooltip("Toggle outline (⇧⌘B)")
                     }
+
+                    Button { state.toggleFocusMode() } label: {
+                        Image(systemName: "rectangle.inset.filled")
+                    }
+                    .dockTooltip("Focus mode (⌥⌘F)")
                 }
 
                 // Diff: hidden entirely outside a git repo, and gated on nothing
