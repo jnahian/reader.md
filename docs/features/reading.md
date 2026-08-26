@@ -72,5 +72,35 @@ Width and text size work together: a narrow canvas with larger text gives the
 short line length of a book, while full width with smaller text suits wide
 tables and long code blocks.
 
+## Focus mode
+
+**⌥⌘F** takes everything away except the page. The sidebar and outline
+collapse, the toolbar goes, the window moves to fullscreen, the canvas
+narrows, and every section but the one you're reading dims. The toolbar's
+focus button and `>Focus Mode` in ⌘P do the same thing.
+
+**⌥⌘F again, or ⎋, brings it all back** — and back means back: the sidebar,
+outline, and column width return to what they were, not to a default. ⎋
+stays polite about it, clearing an active search or dismissing ⌘P first, and
+only leaves focus mode once there's nothing else to dismiss.
+
+The dimming follows the outline rather than the scroll position, so it holds
+still while you read a section and fades across when you reach the next
+heading. It steps aside while you're searching, in diff mode, and in a
+document with fewer than two headings.
+
+⌘F still works: rather than dropping you out of focus mode, it slides the
+toolbar back down with the find field ready, and the toolbar stays down until
+you leave focus mode.
+
+Settings (⌘,) has a switch for each of the four pieces — fullscreen, dimming,
+narrow canvas, hidden toolbar — all on by default, so you can keep only the
+parts you want. One thing worth knowing: with fullscreen on, moving the
+pointer to the top of the screen reveals the toolbar — that's macOS's own
+fullscreen behaviour, not focus mode's. With fullscreen switched off, the
+toolbar is simply hidden, and ⌥⌘F or ⎋ is the way back to it.
+
+Focus mode never persists. However you leave the app, it starts up outside it.
+
 For everything else Reader.md does — Quick Open, the file filter, diagrams, math
 — and every binding in one table, see [Features](../features.md).

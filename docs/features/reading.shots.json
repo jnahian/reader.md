@@ -52,6 +52,15 @@
         { "waitMs": 2000 }
       ],
       "caption": "Cycling the canvas width (⇧⌘\\)"
+    },
+    {
+      "id": "06-focus-mode",
+      "open": "field-notes/guides/setup.md",
+      "actions": [
+        { "key": "f", "mods": ["command", "option"] },
+        { "waitMs": 900 }
+      ],
+      "caption": "Focus mode — chrome gone, everything but the current section dimmed"
     }
   ]
 }

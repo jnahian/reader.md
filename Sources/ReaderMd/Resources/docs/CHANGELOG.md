@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Focus mode** (⌥⌘F) — hides the sidebar, outline and toolbar, goes
+  fullscreen, and dims every section but the one you're reading. Each of the
+  four pieces can be switched off in Settings; ⎋ or ⌥⌘F leaves.
+
 ## [1.18.2] - 2026-08-26
 
 ### Fixed
