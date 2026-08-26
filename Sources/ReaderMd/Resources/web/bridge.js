@@ -150,6 +150,9 @@ window.ReaderMd = {
       view._exportZoom = view._zoom;
       resetZoom(view);
     });
+    // Dimmed content would bake into the PDF at reduced opacity, making it
+    // unreadable. Remove focus-dim so the export renders at full brightness.
+    [...contentEl.children].forEach((b) => b.classList.remove('focus-dim'));
   },
 
   afterExport() {
@@ -163,6 +166,7 @@ window.ReaderMd = {
     // The method, not a bare function — refind() only exists on this object, and
     // it already guards on there being a live query.
     this.refind();
+    applyFocusDim();
   },
 };
 
