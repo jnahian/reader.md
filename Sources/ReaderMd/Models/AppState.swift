@@ -235,12 +235,33 @@ final class AppState: ObservableObject {
 
     /// Observes `didEnterFullScreenNotification` while `toggleFullScreen(nil)`'s
     /// animation is in flight. Stored rather than captured-and-self-removed, so the
-    /// closure doesn't need to close over its own token — see `clearFullScreenObserver()`.
-    private var fullScreenObserver: NSObjectProtocol?
+    /// closure doesn't need to close over its own token — see `clearFullScreenEnterObserver()`.
+    private var fullScreenEnterObserver: NSObjectProtocol?
 
-    private func clearFullScreenObserver() {
-        if let fullScreenObserver { NotificationCenter.default.removeObserver(fullScreenObserver) }
-        fullScreenObserver = nil
+    /// Observes `didExitFullScreenNotification` for as long as focus mode is
+    /// running in fullscreen. The green traffic-light button and the native
+    /// ⌃⌘F are ordinary, always-available ways to leave fullscreen that focus
+    /// mode doesn't disable — without this, the window would drop back to
+    /// windowed mode (toolbar included, since auto-hide only applies in
+    /// fullscreen) while `focusMode` stayed true, stranding the sidebar,
+    /// outline, narrow canvas and dimming suppressed with nothing left to
+    /// resync them. Firing this exits focus mode the same way ⌥⌘F would, so
+    /// leaving fullscreen by any route lands in one coherent state.
+    private var fullScreenExitObserver: NSObjectProtocol?
+
+    private func clearFullScreenEnterObserver() {
+        if let fullScreenEnterObserver { NotificationCenter.default.removeObserver(fullScreenEnterObserver) }
+        fullScreenEnterObserver = nil
+    }
+
+    private func clearFullScreenExitObserver() {
+        if let fullScreenExitObserver { NotificationCenter.default.removeObserver(fullScreenExitObserver) }
+        fullScreenExitObserver = nil
+    }
+
+    private func clearFullScreenObservers() {
+        clearFullScreenEnterObserver()
+        clearFullScreenExitObserver()
     }
 
     /// Set when ⌘F reveals the toolbar mid-animation, so the fullscreen-entry
@@ -861,8 +882,13 @@ final class AppState: ObservableObject {
 
         if focusFullscreen && !alreadyFullscreen {
             observeFullScreenEntry()
+            observeFullScreenExit()
             window.toggleFullScreen(nil)
         } else if focusFullscreen && alreadyFullscreen {
+            // Already in fullscreen, so there is no entry to wait on — but focus
+            // mode is still running in fullscreen here, so the exit observer is
+            // just as necessary as the branch above.
+            observeFullScreenExit()
             applyFullScreenPresentationOptions()
         } else if focusHideToolbar {
             // Windowed: no OS reveal mechanism, so ⌥⌘F or Esc is the way back.
@@ -879,22 +905,40 @@ final class AppState: ObservableObject {
     /// window is actually in fullscreen.
     private func observeFullScreenEntry() {
         guard let window = documentWindow else { return }
-        clearFullScreenObserver()
-        fullScreenObserver = NotificationCenter.default.addObserver(
+        clearFullScreenEnterObserver()
+        fullScreenEnterObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.didEnterFullScreenNotification,
             object: window, queue: .main
         ) { [weak self] _ in
             Task { @MainActor in
                 guard let self else { return }
-                self.clearFullScreenObserver()
+                self.clearFullScreenEnterObserver()
                 guard self.focusMode else { return }
                 self.applyFullScreenPresentationOptions()
             }
         }
     }
 
+    /// See `fullScreenExitObserver` for why this exists: leaving fullscreen by an
+    /// ordinary gesture focus mode doesn't own must still exit focus mode.
+    private func observeFullScreenExit() {
+        guard let window = documentWindow else { return }
+        clearFullScreenExitObserver()
+        fullScreenExitObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didExitFullScreenNotification,
+            object: window, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                self.clearFullScreenExitObserver()
+                guard self.focusMode else { return }
+                self.exitFocusMode()
+            }
+        }
+    }
+
     private func restoreWindowChrome(wasAlreadyFullscreen: Bool) {
-        clearFullScreenObserver()
+        clearFullScreenObservers()
         NSApp.presentationOptions = []
         guard let window = documentWindow else { return }
         window.toolbar?.isVisible = true
