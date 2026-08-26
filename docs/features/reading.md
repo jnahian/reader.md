@@ -82,7 +82,11 @@ focus button and `>Focus Mode` in ⌘P do the same thing.
 **⌥⌘F again, or ⎋, brings it all back** — and back means back: the sidebar,
 outline, and column width return to what they were, not to a default. ⎋
 stays polite about it, clearing an active search or dismissing ⌘P first, and
-only leaves focus mode once there's nothing else to dismiss.
+only leaves focus mode once there's nothing else to dismiss. So does leaving
+fullscreen any other way — the green traffic-light button, native ⌃⌘F — since
+focus mode doesn't outlive the fullscreen it's running in. (If the window was
+already in fullscreen before ⌥⌘F, exiting focus mode leaves it there rather
+than dropping out.)
 
 The dimming follows the outline rather than the scroll position, so it holds
 still while you read a section and fades across when you reach the next
