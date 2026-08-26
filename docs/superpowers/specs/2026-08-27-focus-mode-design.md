@@ -18,7 +18,16 @@ genuinely new thing: dimming everything outside the current section.
 ## What "current" means
 
 The section under the active heading — everything from the current heading to the
-next heading of the same or higher level. Not a viewport-centre band.
+**next heading at any level**. Not a viewport-centre band.
+
+"Next heading of the same or higher level" was considered and rejected: it breaks
+the very property this approach was chosen for. With `h2 A / p / h3 A.1 / p /
+h2 B`, scrolling `A.1` from `top: 90px` to `top: 110px` flips the active heading
+from `A.1` to `A`, and the lit region jumps from A.1's body to the whole of A — a
+large block fading in and out over a 20px scroll. Bounding the region at the next
+heading of any level means crossing a boundary always swaps two small adjacent
+regions. It is also less code: an index range over the sibling list rather than
+reading heading levels during the walk.
 
 Centre-band dimming is an editor idea (iA Writer, Ulysses), where it works because
 the cursor is where attention is. In a reader the eye runs ahead of the viewport
@@ -62,7 +71,11 @@ Button { state.toggleFocusMode() } label: {
 .dockTooltip("Focus mode (⌥⌘F)")
 ```
 
-Both symbols are SF Symbols 3, so macOS 13 is satisfied. The filled-centre variant
+Both symbols are believed to be SF Symbols 3, and therefore present on macOS 13 —
+**confirm this for the `center` variant specifically before the icon pair is
+locked.** A symbol missing from the deployment target's catalogue renders blank
+rather than falling back. If it is unavailable, use `rectangle.inset.filled` for
+both states and carry the on-state with the toolbar item's own selected styling. The filled-centre variant
 carries the on-state without a second control; AppKit draws the capsule.
 
 Consequence, accepted rather than fixed: in the default configuration this button
@@ -107,7 +120,13 @@ one for the image lightbox (`bridge.js:661`).
 
 So the exit path is a new final branch in the existing `bridge.js` Escape handler:
 if no lightbox and no fullscreen diagram is open, and focus mode is on, post a new
-`exitFocus` message. Swift's `WKScriptMessageHandler` then applies the precedence:
+`exitFocus` message.
+
+`exitFocus` must be added to the literal array of accepted message names at
+`MarkdownWebView.swift:93`. A `post()` whose name is absent from that array does
+nothing and raises no error — a silent failure.
+
+Swift's `WKScriptMessageHandler` then applies the precedence:
 
 1. non-empty `findQuery` → clear it
 2. `showQuickOpen` → dismiss it
@@ -143,18 +162,29 @@ mechanism, and a hand-rolled hover strip is not worth building. **Windowed focus
 mode hides the toolbar with no reveal**; ⌥⌘F or Esc is the way back. This asymmetry
 between the two configurations is deliberate.
 
-`window(_:willUseFullScreenPresentationOptions:)` delivering the reveal is the one
-assumption in this design that must be confirmed against the running app before the
-implementation commits to it. If it does not, the fallback is to hide the toolbar
+`window(_:willUseFullScreenPresentationOptions:)` delivering the reveal is one of
+two assumptions in this design that must be confirmed against the running app
+before the implementation commits to them (the other is the toolbar icon pair —
+see below). If it does not, the fallback is to hide the toolbar
 manually via `state.documentWindow` in both configurations and drop hover reveal
 entirely — the mode still works, it just loses the mouse-only path out.
+
+### The floating close-document button
+
+`ContentView.swift:83` draws a native ✕ over the content, gated on
+`state.selectedFile != nil && !state.diagramFullscreen` — the `diagramFullscreen`
+term exists because the button is drawn *above* the web view and the in-page
+overlay cannot cover it. Focus mode has the same problem: it strips every other
+piece of chrome and would leave this one button sitting on the page. The condition
+gains `&& !state.focusMode`.
 
 ## Dimming in the web view
 
 `reportActiveHeading()` in `bridge.js` already walks `h1,h2,h3,h4` and picks the
 topmost heading above 100px, posting the id to Swift. It gains a second job: when
 focus dimming is on, walk `contentEl`'s **top-level siblings** and add `.focus-dim`
-to every block outside the active heading's region.
+to every block outside the active heading's region — the index range from the
+active heading up to the next heading of any level.
 
 No `<section>` wrappers. marked emits a flat `h2, p, p, h2, …` sibling list, and
 mark anchoring (`TextAnchor`), find, footnotes, and diff hunks all read that flat
