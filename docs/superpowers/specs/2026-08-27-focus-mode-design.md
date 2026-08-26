@@ -124,6 +124,20 @@ The top-edge reveal is AppKit's, not ours. Returning `.autoHideToolbar` +
 slide-down for free — which also means the toolbar is not hidden manually in the
 default configuration; fullscreen hides it.
 
+### How the two switches interact
+
+The two switches are not independent, because in fullscreen it is AppKit that
+hides the toolbar. The presentation options returned from
+`window(_:willUseFullScreenPresentationOptions:)` are therefore derived from
+"Hide the toolbar", not assumed:
+
+| Fullscreen | Hide toolbar | Behaviour |
+| --- | --- | --- |
+| on | on | Return `.autoHideToolbar` + `.autoHideMenuBar`. AppKit hides the toolbar and reveals it on a top-edge hover. Nothing hidden manually. |
+| on | off | Return `.autoHideMenuBar` only. The toolbar stays visible in fullscreen, so the focus button remains clickable. |
+| off | on | Hide the toolbar manually via `state.documentWindow`. No reveal. |
+| off | off | The toolbar is untouched. |
+
 With fullscreen switched off and "Hide the toolbar" on, there is no OS reveal
 mechanism, and a hand-rolled hover strip is not worth building. **Windowed focus
 mode hides the toolbar with no reveal**; ⌥⌘F or Esc is the way back. This asymmetry
@@ -222,8 +236,9 @@ testable and likely to break silently:
   wide), assert the `@Published` values changed and `UserDefaults` did not; exit,
   assert restoration. Plus the ⌘B-inside-focus-mode case updating the stash, and
   `wasAlreadyFullscreen` in both states.
-- **Esc precedence.** A pure function over four booleans (find query, quick open,
-  focus mode, in-page overlay) — a table test.
+- **Esc precedence.** A pure function over three booleans (find query non-empty,
+  quick open showing, focus mode on) — a table test. The in-page overlay cases
+  never reach Swift; `bridge.js` resolves them before posting `exitFocus`.
 
 Dimming, toolbar hiding, fullscreen, and hover reveal are verified by running the
 app.
