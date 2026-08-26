@@ -358,7 +358,7 @@ The in-page overlay cases never reach Swift — `bridge.js` resolves them before
 **Interfaces:**
 - Consumes: `AppState.focusMode` from Task 1.
 - Produces:
-  - `enum EscapeAction { case clearFind, dismissQuickOpen, exitFocusMode, none }` — module scope, in `AppState.swift`
+  - `enum EscapeAction { case clearFind, dismissQuickOpen, exitFocusMode, ignore }` — module scope, in `AppState.swift`
   - `func escapeAction(findQuery: String, showQuickOpen: Bool, focusMode: Bool) -> EscapeAction` — a free function, module scope
   - `AppState.handleEscapeFromPage()` — applies it. Task 3 calls this.
 
@@ -391,7 +391,7 @@ final class EscapePrecedenceTests: XCTestCase {
     }
 
     func testEscDoesNothingWhenIdle() {
-        XCTAssertEqual(escapeAction(findQuery: "", showQuickOpen: false, focusMode: false), .none)
+        XCTAssertEqual(escapeAction(findQuery: "", showQuickOpen: false, focusMode: false), .ignore)
     }
 
     /// A whitespace-only query is still a query — the field has text in it to clear.
@@ -429,14 +429,16 @@ enum EscapeAction: Equatable {
     case clearFind
     case dismissQuickOpen
     case exitFocusMode
-    case none
+    /// Not `none` — `XCTAssertEqual(x, .none)` would resolve against
+    /// `Optional.none` instead of this case.
+    case ignore
 }
 
 func escapeAction(findQuery: String, showQuickOpen: Bool, focusMode: Bool) -> EscapeAction {
     if !findQuery.isEmpty { return .clearFind }
     if showQuickOpen { return .dismissQuickOpen }
     if focusMode { return .exitFocusMode }
-    return .none
+    return .ignore
 }
 ```
 
@@ -451,7 +453,7 @@ And as a method on `AppState`, in the focus mode section:
         case .clearFind: findQuery = ""
         case .dismissQuickOpen: showQuickOpen = false
         case .exitFocusMode: toggleFocusMode()
-        case .none: break
+        case .ignore: break
         }
     }
 ```
@@ -599,7 +601,7 @@ document.addEventListener('keydown', (e) => {
 });
 ```
 
-The message is posted unconditionally rather than only when focus mode is on — JS does not know the mode, and `escapeAction` already has a `.none` branch for "nothing to dismiss."
+The message is posted unconditionally rather than only when focus mode is on — JS does not know the mode, and `escapeAction` already has an `.ignore` branch for "nothing to dismiss."
 
 - [ ] **Step 5: Register the message name — this fails silently if skipped**
 
@@ -858,12 +860,49 @@ Note the ordering: `stash` is read before it is discarded, so keep the existing
     }
 ```
 
-- [ ] **Step 3: Build**
+- [ ] **Step 3: Let ⌘F reveal the toolbar instead of costing the mode**
+
+The find field lives in the toolbar that focus mode hides, so ⌘F would otherwise
+be dead in full takeover. The spec's answer is that ⌘F reveals the toolbar rather
+than exiting focus mode.
+
+`focusFind` is the existing toggle ⌘F flips (`ReaderMdApp.swift:106`). Add to the
+focus mode section of `AppState.swift`:
+
+```swift
+    /// ⌘F in focus mode: bring the toolbar back rather than leaving the mode, so a
+    /// search does not cost it. Un-suspends on exit via `applyFocusWindowChrome()`.
+    func revealToolbarForFind() {
+        guard focusMode, let window = documentWindow else { return }
+        if window.styleMask.contains(.fullScreen) {
+            NSApp.presentationOptions = [.autoHideMenuBar]
+        } else {
+            window.toolbar?.isVisible = true
+        }
+    }
+```
+
+And call it from the ⌘F path. In `ReaderMdApp.swift:105-107`, replace the Find in
+Page button body:
+
+```swift
+                Button("Find in Page") {
+                    state.revealToolbarForFind()
+                    state.focusFind.toggle()
+                }
+                    .keyboardShortcut("f", modifiers: .command)
+```
+
+The toolbar stays revealed until focus mode is left — re-hiding it the moment the
+search clears would yank the field out from under someone stepping through matches
+with ⌘G.
+
+- [ ] **Step 4: Build**
 
 Run: `swift build`
 Expected: builds clean. `AppState.swift` already imports `AppKit` for `NSWindow`.
 
-- [ ] **Step 4: Verify the hover reveal against the running app**
+- [ ] **Step 5: Verify the hover reveal against the running app**
 
 This is the assumption the spec flagged. Run `swift run ReaderMd`, open a document, press ⌥⌘F with all four switches at their defaults, then:
 - The window enters fullscreen and the toolbar is gone.
@@ -871,7 +910,7 @@ This is the assumption the spec flagged. Run `swift run ReaderMd`, open a docume
 
 If the toolbar does **not** reveal, apply the documented fallback: drop `observeFullScreenEntry()` / `applyFullScreenPresentationOptions()`, hide the toolbar manually with `window.toolbar?.isVisible = false` in both configurations, and update the "Hover reveal — fullscreen only" section of `docs/superpowers/specs/2026-08-27-focus-mode-design.md` to say the reveal is unavailable. The mode still works; it loses the mouse-only path out.
 
-- [ ] **Step 5: Verify the rest of the matrix by hand**
+- [ ] **Step 6: Verify the rest of the matrix by hand**
 
 Still in the running app, using Settings (Task 6 builds the UI — until then, flip
 the switch values in the debugger or temporarily change the `Settings.load…`
@@ -879,17 +918,18 @@ defaults):
 - Fullscreen **off**, hide toolbar **on**: the window stays put, the toolbar goes, ⌥⌘F brings it back.
 - Fullscreen **on**, hide toolbar **off**: fullscreen, toolbar visible, the focus button clickable to exit.
 - Enter macOS fullscreen with ⌃⌘F first, **then** ⌥⌘F, then exit focus mode: the window stays in fullscreen (this is `wasAlreadyFullscreen`).
+- ⌘F in focus mode brings the toolbar back with the find field focused, and the mode is still on.
 - Esc exits focus mode and unwinds fullscreen.
 
-- [ ] **Step 6: Run the suite**
+- [ ] **Step 7: Run the suite**
 
 Run: `swift test`
 Expected: PASS. `documentWindow` is nil under test, so `applyFocusWindowChrome()` returns early and Task 1's stash tests are unaffected.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add Sources/ReaderMd/Models/AppState.swift
+git add Sources/ReaderMd/Models/AppState.swift Sources/ReaderMd/ReaderMdApp.swift
 git commit -m "feat(focus): fullscreen, toolbar hiding, and the hover-reveal presentation options"
 ```
 
@@ -1017,13 +1057,60 @@ Expected: PASS. If it fails, the two tables disagree — the token `⌥⌘F` mus
 
 - [ ] **Step 5: Write the prose**
 
-In `docs/features/reading.md`, add a `## Focus mode` section covering: what ⌥⌘F does, that the toolbar button and ⌘P command do the same, that Esc leaves, that the four pieces are switchable in Settings, and the one asymmetry worth documenting — the top-edge hover reveal exists only when fullscreen is on, because it is AppKit's, and windowed focus mode has no reveal.
+In `docs/features/reading.md`, add a `## Focus mode` section. Draft — adjust the
+wording to match the voice of the surrounding sections, but do not add behaviour
+beyond this:
 
-Match the voice of the surrounding sections; do not invent behaviour beyond the spec.
+```markdown
+## Focus mode
+
+**⌥⌘F** takes everything away except the page. The sidebar and outline collapse,
+the toolbar goes, the window moves to fullscreen, the canvas narrows, and every
+section but the one you're reading dims. The toolbar's focus button and
+`>Focus Mode` in ⌘P do the same thing.
+
+**⌥⌘F again, or Esc, brings it all back** — and back means back: the sidebar,
+outline and column width return to what they were, not to a default. Escape stays
+polite about it, clearing an active search or dismissing ⌘P first and only leaving
+focus mode when there's nothing else to dismiss.
+
+The dimming follows the outline rather than the scroll position, so it holds still
+while you read a section and fades across when you reach the next heading. It steps
+aside while you're searching, so no match is ever hidden behind it.
+
+⌘F still works: rather than dropping you out of focus mode, it slides the toolbar
+back with the find field ready.
+
+Settings (⌘,) has a switch for each of the four pieces — fullscreen, dimming,
+narrow canvas, hidden toolbar — all on by default, so you can keep the parts you
+want. One thing worth knowing: the toolbar slides back down when you move the
+pointer to the top of the screen, but that's macOS's own fullscreen behaviour. With
+"Enter fullscreen" switched off, the toolbar is simply hidden, and ⌥⌘F or Esc is
+the way back to it.
+
+Focus mode never persists. However you leave the app, it starts up outside it.
+```
 
 - [ ] **Step 6: Capture the screenshot**
 
-Add an entry to `docs/features/reading.shots.json` for a focus mode shot — window size, prefs, the file to open, and the actions to reach the state (open a multi-heading document, scroll to a middle section, press ⌥⌘F).
+Append to the `shots` array in `docs/features/reading.shots.json`, following the
+shape the existing entries use (`id`, `open`, `actions`, `caption`) and numbering
+the id after the last one already there:
+
+```json
+    {
+      "id": "NN-focus-mode",
+      "open": "field-notes/guides/setup.md",
+      "actions": [
+        { "key": "f", "mods": ["command", "option"] },
+        { "waitMs": 900 }
+      ],
+      "caption": "Focus mode — chrome gone, everything but the current section dimmed"
+    }
+```
+
+The `waitMs` matters: fullscreen is animated and the 200ms dim transition runs
+after it, so a shot taken immediately catches the window mid-flight.
 
 Then follow the `reader-docs` skill and run its capture harness rather than shooting the screen by hand:
 
@@ -1032,7 +1119,15 @@ Expected: the new image lands under `docs/assets/screenshots/reading/`.
 
 - [ ] **Step 7: Add it to the site's shortcut strip**
 
-In `web/src/data/content.ts`, add ⌥⌘F to the compact shortcut strip. The `/docs/` pages are rendered from `docs/*.md` directly, so nothing else in `web/` needs touching.
+In `web/src/data/content.ts`, add a row to `shortcutsHighlight` (the compact
+landing strip), after the `⌘B` entry:
+
+```ts
+  { keys: "⌥⌘F", action: "Focus mode" },
+```
+
+The `/docs/` pages are rendered from `docs/*.md` directly, so nothing else in
+`web/` needs touching.
 
 - [ ] **Step 8: Build the site**
 
