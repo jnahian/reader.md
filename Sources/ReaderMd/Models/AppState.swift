@@ -849,6 +849,18 @@ final class AppState: ObservableObject {
         Settings.saveFocusHideToolbar(value)
     }
 
+    /// Escape, arriving from the web view. See `escapeAction` for the ordering.
+    func handleEscapeFromPage() {
+        switch escapeAction(findQuery: findQuery,
+                            showQuickOpen: showQuickOpen,
+                            focusMode: focusMode) {
+        case .clearFind: findQuery = ""
+        case .dismissQuickOpen: showQuickOpen = false
+        case .exitFocusMode: toggleFocusMode()
+        case .ignore: break
+        }
+    }
+
     func setSidebarWidth(_ w: Double) {
         sidebarWidth = min(460, max(180, w))
         Settings.saveSidebarWidth(sidebarWidth)
@@ -1434,4 +1446,26 @@ final class AppState: ObservableObject {
         }
         return json
     }
+}
+
+/// What Escape should do when it arrives from the page.
+///
+/// A free function over three booleans rather than a method, so the ordering — the
+/// only part of this that can silently regress — is testable without a window.
+/// The in-page overlays (Mermaid fullscreen, the image lightbox) never reach here:
+/// `bridge.js` resolves them before posting.
+enum EscapeAction: Equatable {
+    case clearFind
+    case dismissQuickOpen
+    case exitFocusMode
+    /// Not `none` — `XCTAssertEqual(x, .none)` would resolve against
+    /// `Optional.none` instead of this case.
+    case ignore
+}
+
+func escapeAction(findQuery: String, showQuickOpen: Bool, focusMode: Bool) -> EscapeAction {
+    if !findQuery.isEmpty { return .clearFind }
+    if showQuickOpen { return .dismissQuickOpen }
+    if focusMode { return .exitFocusMode }
+    return .ignore
 }
