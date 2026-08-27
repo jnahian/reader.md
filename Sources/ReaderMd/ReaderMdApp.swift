@@ -238,6 +238,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     weak var state: AppState?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Last launch's shared PDFs. Not cleaned up when a share finishes: an
+        // AirDrop transfer keeps reading the file after the picker closes, so
+        // the only moment it is certainly safe to delete is before this launch
+        // has staged or opened anything.
+        ShareTemp.purge()
         NSApp.setActivationPolicy(.regular)
         if let url = Bundle.resources.url(forResource: "AppIcon", withExtension: "png"),
            let image = NSImage(contentsOf: url) {
