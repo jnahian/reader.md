@@ -478,7 +478,10 @@ struct MarkdownWebView: NSViewRepresentable {
         }
 
         private func presentExportPanel() {
-            guard let webView else { return }
+            // Kept as a presence check now that renderPDF does the binding:
+            // showing a modal save panel that could only ever no-op is worse
+            // than not showing one.
+            guard webView != nil else { return }
 
             // Panel first (it now carries the layout choice), render after.
             // Cancel ends here — beforeExport() hasn't run, nothing to restore.
@@ -504,15 +507,29 @@ struct MarkdownWebView: NSViewRepresentable {
             // export quietly changed every later export.
             let layout = ExportLayout.allCases[picker.indexOfSelectedItem]
 
-            // Find highlights and diagram zoom would both bake into the PDF.
-            // beforeExport() resets them; wait for that JS to finish, render,
-            // then endExport() puts them back. Both halves no-op when nothing
-            // is active, so there is no state to branch on here.
+            renderPDF(to: url, layout: layout) { _ in }
+        }
+
+        /// Renders the document to `url` and reports whether it landed there.
+        ///
+        /// Both callers come through here. Find highlights and diagram zoom
+        /// would otherwise bake into the PDF: beforeExport() resets them, and
+        /// endExport() puts them back once the last render is done. They are
+        /// document-wide, so a share has to be covered exactly as a save is —
+        /// a share rendering on its own would bake the highlights in, and a ⌘E
+        /// export running beside it would strip them mid-render. Both halves
+        /// no-op when nothing is active, so there is no state to branch on.
+        private func renderPDF(to url: URL, layout: ExportLayout,
+                               completion: @escaping (Bool) -> Void) {
+            guard let webView else { return completion(false) }
             activeExports += 1
             webView.evaluateJavaScript("window.ReaderMd.beforeExport();") { [weak self] _, _ in
+                // Gone mid-render: endExport() belongs to the vanished
+                // coordinator, so there is nothing to unwind but the caller.
+                guard let self else { return completion(false) }
                 switch layout {
-                case .continuous: self?.exportContinuous(to: url)
-                case .pageByPage: self?.exportPaginated(to: url)
+                case .continuous: exportContinuous(to: url, completion: completion)
+                case .pageByPage: exportPaginated(to: url, completion: completion)
                 }
             }
         }
@@ -531,12 +548,19 @@ struct MarkdownWebView: NSViewRepresentable {
             if activeExports == 0 { webView?.evaluateJavaScript("window.ReaderMd.afterExport();") }
         }
 
-        private func exportContinuous(to url: URL) {
-            guard let webView else { return endExport() }
+        private func exportContinuous(to url: URL, completion: @escaping (Bool) -> Void) {
+            guard let webView else { endExport(); return completion(false) }
             webView.createPDF(configuration: WKPDFConfiguration()) { [weak self] result in
                 self?.endExport()
-                guard case let .success(data) = result else { return }
-                try? data.write(to: url)
+                guard case let .success(data) = result else { return completion(false) }
+                // The write, not the render, is what the caller waits on: the
+                // share picker is handed this URL and needs a file at it.
+                do {
+                    try data.write(to: url)
+                    completion(true)
+                } catch {
+                    completion(false)
+                }
             }
         }
 
@@ -547,26 +571,36 @@ struct MarkdownWebView: NSViewRepresentable {
         private final class PendingExport {
             let url: URL
             let pageColor: CGColor?
-            init(url: URL, pageColor: CGColor?) {
+            /// Rides along for the same reason: one completion per in-flight
+            /// export, never a shared property two of them could overwrite.
+            let completion: (Bool) -> Void
+            init(url: URL, pageColor: CGColor?, completion: @escaping (Bool) -> Void) {
                 self.url = url
                 self.pageColor = pageColor
+                self.completion = completion
             }
         }
 
-        private func exportPaginated(to url: URL) {
-            guard let webView else { return endExport() }
+        private func exportPaginated(to url: URL, completion: @escaping (Bool) -> Void) {
+            guard let webView else { endExport(); return completion(false) }
             // The print engine leaves the paper margins unpainted, which reads
             // as a white frame around any non-white theme. Fetch the document
             // background so the finished PDF can be repainted edge to edge.
             webView.evaluateJavaScript("getComputedStyle(document.body).backgroundColor") { [weak self] result, _ in
-                self?.runPrintOperation(to: url, pageColor: Self.cssColor(result as? String))
+                guard let self else { return completion(false) }
+                runPrintOperation(to: url, pageColor: Self.cssColor(result as? String),
+                                  completion: completion)
             }
         }
 
-        private func runPrintOperation(to url: URL, pageColor: CGColor?) {
+        private func runPrintOperation(to url: URL, pageColor: CGColor?,
+                                       completion: @escaping (Bool) -> Void) {
             // Nothing to print into: beforeExport() has already stripped the find
             // highlights and diagram zoom, so endExport() has to put them back.
-            guard let webView, let window = webView.window else { return endExport() }
+            guard let webView, let window = webView.window else {
+                endExport()
+                return completion(false)
+            }
             let info = NSPrintInfo()   // copies the shared defaults: system paper size + margins
             info.jobDisposition = .save
             info.dictionary()[NSPrintInfo.AttributeKey.jobSavingURL] = url
@@ -580,7 +614,7 @@ struct MarkdownWebView: NSViewRepresentable {
             // WKWebView print operations only work through runModal(for:...) —
             // a bare run() silently produces nothing. Panels are hidden, so
             // nothing modal is actually shown.
-            let pending = PendingExport(url: url, pageColor: pageColor)
+            let pending = PendingExport(url: url, pageColor: pageColor, completion: completion)
             op.runModal(for: window, delegate: self,
                         didRun: #selector(printOperationDidRun(_:success:contextInfo:)),
                         contextInfo: Unmanaged.passRetained(pending).toOpaque())
@@ -595,6 +629,11 @@ struct MarkdownWebView: NSViewRepresentable {
             if success, let color = pending.pageColor {
                 Self.paintPageBackground(url: pending.url, color: color)
             }
+            // Last, and never before paintPageBackground: that rewrites the
+            // finished PDF in place, and handing the URL to the share picker
+            // mid-rewrite would AirDrop a file being overwritten under the
+            // transfer.
+            pending.completion(success)
         }
 
         /// "rgb(13, 17, 23)" / "rgba(…)" → CGColor. Nil for anything else,
