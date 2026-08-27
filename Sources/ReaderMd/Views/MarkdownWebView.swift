@@ -529,20 +529,24 @@ struct MarkdownWebView: NSViewRepresentable {
             }
         }
 
-        /// The picker needs a real NSView to anchor to, and a SwiftUI toolbar
-        /// item doesn't hand you one. The web view's top-trailing corner sits
-        /// directly under the toolbar, so .maxY puts the picker where the share
-        /// button is. (Reading the item out of `window.toolbar?.items` would
-        /// depend on SwiftUI's generated identifiers and break silently.)
+        /// Hangs the sheet off the export menu button itself, via the anchor view
+        /// the toolbar parks behind it. The web view is only the fallback for a
+        /// window whose toolbar is gone — anchoring there put the sheet over the
+        /// outline pane instead of under the button.
         ///
         /// Main queue only: NSSharingServicePicker traps on
         /// `dispatch_assert_queue` anywhere else.
         private func presentSharePicker(for url: URL) {
-            guard let webView else { return }
-            let anchor = NSRect(x: webView.bounds.maxX - 1, y: webView.bounds.maxY,
-                                width: 1, height: 1)
-            NSSharingServicePicker(items: [url])
-                .show(relativeTo: anchor, of: webView, preferredEdge: .maxY)
+            let picker = NSSharingServicePicker(items: [url])
+            if let anchor = ShareAnchor.view, anchor.window != nil {
+                // .minY is below an unflipped view — the sheet drops out of the
+                // toolbar rather than trying to rise into it.
+                picker.show(relativeTo: anchor.bounds, of: anchor, preferredEdge: .minY)
+            } else if let webView {
+                picker.show(relativeTo: NSRect(x: webView.bounds.maxX - 1, y: webView.bounds.maxY,
+                                               width: 1, height: 1),
+                            of: webView, preferredEdge: .maxY)
+            }
         }
 
         private func presentExportPanel() {

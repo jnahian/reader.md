@@ -133,6 +133,7 @@ private struct ReaderToolbar: ViewModifier {
             }
         }
         .menuIndicator(.hidden)
+        .background(ShareAnchor.Marker())
         // Only "a document is open" — not `canExport`. The two PDF rows gate
         // themselves on that, but sharing the markdown needs no render, so it
         // stays available in the diff pane where there is nothing to render.
