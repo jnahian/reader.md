@@ -77,11 +77,10 @@ newer one would raise. The filled-centre variant
 carries the on-state without a second control; AppKit draws the capsule.
 
 Consequence, accepted rather than fixed: in the default configuration this button
-hides itself the moment it is pressed, because focus mode hides the toolbar. In
-fullscreen a top-edge hover slides it back showing the on-state, and clicking it
-exits. In windowed focus mode there is no reveal, so the button is gone until ⌥⌘F
-or Esc. It is a permanent round-trip control only when "Hide the toolbar" is
-switched off.
+hides itself the moment it is pressed, because focus mode hides the toolbar.
+There is no reveal in any configuration, windowed or fullscreen, so the button
+stays gone until ⌥⌘F or Esc brings the toolbar back. It is a permanent
+round-trip control only when "Hide the toolbar" is switched off.
 
 ## The stash
 
@@ -134,37 +133,29 @@ Swift's `WKScriptMessageHandler` then applies the precedence:
 Esc keeps every behaviour it has today; focus mode is only reached when there is
 nothing else to dismiss.
 
-## Hover reveal — fullscreen only
+## Toolbar hiding
 
-The top-edge reveal is AppKit's, not ours. Returning `.autoHideToolbar` +
-`.autoHideMenuBar` from `window(_:willUseFullScreenPresentationOptions:)` gives the
-slide-down for free — which also means the toolbar is not hidden manually in the
-default configuration; fullscreen hides it.
+The original plan delegated to AppKit: returning `.autoHideToolbar` +
+`.autoHideMenuBar` from `window(_:willUseFullScreenPresentationOptions:)` was
+expected to hide the toolbar in fullscreen and give a top-edge hover reveal for
+free, with the two Settings switches ("Enter fullscreen" / "Hide the toolbar")
+combining into four distinct behaviours depending on which were on. That
+reveal was flagged as the one assumption in this design that had to be
+confirmed against the running app before the implementation committed to it.
 
-### How the two switches interact
+It didn't hold up. Tested live, the mechanism did nothing: the toolbar stayed
+fully visible, and the pixels at the top of the screen were identical whether
+the pointer sat there or at the window's centre. `presentationOptions` was
+silently inert.
 
-The two switches are not independent, because in fullscreen it is AppKit that
-hides the toolbar. The presentation options returned from
-`window(_:willUseFullScreenPresentationOptions:)` are therefore derived from
-"Hide the toolbar", not assumed:
-
-| Fullscreen | Hide toolbar | Behaviour |
-| --- | --- | --- |
-| on | on | Return `.autoHideToolbar` + `.autoHideMenuBar`. AppKit hides the toolbar and reveals it on a top-edge hover. Nothing hidden manually. |
-| on | off | Return `.autoHideMenuBar` only. The toolbar stays visible in fullscreen, so the focus button remains clickable. |
-| off | on | Hide the toolbar manually via `state.documentWindow`. No reveal. |
-| off | off | The toolbar is untouched. |
-
-With fullscreen switched off and "Hide the toolbar" on, there is no OS reveal
-mechanism, and a hand-rolled hover strip is not worth building. **Windowed focus
-mode hides the toolbar with no reveal**; ⌥⌘F or Esc is the way back. This asymmetry
-between the two configurations is deliberate.
-
-`window(_:willUseFullScreenPresentationOptions:)` delivering the reveal is one of
-the one assumption in this design that must be confirmed against the running app
-before the implementation commits to it. If it does not, the fallback is to hide the toolbar
-manually via `state.documentWindow` in both configurations and drop hover reveal
-entirely — the mode still works, it just loses the mouse-only path out.
+The fix was to stop delegating to AppKit and hide the toolbar directly with
+the SwiftUI modifier `.toolbar(.hidden, for: .windowToolbar)`, applied the same
+way regardless of the fullscreen setting — verified live, and it works. Two
+things follow from dropping the AppKit path: there is no hover reveal in any
+configuration, and the two switches no longer interact — toolbar hiding
+behaves identically whether or not fullscreen is on. ⌥⌘F, ⎋, or the green
+traffic-light button is the way back; ⌘F reveals the toolbar without leaving
+focus mode.
 
 ### The floating close-document button
 
@@ -267,8 +258,7 @@ testable and likely to break silently:
   quick open showing, focus mode on) — a table test. The in-page overlay cases
   never reach Swift; `bridge.js` resolves them before posting `exitFocus`.
 
-Dimming, toolbar hiding, fullscreen, and hover reveal are verified by running the
-app.
+Dimming, toolbar hiding, and fullscreen are verified by running the app.
 
 ## Out of scope
 

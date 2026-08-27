@@ -82,9 +82,9 @@ focus button and `>Focus Mode` in ⌘P do the same thing.
 **⌥⌘F again, or ⎋, brings it all back** — and back means back: the sidebar,
 outline, and column width return to what they were, not to a default. ⎋
 stays polite about it, clearing an active search or dismissing ⌘P first, and
-only leaves focus mode once there's nothing else to dismiss. So does leaving
-fullscreen any other way — the green traffic-light button, native ⌃⌘F — since
-focus mode doesn't outlive the fullscreen it's running in. (If the window was
+only leaves focus mode once there's nothing else to dismiss. Leaving
+fullscreen with the green traffic-light button exits it too, since focus mode
+doesn't outlive the fullscreen it's running in. (If the window was
 already in fullscreen before ⌥⌘F, exiting focus mode leaves it there rather
 than dropping out.)
 
@@ -99,10 +99,9 @@ you leave focus mode.
 
 Settings (⌘,) has a switch for each of the four pieces — fullscreen, dimming,
 narrow canvas, hidden toolbar — all on by default, so you can keep only the
-parts you want. One thing worth knowing: with fullscreen on, moving the
-pointer to the top of the screen reveals the toolbar — that's macOS's own
-fullscreen behaviour, not focus mode's. With fullscreen switched off, the
-toolbar is simply hidden, and ⌥⌘F or ⎋ is the way back to it.
+parts you want. Hiding the toolbar behaves the same whether or not fullscreen
+is on: there's no hover reveal either way, and ⌥⌘F or ⎋ is the way back to it,
+short of ⌘F sliding it down without leaving focus mode.
 
 Focus mode never persists. However you leave the app, it starts up outside it.
 
