@@ -491,15 +491,22 @@ struct MarkdownWebView: NSViewRepresentable {
             // mutating observed state during an update is the "Publishing changes
             // from within view updates" warning, and a real source of loops.
             DispatchQueue.main.async { [weak self] in
-                guard let self, let webView else { return }
+                // No webView check here — renderPDF does it, and reports the
+                // failure through the completion that clears `sharing`.
+                guard let self else { return }
                 state.sharing = true
                 let url = ShareTemp.url(for: loadedPath)
+                // `state` is captured strongly, not reached through `self`:
+                // AppState outlives this coordinator, and a window closed
+                // mid-render would otherwise drop the completion with `sharing`
+                // still true — latching the flag on, so every later share is
+                // refused by triggerShare()'s guard until the app restarts.
+                let state = state
                 renderPDF(to: url, layout: state.exportLayout) { [weak self] ok in
-                    guard let self else { return }
                     state.sharing = false
                     // A failed render matches export: return silently. An alert
                     // here would be the only one in the app.
-                    guard ok else { return }
+                    guard ok, let self, let webView = self.webView else { return }
                     // The picker needs a real NSView to anchor to, and a SwiftUI
                     // toolbar item doesn't hand you one. The web view's
                     // top-trailing corner sits directly under the toolbar, so
