@@ -51,8 +51,12 @@ private struct ReaderToolbar: ViewModifier {
                         .dockTooltip("Toggle outline (⇧⌘B)")
                     }
 
+                    // Tinted rather than swapped for a filled variant: SF Symbols
+                    // has no `plus.viewfinder.fill`, and an absent symbol renders
+                    // as blank space rather than failing to build.
                     Button { state.toggleFocusMode() } label: {
                         Image(systemName: "plus.viewfinder")
+                            .foregroundStyle(state.focusMode ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
                     }
                     .dockTooltip("Focus mode (⌥⌘F)")
                 }

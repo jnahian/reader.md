@@ -11,7 +11,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Focus mode** (⌥⌘F) — hides the sidebar, outline and toolbar, goes
   fullscreen, and dims every section but the one you're reading. Each of the
   four pieces can be switched off in Settings; ⎋ or ⌥⌘F leaves, and so does
-  leaving fullscreen any other way — the green traffic-light button.
+  leaving fullscreen any other way — the green traffic-light button. The hidden
+  toolbar slides back on a top-edge hover, or on ⌘F, without leaving the mode.
 
 ## [1.18.2] - 2026-08-26
 

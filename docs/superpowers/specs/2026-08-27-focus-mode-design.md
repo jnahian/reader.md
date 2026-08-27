@@ -69,17 +69,23 @@ Button { state.toggleFocusMode() } label: {
 .dockTooltip("Focus mode (⌥⌘F)")
 ```
 
-One icon, no on-state variant — matching the sidebar and outline toggles beside it,
-which do not vary either. In the default configuration the button is hidden the
-moment it is pressed, so an on-state would only ever show in the "Hide the toolbar
-off" configuration: not worth a second symbol, or the availability question a
-newer one would raise. AppKit draws the capsule around the group.
+One glyph in both states, **tinted** when focus mode is on rather than swapped for a
+filled variant. SF Symbols has no `plus.viewfinder.fill`, and an absent symbol
+renders as blank space rather than failing to build — so a swap would have shipped an
+invisible button. Colour also keeps the shape constant, which reads more calmly in a
+row of otherwise-static icons.
 
-Consequence, accepted rather than fixed: in the default configuration this button
-hides itself the moment it is pressed, because focus mode hides the toolbar.
-There is no reveal in any configuration, windowed or fullscreen, so the button
-stays gone until ⌥⌘F or Esc brings the toolbar back. It is a permanent
-round-trip control only when "Hide the toolbar" is switched off.
+An on-state is worth having now: the button was originally left un-varying because
+focus mode hid it the moment it was pressed, so the state could never be seen. The
+top-edge hover reveal changed that — the toolbar comes back while the mode is still
+running, and the tint is what tells you it is.
+
+AppKit draws the capsule around the group.
+
+In the default configuration this button hides itself the moment it is pressed,
+because focus mode hides the toolbar. The top-edge hover reveal brings it back
+without leaving the mode, so it is reachable throughout; it is a permanently
+visible control only when "Hide the toolbar" is switched off.
 
 ## The stash
 
@@ -150,11 +156,20 @@ silently inert.
 The fix was to stop delegating to AppKit and hide the toolbar directly with
 the SwiftUI modifier `.toolbar(.hidden, for: .windowToolbar)`, applied the same
 way regardless of the fullscreen setting — verified live, and it works. Two
-things follow from dropping the AppKit path: there is no hover reveal in any
-configuration, and the two switches no longer interact — toolbar hiding
-behaves identically whether or not fullscreen is on. ⌥⌘F, ⎋, or the green
-traffic-light button is the way back; ⌘F reveals the toolbar without leaving
-focus mode.
+things follow from dropping the AppKit path: the two switches no longer
+interact — toolbar hiding behaves identically whether or not fullscreen is on —
+and the hover reveal AppKit would have supplied had to be built here instead.
+
+That reveal is a `mouseMoved` monitor working in **screen** coordinates: it sets a
+transient `focusToolbarHovered` flag near the top edge and clears it once the
+pointer moves well clear. Screen coordinates rather than a hover strip inside the
+content view, because revealing the toolbar shifts the content down and out from
+under a stationary pointer — a strip would un-hover itself and oscillate. Two
+thresholds (reveal at 4pt, hide at 80pt) leave a dead zone wide enough to move the
+pointer onto the revealed toolbar and click it. It is deliberately transient, unlike
+⌘F's sticky reveal.
+
+⌥⌘F, ⎋, or the green traffic-light button is the way back out.
 
 ### The floating close-document button
 

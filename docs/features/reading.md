@@ -100,8 +100,10 @@ you leave focus mode.
 Settings (⌘,) has a switch for each of the four pieces — fullscreen, dimming,
 narrow canvas, hidden toolbar — all on by default, so you can keep only the
 parts you want. Hiding the toolbar behaves the same whether or not fullscreen
-is on: there's no hover reveal either way, and ⌥⌘F or ⎋ is the way back to it,
-short of ⌘F sliding it down without leaving focus mode.
+is on, and the toolbar is never far away: nudge the pointer to the top edge of
+the screen and it slides back down for as long as you're up there — long enough
+to reach a control and click it. ⌘F brings it down too, and keeps it down while
+you search. Neither costs you focus mode.
 
 Focus mode never persists. However you leave the app, it starts up outside it.
 
