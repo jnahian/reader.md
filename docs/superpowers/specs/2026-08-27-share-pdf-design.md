@@ -88,12 +88,20 @@ Threading the completion down differs by path:
   `PendingExport` already exists for: one slot per in-flight export, so two
   concurrent ones do not share a completion.
 
+**The completion must be delivered on the main queue.** `NSPrintOperation`
+calls its `didRun` delegate on the thread that ran the operation, not the main
+one, and `NSSharingServicePicker` traps on `dispatch_assert_queue` if shown from
+anywhere else — a hard SIGTRAP, every time, on the page-by-page layout that is
+the default. So `printOperationDidRun` hops to the main queue before calling the
+completion, and `renderPDF`'s contract is "completion always on the main queue".
+The continuous path needs nothing: `createPDF` already calls back on main.
+
 **The completion must fire after `paintPageBackground`, not before.** That
 function rewrites the finished PDF in place to fill the paper margins. Handing
 the URL to the share picker while the rewrite is still running would AirDrop a
 file being overwritten underneath the transfer. `printOperationDidRun` already
-calls it synchronously, so the ordering is just "completion last" in that
-method — but it is the one place in this design where getting the order wrong
+calls it synchronously, so the ordering is just "completion last" in that method
+(the main-queue hop above is scheduled after it, so both constraints hold at once) — but it is the one place in this design where getting the order wrong
 produces a corrupt file rather than a visible bug.
 
 ### Picker anchoring
