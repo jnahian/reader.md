@@ -106,6 +106,7 @@ private struct ReaderToolbar: ViewModifier {
 
                 ToolbarItem(placement: .primaryAction) { findField }
             }
+            .toolbar(state.focusToolbarHidden ? .hidden : .automatic, for: .windowToolbar)
     }
 
     /// The proxy icon: click the title to reveal in Finder, drag it to move the file.
