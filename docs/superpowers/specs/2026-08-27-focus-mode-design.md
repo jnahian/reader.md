@@ -37,6 +37,11 @@ because nothing changes while scrolling *within* a section — has no motion tie
 scroll velocity and nothing to feel twitchy. It also reuses the `activeHeading`
 signal `bridge.js` already computes, so it costs a CSS class.
 
+**Superseded in part:** the region's end is now a setting — see
+`2026-08-28-focus-dim-configuration-design.md`. The argument above still stands
+and is why that setting is an *absolute* heading level rather than the relative
+"same or higher" rule rejected here.
+
 Dim to `opacity: .38` — still legible, so a glance back at the previous section
 doesn't require leaving the mode — over a 200ms transition, so crossing a heading
 is a fade rather than a flash.

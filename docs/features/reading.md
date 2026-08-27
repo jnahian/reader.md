@@ -90,8 +90,13 @@ than dropping out.)
 
 The dimming follows the outline rather than the scroll position, so it holds
 still while you read a section and fades across when you reach the next
-heading. It steps aside while you're searching, in diff mode, and in a
-document with fewer than two headings.
+heading. **Region ends at** in Settings decides how wide "a section" is: every
+heading by default, or only headings down to H3, H2 or H1 — at *H2 or above* an
+`h2` stays lit across all of its subheadings, and crossing one of them changes
+nothing. A document whose headings are all deeper than that setting has no
+regions to tell apart, so nothing dims. **Dimming** sets how far the rest fades,
+from 40% to 88%. Dimming steps aside entirely while you're searching, in diff
+mode, and in a document with fewer than two headings.
 
 ⌘F still works: rather than dropping you out of focus mode, it slides the
 toolbar back down with the find field ready, and the toolbar stays down until

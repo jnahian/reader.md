@@ -13,6 +13,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   four pieces can be switched off in Settings; ⎋ or ⌥⌘F leaves, and so does
   leaving fullscreen any other way — the green traffic-light button. The hidden
   toolbar slides back on a top-edge hover, or on ⌘F, without leaving the mode.
+  Settings also sets how wide the lit region is — every heading, or only
+  headings down to H3, H2 or H1, so a section keeps its subsections lit — and
+  how far the rest dims.
 
 ## [1.18.2] - 2026-08-26
 
