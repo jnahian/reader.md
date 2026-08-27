@@ -178,6 +178,12 @@ struct MarkdownWebView: NSViewRepresentable {
             coord.exportPDF()
         }
 
+        // Share the rendered PDF.
+        if state.shareToken != coord.lastShare {
+            coord.lastShare = state.shareToken
+            coord.sharePDF()
+        }
+
         // Highlights: re-apply whenever the mark set OR resolved-thread visibility
         // changes. A fresh render always re-applies too (see the "rendered" message
         // handler), since re-rendering wipes the <mark> wrapper spans regardless.
@@ -204,6 +210,7 @@ struct MarkdownWebView: NSViewRepresentable {
         var lastFindNext: Int = 0
         var lastFindPrev: Int = 0
         var lastExport: Int = 0
+        var lastShare: Int = 0
         var lastPushedMarks: [Mark] = []
         var lastShowResolved: Bool = true
         private var lastDark: Bool?
@@ -475,6 +482,36 @@ struct MarkdownWebView: NSViewRepresentable {
             // runModal starts there (the remote panel boots without it), so the
             // panel has to wait a tick — same reason ⌘F defers its focus grab.
             DispatchQueue.main.async { [weak self] in self?.presentExportPanel() }
+        }
+
+        func sharePDF() {
+            // Deferred for the same reason exportPDF() is: the token arrives
+            // inside a SwiftUI render pass. Setting `sharing` here rather than in
+            // triggerShare() keeps that @Published write out of the pass too —
+            // mutating observed state during an update is the "Publishing changes
+            // from within view updates" warning, and a real source of loops.
+            DispatchQueue.main.async { [weak self] in
+                guard let self, let webView else { return }
+                state.sharing = true
+                let url = ShareTemp.url(for: loadedPath)
+                renderPDF(to: url, layout: state.exportLayout) { [weak self] ok in
+                    guard let self else { return }
+                    state.sharing = false
+                    // A failed render matches export: return silently. An alert
+                    // here would be the only one in the app.
+                    guard ok else { return }
+                    // The picker needs a real NSView to anchor to, and a SwiftUI
+                    // toolbar item doesn't hand you one. The web view's
+                    // top-trailing corner sits directly under the toolbar, so
+                    // .maxY puts the picker where the share button is. (Reading
+                    // the item out of window.toolbar?.items would depend on
+                    // SwiftUI's generated identifiers and break silently.)
+                    let anchor = NSRect(x: webView.bounds.maxX - 1, y: webView.bounds.maxY,
+                                        width: 1, height: 1)
+                    NSSharingServicePicker(items: [url])
+                        .show(relativeTo: anchor, of: webView, preferredEdge: .maxY)
+                }
+            }
         }
 
         private func presentExportPanel() {
