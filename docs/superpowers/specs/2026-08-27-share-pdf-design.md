@@ -107,10 +107,16 @@ produces a corrupt file rather than a visible bug.
 ### Picker anchoring
 
 `show(relativeTo:of:preferredEdge:)` needs a real `NSView`, and a SwiftUI
-toolbar item does not hand you one. The Coordinator already holds `webView`, so
-anchor to a zero-width rect at the web view's **top-trailing corner** with
-`preferredEdge: .maxY`. The toolbar sits directly above, so the picker appears
-under the share button as if anchored to it.
+toolbar item does not hand you one. Park a zero-footprint `NSView` behind the
+menu with `.background(ShareAnchor.Marker())` and anchor to that — it carries the
+button's own frame, so the sheet hangs off the control that opened it. This is
+the trick `DockTooltip` already uses to get a toolbar control's rect; the anchor
+declines hit-testing, or it would eat the click that opens the menu.
+
+Anchoring to the web view's top-trailing corner was tried first and is wrong:
+with the outline pane open, that corner is the *outline's* edge, so the sheet
+appeared over the outline instead of under the button. It survives only as the
+fallback for a window whose toolbar is gone.
 
 Digging the item out of `window.toolbar?.items` was rejected: it depends on
 SwiftUI's generated item identifiers and would break silently.

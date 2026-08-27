@@ -47,6 +47,8 @@ two ways to send the document somewhere without saving it first, both opening th
 system share sheet — AirDrop, Mail, Messages, Notes, and any share extension you
 have installed. Both are also in the **File** menu and in ⌘P.
 
+![The export menu: export a PDF, share a PDF, or share the markdown file](../assets/screenshots/exporting/02-export-menu.png)
+
 **Share PDF…** renders the same PDF that ⌘E would save. Whoever receives it does
 not need a markdown reader, and it arrives named after the document — AirDrop a
 `README.md` and `README.pdf` lands in the other machine's Downloads.
