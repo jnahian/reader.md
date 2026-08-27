@@ -94,7 +94,12 @@ struct ReaderMdApp: App {
                 Button("Set Default Editor…") { state.pickDefaultEditor() }
                 Button("Export as PDF…") { state.triggerExport() }
                     .keyboardShortcut("e", modifiers: .command)
-                    .disabled(state.selectedFile == nil || state.canShowDiff)
+                    .disabled(!state.canExport)
+                // No shortcut: nothing obvious is free near ⌘E (⇧⌘E is the
+                // external editor), and an action whose result is a picker isn't
+                // keystroke-worthy.
+                Button("Share PDF…") { state.triggerShare() }
+                    .disabled(!state.canExport || state.sharing)
                 Button("Reload") { state.triggerReload() }
                     .keyboardShortcut("r", modifiers: .command)
                     .disabled(state.selectedFile == nil)

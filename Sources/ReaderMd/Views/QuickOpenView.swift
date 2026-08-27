@@ -254,6 +254,8 @@ func paletteCommands(_ state: AppState) -> [PaletteCommand] {
         if !state.canShowDiff {
             cmds.append(PaletteCommand(id: "export", title: "Export as PDF…", subtitle: "Document",
                                        systemImage: "arrow.down.doc") { $0.exportToken += 1 })
+            cmds.append(PaletteCommand(id: "share", title: "Share PDF…", subtitle: "Document",
+                                       systemImage: "square.and.arrow.up") { $0.triggerShare() })
         }
         cmds.append(PaletteCommand(id: "copyPath", title: "Copy File Path", subtitle: "Document",
                                    systemImage: "doc.on.clipboard") { s in
