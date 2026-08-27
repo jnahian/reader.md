@@ -104,7 +104,9 @@ that Form: `LabeledContent` + `Slider` + a `.monospacedDigit()` readout at
 
 The slider binds to *strength*, not opacity — `get { 1 - opacity }`,
 `set { setFocusDimOpacity(1 - $0) }` — so dragging right dims more, which is
-the direction the label implies. Range 40%–88%, default 62%.
+the direction the label implies. Range 40%–88% in steps of 2% (opacity
+`0.60` to `0.12` in steps of `0.02`), default 62%. The step keeps the readout
+from showing a value the slider cannot land on again.
 
 ### Both rows disable together
 
@@ -122,8 +124,9 @@ mode branch; it is the single most likely thing to ship broken.
 ## Plumbing
 
 `window.ReaderMd.setFocusDim(on)` widens to `setFocusDim(on, opacity, depth)`.
-It sets `--focus-dim-opacity` on `:root`, stores `focusDim` and the depth, and
-calls `applyFocusDim()`.
+`depth` crosses the bridge as the enum's raw `Int` (1–4), so the comparison in
+`applyFocusDim` is a plain `level <= depth`. It sets `--focus-dim-opacity` on
+`:root`, stores `focusDim` and the depth, and calls `applyFocusDim()`.
 
 On the Swift side the coordinator's `lastFocusDim: Bool?` becomes a small
 `Equatable` struct holding all three values. Both places that read it need the
