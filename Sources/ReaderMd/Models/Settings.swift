@@ -14,6 +14,8 @@ enum Settings {
     private static let focusDimSectionsKey = "reader.md.focus.dimSections"
     private static let focusNarrowCanvasKey = "reader.md.focus.narrowCanvas"
     private static let focusHideToolbarKey = "reader.md.focus.hideToolbar"
+    private static let focusRegionDepthKey = "reader.md.focus.regionDepth"
+    private static let focusDimOpacityKey = "reader.md.focus.dimOpacity"
     private static let sidebarWidthKey = "reader.md.sidebarWidth"
     private static let recentsKey = "reader.md.recents"
     private static let favoritesKey = "reader.md.favorites"
@@ -25,7 +27,7 @@ enum Settings {
     private static let editorBundleIDKey = "reader.md.editorBundleID"
     private static let exportLayoutKey = "reader.md.exportLayout"
 
-    private static var defaults: UserDefaults { .standard }
+    static var defaults: UserDefaults { .standard }
 
     // Folders
     static func loadFolderPaths() -> [String] {
@@ -144,6 +146,26 @@ enum Settings {
     }
     static func saveFocusHideToolbar(_ value: Bool) {
         defaults.set(value, forKey: focusHideToolbarKey)
+    }
+
+    // Both default to what focus mode shipped with, so an existing install sees
+    // no change until it touches a setting. `object(forKey:) as?` rather than
+    // `integer`/`double`: those return 0 for an absent key, and 0 is neither a
+    // valid heading level nor a legible opacity.
+    static func loadFocusRegionDepth() -> FocusRegionDepth {
+        guard let raw = defaults.object(forKey: focusRegionDepthKey) as? Int,
+              let depth = FocusRegionDepth(rawValue: raw) else { return .any }
+        return depth
+    }
+    static func saveFocusRegionDepth(_ value: FocusRegionDepth) {
+        defaults.set(value.rawValue, forKey: focusRegionDepthKey)
+    }
+
+    static func loadFocusDimOpacity() -> Double {
+        defaults.object(forKey: focusDimOpacityKey) as? Double ?? 0.38
+    }
+    static func saveFocusDimOpacity(_ value: Double) {
+        defaults.set(value, forKey: focusDimOpacityKey)
     }
 
     // Recents

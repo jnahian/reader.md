@@ -95,6 +95,27 @@ enum ContentWidth: String, CaseIterable {
     }
 }
 
+/// The deepest heading level that ends a focus mode dim region.
+///
+/// Deliberately an ABSOLUTE level, not one relative to the active heading. The
+/// relative rule — "the next heading of the same or higher level" — was rejected
+/// in the original focus mode design: with `h2 A / h3 A.1 / h2 B` it makes a
+/// ~20px scroll swing the lit region between one paragraph and the whole of A.
+/// An absolute level changes the region only when a boundary heading is crossed,
+/// and at `.h2` the `h3` is not a boundary at all.
+enum FocusRegionDepth: Int, CaseIterable {
+    case h1 = 1, h2 = 2, h3 = 3, any = 4
+
+    var displayName: String {
+        switch self {
+        case .any: return "Any heading"
+        case .h3:  return "H3 or above"
+        case .h2:  return "H2 or above"
+        case .h1:  return "H1 only"
+        }
+    }
+}
+
 /// How ⌘E lays out the PDF: real pages via the print engine, or one
 /// continuous page the height of the whole document.
 enum ExportLayout: String, CaseIterable {
@@ -211,8 +232,17 @@ final class AppState: ObservableObject {
     @Published var focusNarrowCanvas: Bool = Settings.loadFocusNarrowCanvas()
     @Published var focusHideToolbar: Bool = Settings.loadFocusHideToolbar()
 
+    @Published var focusRegionDepth: FocusRegionDepth = Settings.loadFocusRegionDepth()
+    @Published var focusDimOpacity: Double = Settings.loadFocusDimOpacity()
+
+    /// True while the Settings window is open, so the two dimming controls have
+    /// visible effect on the document behind it. Widens what counts as "dimming
+    /// is showing" — never what counts as "focus mode is on", which is why
+    /// `focusMode` itself is untouched by it.
+    @Published var focusDimPreview: Bool = false
+
     /// What the web view is told. Dimming needs both the mode and its switch.
-    var focusDimActive: Bool { focusMode && focusDimSections }
+    var focusDimActive: Bool { (focusMode || focusDimPreview) && focusDimSections }
 
     /// Every switch off makes ⌥⌘F a no-op. Settings shows a note when this is true.
     var focusModeDoesNothing: Bool {
@@ -998,6 +1028,19 @@ final class AppState: ObservableObject {
     func setFocusDimSections(_ value: Bool) {
         focusDimSections = value
         Settings.saveFocusDimSections(value)
+    }
+
+    func setFocusRegionDepth(_ value: FocusRegionDepth) {
+        focusRegionDepth = value
+        Settings.saveFocusRegionDepth(value)
+    }
+
+    /// Clamped because the value is interpolated straight into a CSS custom
+    /// property: above .60 dimming stops reading as dimming, below .12 a glance
+    /// back at the previous section stops being possible.
+    func setFocusDimOpacity(_ value: Double) {
+        focusDimOpacity = min(max(value, 0.12), 0.60)
+        Settings.saveFocusDimOpacity(focusDimOpacity)
     }
 
     func setFocusNarrowCanvas(_ value: Bool) {
