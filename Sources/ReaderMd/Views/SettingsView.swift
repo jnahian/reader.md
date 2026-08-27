@@ -66,6 +66,41 @@ struct SettingsView: View {
                     get: { state.focusDimSections },
                     set: { state.setFocusDimSections($0) }
                 ))
+                // Both indented under the switch they depend on, and disabled with
+                // it: with dimming off they have nothing to act on, and greying
+                // them says so without hiding them.
+                Picker("Region ends at", selection: Binding(
+                    get: { state.focusRegionDepth },
+                    set: { state.setFocusRegionDepth($0) }
+                )) {
+                    // Widest region last, so the list reads tightest → loosest.
+                    // That is the reverse of `allCases`, hence the explicit order.
+                    ForEach([FocusRegionDepth.any, .h3, .h2, .h1], id: \.self) { depth in
+                        Text(depth.displayName).tag(depth)
+                    }
+                }
+                .disabled(!state.focusDimSections)
+
+                // Bound to STRENGTH, not opacity, so dragging right dims more —
+                // the direction the label implies. Range 40%–88% in steps of 2%
+                // is opacity .60 down to .12 in steps of .02.
+                LabeledContent("Dimming") {
+                    HStack {
+                        Slider(
+                            value: Binding(
+                                get: { 1 - state.focusDimOpacity },
+                                set: { state.setFocusDimOpacity(1 - $0) }
+                            ),
+                            in: 0.40...0.88, step: 0.02
+                        )
+                        Text("\(Int(((1 - state.focusDimOpacity) * 100).rounded()))%")
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                            .frame(width: 44, alignment: .trailing)
+                    }
+                }
+                .disabled(!state.focusDimSections)
+
                 Toggle("Narrow the canvas", isOn: Binding(
                     get: { state.focusNarrowCanvas },
                     set: { state.setFocusNarrowCanvas($0) }
@@ -113,9 +148,15 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
+        // Dimming renders only while focus mode is running, and these controls
+        // live in a different window — so without this the slider has no visible
+        // effect at the moment you are dragging it. The document window behind
+        // Settings dims at the current values instead, and stops when it closes.
+        .onAppear { state.focusDimPreview = true }
+        .onDisappear { state.focusDimPreview = false }
         // A `Settings` scene's NSWindow autosaves its frame under a fixed key, so
         // a window last closed before this section existed reopens at its old
         // (shorter) height and clips it. minHeight floors AppKit's restore.
-        .frame(minWidth: 420, maxWidth: 420, minHeight: 680)
+        .frame(minWidth: 420, maxWidth: 420, minHeight: 760)
     }
 }
