@@ -69,9 +69,27 @@ func renderPDF(to url: URL, layout: ExportLayout, completion: @escaping (Bool) -
 
 It owns the `activeExports += 1`, the `beforeExport()` call, the
 `.continuous` / `.pageByPage` switch, and `endExport()`.
-`presentExportPanel()` keeps the panel and calls it; `sharePDF()` calls it
-directly with the temp URL. `exportContinuous(to:)` and `exportPaginated(to:)`
-already take a URL, so this is untangling, not restructuring.
+`presentExportPanel()` keeps the panel and calls it with `completion` empty;
+`sharePDF()` calls it directly with the temp URL and presents the picker from
+the completion. `exportContinuous(to:)` and `exportPaginated(to:)` already take
+a URL, so this is untangling, not restructuring.
+
+Threading the completion down differs by path:
+
+- **Continuous** — it goes in the `createPDF` result closure, after
+  `data.write(to:)`, so it reports the write rather than the render.
+- **Paginated** — the finish lands in `printOperationDidRun`, so the closure
+  rides on `PendingExport` alongside `url` and `pageColor`. That is what
+  `PendingExport` already exists for: one slot per in-flight export, so two
+  concurrent ones do not share a completion.
+
+**The completion must fire after `paintPageBackground`, not before.** That
+function rewrites the finished PDF in place to fill the paper margins. Handing
+the URL to the share picker while the rewrite is still running would AirDrop a
+file being overwritten underneath the transfer. `printOperationDidRun` already
+calls it synchronously, so the ordering is just "completion last" in that
+method — but it is the one place in this design where getting the order wrong
+produces a corrupt file rather than a visible bug.
 
 ### Picker anchoring
 
@@ -182,6 +200,8 @@ predicate is true when `sharing` is set.
 - AirDrop to a device: the received file is named `README.pdf`, not a UUID.
 - Share with a find query active: the PDF has no highlights, and the original
   match is still selected afterwards.
+- Share from a dark reading theme with the page-by-page layout: the received PDF
+  has themed margins, i.e. the picker waited for `paintPageBackground`.
 
 ## Documentation
 
