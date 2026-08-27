@@ -271,9 +271,10 @@
     }
 
     /* Focus mode: everything outside the current heading's region. Dimmed, not
-       hidden — 0.38 stays legible, so glancing back at the previous section
-       does not require leaving the mode. */
-    .focus-dim { opacity: .38; transition: opacity .2s ease; }
+       hidden — the default .38 stays legible, so glancing back at the previous
+       section does not require leaving the mode. The custom property is set by
+       setFocusDim(); the fallback keeps the rule correct if it is ever unset. */
+    .focus-dim { opacity: var(--focus-dim-opacity, .38); transition: opacity .2s ease; }
   </style>
 </head>
 <body>

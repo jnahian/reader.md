@@ -124,7 +124,9 @@ struct MarkdownWebView: NSViewRepresentable {
         coord.applyAccent(isDark: context.environment.colorScheme == .dark)
         coord.applyReadingTheme(state.readingTheme.rawValue)
         coord.applyTypography(scale: state.fontScale, width: state.contentWidth)
-        coord.applyFocusDim(state.focusDimActive)
+        coord.applyFocusDim(state.focusDimActive,
+                            opacity: state.focusDimOpacity,
+                            depth: state.focusRegionDepth.rawValue)
 
         if state.canShowDiff {
             let pathChanged = coord.loadedPath != state.selectedFile?.url.path
@@ -212,7 +214,14 @@ struct MarkdownWebView: NSViewRepresentable {
         private var lastReadingTheme: String?
         private var lastScale: Double?
         private var lastWidth: ContentWidth?
-        private var lastFocusDim: Bool?
+        /// All three values the web view needs, cached together. As a bare `Bool`
+        /// this swallowed opacity and depth changes whenever `on` was unchanged.
+        private struct FocusDimState: Equatable {
+            var on: Bool
+            var opacity: Double
+            var depth: Int
+        }
+        private var lastFocusDim: FocusDimState?
         private var lastFindQuery: String = ""
         private var activePopover: NSPopover?
 
@@ -288,11 +297,17 @@ struct MarkdownWebView: NSViewRepresentable {
             }
         }
 
-        func applyFocusDim(_ on: Bool) {
-            guard isReady else { lastFocusDim = on; return }
-            guard lastFocusDim != on else { return }
-            lastFocusDim = on
-            webView?.evaluateJavaScript("window.ReaderMd.setFocusDim(\(on));")
+        func applyFocusDim(_ on: Bool, opacity: Double, depth: Int) {
+            let next = FocusDimState(on: on, opacity: opacity, depth: depth)
+            guard isReady else { lastFocusDim = next; return }
+            guard lastFocusDim != next else { return }
+            lastFocusDim = next
+            pushFocusDim(next)
+        }
+
+        private func pushFocusDim(_ s: FocusDimState) {
+            webView?.evaluateJavaScript(
+                "window.ReaderMd.setFocusDim(\(s.on), \(s.opacity), \(s.depth));")
         }
 
         /// `resume` is the saved scroll fraction; the web view applies it once the
@@ -678,7 +693,7 @@ struct MarkdownWebView: NSViewRepresentable {
                 }
                 if let scale = lastScale { webView?.evaluateJavaScript("window.ReaderMd.setFontScale(\(scale));") }
                 if let width = lastWidth { webView?.evaluateJavaScript("window.ReaderMd.setContentWidth('\(width.css)');") }
-                if let dim = lastFocusDim { webView?.evaluateJavaScript("window.ReaderMd.setFocusDim(\(dim));") }
+                if let dim = lastFocusDim { pushFocusDim(dim) }
                 if let name = lastReadingTheme {
                     webView?.evaluateJavaScript("window.ReaderMd.setReadingTheme('\(name)');")
                 }

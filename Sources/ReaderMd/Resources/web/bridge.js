@@ -108,8 +108,10 @@ window.ReaderMd = {
     document.documentElement.style.setProperty('--content-width', css);
   },
 
-  setFocusDim(on) {
+  setFocusDim(on, opacity, depth) {
     focusDim = on;
+    focusDepth = depth;
+    document.documentElement.style.setProperty('--focus-dim-opacity', opacity);
     applyFocusDim();
   },
 
@@ -647,14 +649,20 @@ function postTOC() {
 }
 
 let focusDim = false;
+// The deepest heading level that ends a region; 4 = every heading, the default.
+let focusDepth = 4;
 
 // Classes the top-level blocks OUTSIDE the active heading's region. Deliberately
 // no <section> wrappers: marked emits a flat h2/p/p/h2 sibling list, and mark
 // anchoring, find, footnotes and diff hunks all read that flat structure.
 //
-// The region ends at the next heading of ANY level. Ending it at the next
-// same-or-higher heading would make a 20px scroll across a nested heading swing
-// the lit region between a paragraph and its whole parent section.
+// The region ends at the next heading at or above `focusDepth` — every heading
+// by default. Depth is an ABSOLUTE level, fixed by the setting, never one
+// relative to the active heading. The relative rule ("the next heading of the
+// same or higher level") would make a 20px scroll across a nested heading swing
+// the lit region between a paragraph and its whole parent section; an absolute
+// level changes the region only when a boundary heading is crossed, and a
+// heading deeper than the setting is not a boundary at all.
 function applyFocusDim() {
   const blocks = [...contentEl.children];
   for (const b of blocks) b.classList.remove('focus-dim');
@@ -665,8 +673,12 @@ function applyFocusDim() {
   if (!focusDim || diffMode || findQuery) return;
 
   const headings = [];
-  blocks.forEach((b, i) => { if (/^H[1-4]$/.test(b.tagName)) headings.push(i); });
-  // One region means dimming has nothing to say.
+  blocks.forEach((b, i) => {
+    if (/^H[1-4]$/.test(b.tagName) && +b.tagName[1] <= focusDepth) headings.push(i);
+  });
+  // One region means dimming has nothing to say. Also the answer when every
+  // heading in the document is deeper than the chosen depth: no boundaries, so
+  // no regions to tell apart.
   if (headings.length < 2) return;
 
   let active = headings[0];
