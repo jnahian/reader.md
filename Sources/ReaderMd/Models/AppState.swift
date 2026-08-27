@@ -261,6 +261,13 @@ final class AppState: ObservableObject {
     @Published var findNextToken: Int = 0
     @Published var findPrevToken: Int = 0
     @Published var exportToken: Int = 0
+    @Published var shareToken: Int = 0
+
+    /// A share render is in flight. The system share picker can only be shown a
+    /// file that already exists, so there is a real gap between the click and
+    /// the picker — long enough on a Mermaid/KaTeX document to read as a dead
+    /// click if nothing says otherwise.
+    @Published var sharing: Bool = false
 
     // Diff mode — a sticky VIEW MODE, not a one-shot, so it is persisted state
     // rather than a bump token. `diffToken` is the one-shot: it's bumped after
@@ -405,6 +412,11 @@ final class AppState: ObservableObject {
     /// A file with no repo renders normally even while `diffMode` is on, so
     /// opening a remote folder mid-session isn't a dead end.
     var canShowDiff: Bool { diffMode && diffAvailable }
+
+    /// Export and share are gated identically: a document has to be loaded, and
+    /// the diff pane renders hunks rather than the document, so there is nothing
+    /// to render out of it.
+    var canExport: Bool { selectedFile != nil && !canShowDiff }
 
     func toggleDiffMode() {
         diffMode.toggle()
@@ -1223,6 +1235,14 @@ final class AppState: ObservableObject {
     func triggerFindNext() { findNextToken += 1 }
     func triggerFindPrev() { findPrevToken += 1 }
     func triggerExport() { exportToken += 1 }
+
+    func triggerShare() {
+        // The re-entrancy guard for every surface. The toolbar also greys its
+        // share row while `sharing` is set, but the File menu and the command
+        // palette have no greyed row to look at.
+        guard !sharing else { return }
+        shareToken += 1
+    }
     func triggerReload() { reloadToken += 1 }
 
     // MARK: - Search helpers
