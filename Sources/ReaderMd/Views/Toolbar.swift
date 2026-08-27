@@ -86,11 +86,7 @@ private struct ReaderToolbar: ViewModifier {
                     .disabled(state.selectedFile == nil)
                     .dockTooltip("Reload (⌘R)")
 
-                    Button { state.triggerExport() } label: {
-                        Image(systemName: "square.and.arrow.up")
-                    }
-                    .disabled(state.selectedFile == nil || state.canShowDiff)
-                    .dockTooltip("Export as PDF (⌘E)")
+                    exportMenu
 
                     Button { state.toggleTheme() } label: {
                         Image(systemName: state.theme.symbol)
@@ -110,6 +106,32 @@ private struct ReaderToolbar: ViewModifier {
         } else {
             content
         }
+    }
+
+    /// Export and share, built like the two menus beside it. The icon stays
+    /// `square.and.arrow.up` — already the share glyph.
+    ///
+    /// `sharing` greys the share *row*, not the menu: a disabled pull-down draws
+    /// its label static, so a spinner that only shows while the control is
+    /// disabled would never animate. The real re-entrancy guard is in
+    /// `triggerShare()`, which also covers the File menu and the palette. Leaving
+    /// the menu live during a share costs nothing — concurrent exports already
+    /// work through `activeExports`.
+    private var exportMenu: some View {
+        Menu {
+            Button("Export as PDF… (⌘E)") { state.triggerExport() }
+            Button("Share PDF…") { state.triggerShare() }
+                .disabled(state.sharing)
+        } label: {
+            if state.sharing {
+                ProgressView().controlSize(.small)
+            } else {
+                Image(systemName: "square.and.arrow.up")
+            }
+        }
+        .menuIndicator(.hidden)
+        .disabled(!state.canExport)
+        .dockTooltip("Export and share")
     }
 
     private var readingStyleMenu: some View {
