@@ -46,6 +46,11 @@ Like `exportPDF()`, the entry point defers with `DispatchQueue.main.async` —
 the token lands inside a SwiftUI render pass, and AppKit presentation started
 from there does not attach reliably.
 
+`state.sharing = true` goes **inside** that deferred block, not before it. The
+token is read from `updateNSView`, so setting a `@Published` on the way in would
+mutate observed state during a SwiftUI update pass — the "Publishing changes from
+within view updates" warning, and a real source of update loops.
+
 ### The render must be shared, not reimplemented
 
 `sharePDF()` goes through `beforeExport()` → render → `endExport()`, and
@@ -108,9 +113,16 @@ SwiftUI's generated item identifiers and would break silently.
 subdirectory so the file keeps the document's real name, which is what AirDrop
 shows the receiver and what lands in their Downloads.
 
-Cleanup is one `removeItem` of `Reader.md-Share` at launch, in `AppDelegate`.
-The file has to outlive the picker (an AirDrop transfer is still reading it
-after the picker closes), so deleting on completion would need
+`ShareTemp.url(for:)` creates the directory itself, with
+`createDirectory(withIntermediateDirectories: true)`, before returning the URL —
+`createPDF` and the print operation both write into a path that must already
+exist, and neither reports a missing directory as anything louder than a file
+that never appears.
+
+Cleanup is one `removeItem` of `Reader.md-Share`, at launch and before any window
+exists — `applicationDidFinishLaunching`, not a per-window or per-document path.
+The file has to outlive the picker (an AirDrop transfer is still reading it after
+the picker closes), so deleting on completion would need
 `NSSharingServiceDelegate` plumbing to be correct; deleting last session's files
 at launch is simpler and cannot race a transfer.
 
@@ -134,6 +146,7 @@ neighbours `readingStyleMenu` and `canvasWidthMenu`:
 Menu {
     Button("Export as PDF… (⌘E)") { state.triggerExport() }
     Button("Share PDF…")          { state.triggerShare() }
+        .disabled(state.sharing)
 } label: {
     if state.sharing {
         ProgressView().controlSize(.small)
@@ -142,16 +155,27 @@ Menu {
     }
 }
 .menuIndicator(.hidden)
-.disabled(state.selectedFile == nil || state.canShowDiff || state.sharing)
+.disabled(state.selectedFile == nil || state.canShowDiff)
 .dockTooltip("Export and share")
 ```
 
 The icon stays `square.and.arrow.up` — already the share glyph.
 
+`sharing` disables the **share row**, not the menu. A disabled pull-down renders
+its label greyed and static, so a `ProgressView` inside a disabled `Menu` is not
+a dependable animating indicator — and an indicator that only shows while the
+control is disabled is the entire point. Keeping the menu live also leaves ⌘E's
+menu entry usable during a share, which costs nothing: concurrent exports are
+already supported through `activeExports`.
+
+Re-entrancy therefore does not rest on the disabled row alone. `triggerShare()`
+carries `guard !sharing else { return }`, so the palette and the File menu — which
+have no greyed row to look at — cannot start a second render either.
+
 The spinner is not decoration. A long document with Mermaid and KaTeX takes a
-visible moment to render, and without it a slow share reads as a dead click.
-Disabling on `sharing` also *is* the re-entrancy guard: no second render can
-start, so there is never a second picker.
+visible moment to render, and without it a slow share reads as a dead click. If
+the spinner turns out not to animate in a toolbar `Menu` label at all, fall back
+to tinting the icon; do not fall back to nothing.
 
 The menu is a plain menu, not `Menu(primaryAction:)`. A split button would keep
 today's single-click export, but macOS split-button menus are hard to notice and
@@ -188,8 +212,10 @@ WKWebView and AppKit and are verified by running the app.
 - two calls return different directories
 - a nil path falls back to `document.pdf`, as the save panel already does
 
-`ShareGateTests` — `triggerShare()` bumps `shareToken`; the toolbar's disabled
-predicate is true when `sharing` is set.
+`ShareGateTests` — `triggerShare()` bumps `shareToken`; `triggerShare()` while
+`sharing` is set does **not** bump it; the toolbar's menu-level disabled
+predicate is true when `selectedFile` is nil and when `canShowDiff` is set, and
+unaffected by `sharing`.
 
 ### By hand, in the running app
 
@@ -226,4 +252,7 @@ In the order `CLAUDE.md` prescribes.
 - Sharing the source `.md` file.
 - A share action on file-tree rows or in the sidebar context menu.
 - Exporting or sharing while the diff view is up — share inherits export's
-  existing `canShowDiff` block.
+  existing `canShowDiff` block. That predicate is `diffMode && diffAvailable`
+  (`AppState.swift:407`), so it means "the diff pane is currently displayed", not
+  "this file has changes": a changed file in a repo is still exportable and
+  shareable while it is being read normally.
