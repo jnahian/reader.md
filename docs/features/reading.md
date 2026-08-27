@@ -79,6 +79,8 @@ collapse, the toolbar goes, the window moves to fullscreen, the canvas
 narrows, and every section but the one you're reading dims. The toolbar's
 focus button and `>Focus Mode` in ⌘P do the same thing.
 
+![Focus mode — chrome gone, everything but the current section dimmed](../assets/screenshots/reading/06-focus-mode.png)
+
 **⌥⌘F again, or ⎋, brings it all back** — and back means back: the sidebar,
 outline, and column width return to what they were, not to a default. ⎋
 stays polite about it, clearing an active search or dismissing ⌘P first, and
