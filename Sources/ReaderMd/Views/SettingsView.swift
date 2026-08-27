@@ -113,6 +113,9 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 420)
+        // A `Settings` scene's NSWindow autosaves its frame under a fixed key, so
+        // a window last closed before this section existed reopens at its old
+        // (shorter) height and clips it. minHeight floors AppKit's restore.
+        .frame(minWidth: 420, maxWidth: 420, minHeight: 640)
     }
 }
