@@ -6,6 +6,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Share a PDF.** The export button in the toolbar is now a menu. Beside
+  **Export as PDF…** it holds **Share PDF…**, which renders the same PDF and
+  opens the system share sheet on it — AirDrop, Mail, Messages, and any share
+  extension you have installed. It's also in **File ▸ Share PDF…** and in ⌘P.
+  The shared PDF uses the default layout from **Settings ▸ Editing & Export**,
+  and arrives named after the document, so AirDropping a `README.md` lands a
+  `README.pdf` on the other machine.
+
 ## [1.18.2] - 2026-08-26
 
 ### Fixed

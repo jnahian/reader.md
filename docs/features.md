@@ -87,6 +87,7 @@ See [Remote and cloned folders](features/remote.md).
 See [Exporting and editing](features/exporting.md).
 
 - **Export as PDF** (⌘E) — page-by-page or one continuous page, chosen per export, defaulting to the setting
+- **Share PDF** — renders the document and opens the system share sheet (AirDrop, Mail, Messages), using the layout default from Settings
 - **Hand off to an editor** (⇧⌘E) — pick one once, and every save comes straight back through the watcher
 - **Reader.md never writes to your documents**
 
