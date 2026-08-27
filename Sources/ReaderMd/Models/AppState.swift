@@ -256,12 +256,43 @@ final class AppState: ObservableObject {
     /// reads it and the `.toolbar(_:for:)` modifier needs to react.
     @Published private var focusToolbarRevealed = false
 
+    /// Transient counterpart to `focusToolbarRevealed`: true only while the
+    /// pointer sits near the top of the screen, driven by `focusHoverMonitor`.
+    /// Unlike the ⌘F reveal, this un-sets itself the moment the pointer moves
+    /// away — there is no "stepping through matches" case to stay sticky for.
+    @Published private var focusToolbarHovered = false
+
     /// Whether the SwiftUI toolbar modifier should hide the window's toolbar
-    /// right now. See `focusToolbarHidden(focusMode:hideToolbar:toolbarRevealed:)`.
+    /// right now. See `focusToolbarHidden(focusMode:hideToolbar:toolbarRevealed:toolbarHovered:)`.
     var focusToolbarHidden: Bool {
         ReaderMd.focusToolbarHidden(focusMode: focusMode, hideToolbar: focusHideToolbar,
-                                     toolbarRevealed: focusToolbarRevealed)
+                                     toolbarRevealed: focusToolbarRevealed,
+                                     toolbarHovered: focusToolbarHovered)
     }
+
+    /// How close to the screen's top edge (in points) the pointer must get
+    /// before the hover reveal kicks in.
+    private static let focusToolbarHoverRevealDistance: CGFloat = 4
+
+    /// How far from the screen's top edge the pointer must move before the
+    /// hover reveal goes away again. Deliberately much larger than the reveal
+    /// distance: the revealed toolbar itself occupies roughly the top 30–50
+    /// points, and the user has to be able to move the pointer down onto it to
+    /// click something there. A single 4pt threshold would hide it again the
+    /// instant they moved a few points toward the button they were reaching
+    /// for; 80 comfortably clears the tallest toolbar, so the dead zone
+    /// between the two thresholds covers "pointer is on the toolbar."
+    private static let focusToolbarHoverHideDistance: CGFloat = 80
+
+    /// Local `mouseMoved` monitor backing `focusToolbarHovered`. Installed only
+    /// while focus mode is hiding the toolbar (see `startFocusToolbarHoverMonitor()`)
+    /// and cleared on every exit path — same discipline as `fullScreenExitObserver`.
+    private var focusHoverMonitor: Any?
+
+    /// `documentWindow.acceptsMouseMovedEvents` from before the monitor turned it
+    /// on, so `stopFocusToolbarHoverMonitor()` can restore it rather than assume
+    /// the window never wanted mouse-moved events for its own reasons.
+    private var focusHoverMonitorPriorAcceptsMouseMovedEvents: Bool?
 
     /// The WindowGroup's window, tagged by `WindowAccessor` on ContentView.
     /// Deliberately not @Published — nothing renders from it, and republishing
@@ -850,11 +881,13 @@ final class AppState: ObservableObject {
         showTOC = false
         if focusNarrowCanvas { contentWidth = .narrow }
         applyFocusWindowChrome()
+        startFocusToolbarHoverMonitor()
     }
 
     private func exitFocusMode() {
         focusMode = false
         focusToolbarRevealed = false
+        stopFocusToolbarHoverMonitor()
         guard let stash = focusStash else { return }
         focusStash = nil
         restoreWindowChrome(wasAlreadyFullscreen: stash.wasAlreadyFullscreen)
@@ -906,6 +939,55 @@ final class AppState: ObservableObject {
     func revealToolbarForFind() {
         guard focusMode else { return }
         focusToolbarRevealed = true
+    }
+
+    /// Only worth installing while the toolbar is actually being hidden — with
+    /// `focusHideToolbar` off there is nothing for the hover to reveal.
+    ///
+    /// SwiftUI removes the toolbar's items entirely rather than sliding them
+    /// off-screen, so there is no view for AppKit's own auto-hide-toolbar hover
+    /// strip to attach to (measured on the real app: pointer at the very top
+    /// edge and pointer at screen centre produced a byte-identical capture).
+    /// A monitor in screen coordinates sidesteps that, and also sidesteps the
+    /// oscillation a SwiftUI hover strip would have: the strip would sit at the
+    /// top of the content, and revealing the toolbar pushes that content down,
+    /// sliding the strip out from under a stationary pointer, un-hovering it,
+    /// hiding the toolbar, and repeating forever.
+    private func startFocusToolbarHoverMonitor() {
+        guard focusHideToolbar, let window = documentWindow, focusHoverMonitor == nil else { return }
+        focusHoverMonitorPriorAcceptsMouseMovedEvents = window.acceptsMouseMovedEvents
+        window.acceptsMouseMovedEvents = true
+        focusHoverMonitor = NSEvent.addLocalMonitorForEvents(matching: .mouseMoved) { [weak self] event in
+            MainActor.assumeIsolated { self?.handleFocusToolbarHoverMoved() }
+            return event
+        }
+    }
+
+    private func stopFocusToolbarHoverMonitor() {
+        if let focusHoverMonitor { NSEvent.removeMonitor(focusHoverMonitor) }
+        focusHoverMonitor = nil
+        focusToolbarHovered = false
+        if let window = documentWindow, let prior = focusHoverMonitorPriorAcceptsMouseMovedEvents {
+            window.acceptsMouseMovedEvents = prior
+        }
+        focusHoverMonitorPriorAcceptsMouseMovedEvents = nil
+    }
+
+    /// `NSEvent.mouseLocation` (global screen coordinates), not the event's own
+    /// `locationInWindow` — that one is only window-relative when the event has
+    /// an associated window, and is already in screen coordinates when it
+    /// doesn't, which is precisely the case right at the screen's top edge. See
+    /// `startFocusToolbarHoverMonitor()` for why screen coordinates in general.
+    /// The two different thresholds (reveal vs. hide) are what keep this from
+    /// oscillating; see `focusToolbarHoverRevealDistance` / `...HideDistance`.
+    private func handleFocusToolbarHoverMoved() {
+        guard let window = documentWindow, let screen = window.screen else { return }
+        let distanceFromTop = screen.frame.maxY - NSEvent.mouseLocation.y
+        if !focusToolbarHovered && distanceFromTop <= Self.focusToolbarHoverRevealDistance {
+            focusToolbarHovered = true
+        } else if focusToolbarHovered && distanceFromTop >= Self.focusToolbarHoverHideDistance {
+            focusToolbarHovered = false
+        }
     }
 
     func setFocusFullscreen(_ value: Bool) {
@@ -1551,10 +1633,10 @@ func escapeAction(findQuery: String, showQuickOpen: Bool, focusMode: Bool) -> Es
 
 /// Whether the SwiftUI toolbar modifier should hide the window's toolbar.
 ///
-/// A free function over three booleans, same reasoning as `escapeAction`: the
+/// A free function over four booleans, same reasoning as `escapeAction`: the
 /// matrix is small but not obvious, and testable without a window is worth more
-/// than a method would be. See `FocusToolbarTests` for why `toolbarRevealed`
-/// exists at all.
-func focusToolbarHidden(focusMode: Bool, hideToolbar: Bool, toolbarRevealed: Bool) -> Bool {
-    focusMode && hideToolbar && !toolbarRevealed
+/// than a method would be. See `FocusToolbarTests` for why `toolbarRevealed` and
+/// `toolbarHovered` — one sticky, one transient — both exist.
+func focusToolbarHidden(focusMode: Bool, hideToolbar: Bool, toolbarRevealed: Bool, toolbarHovered: Bool) -> Bool {
+    focusMode && hideToolbar && !toolbarRevealed && !toolbarHovered
 }

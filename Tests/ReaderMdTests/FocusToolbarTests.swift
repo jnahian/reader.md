@@ -1,28 +1,52 @@
 import XCTest
 @testable import ReaderMd
 
-/// `toolbarRevealed` exists for one reason: ⌘F must bring the toolbar back without
-/// costing the mode, and the reveal has to be sticky until focus mode is left —
-/// re-hiding it the moment the search field clears would yank the field away from
-/// someone stepping through matches with ⌘G.
+/// `toolbarRevealed` and `toolbarHovered` exist for two different reasons that
+/// both have to un-hide the toolbar independently of one another:
+///
+/// - `toolbarRevealed` (⌘F): sticky until focus mode is left, so re-hiding it the
+///   moment the search field clears would yank the field away from someone
+///   stepping through matches with ⌘G.
+/// - `toolbarHovered` (top-edge hover): transient, tracking the pointer, so the
+///   toolbar comes back down the instant it moves away again.
 final class FocusToolbarTests: XCTestCase {
-    func testHiddenWhenModeAndSettingAreOnAndNotRevealed() {
-        XCTAssertTrue(focusToolbarHidden(focusMode: true, hideToolbar: true, toolbarRevealed: false))
+    func testHiddenWhenModeAndSettingAreOnAndNeitherReasonToShowApplies() {
+        XCTAssertTrue(focusToolbarHidden(focusMode: true, hideToolbar: true,
+                                          toolbarRevealed: false, toolbarHovered: false))
     }
 
     func testVisibleOutsideFocusModeRegardlessOfSetting() {
-        XCTAssertFalse(focusToolbarHidden(focusMode: false, hideToolbar: true, toolbarRevealed: false))
+        XCTAssertFalse(focusToolbarHidden(focusMode: false, hideToolbar: true,
+                                           toolbarRevealed: false, toolbarHovered: false))
+    }
+
+    func testVisibleOutsideFocusModeEvenWithBothReasonsSet() {
+        XCTAssertFalse(focusToolbarHidden(focusMode: false, hideToolbar: true,
+                                           toolbarRevealed: true, toolbarHovered: true))
     }
 
     func testVisibleWhenSettingIsOff() {
-        XCTAssertFalse(focusToolbarHidden(focusMode: true, hideToolbar: false, toolbarRevealed: false))
+        XCTAssertFalse(focusToolbarHidden(focusMode: true, hideToolbar: false,
+                                           toolbarRevealed: false, toolbarHovered: false))
     }
 
-    func testRevealedFlagShowsToolbarDespiteSetting() {
-        XCTAssertFalse(focusToolbarHidden(focusMode: true, hideToolbar: true, toolbarRevealed: true))
+    func testSettingBeingOffMakesEitherReasonMoot() {
+        XCTAssertFalse(focusToolbarHidden(focusMode: true, hideToolbar: false,
+                                           toolbarRevealed: true, toolbarHovered: true))
     }
 
-    func testRevealedFlagIsMootWhenToolbarWasNeverHidden() {
-        XCTAssertFalse(focusToolbarHidden(focusMode: true, hideToolbar: false, toolbarRevealed: true))
+    func testRevealedFlagAloneShowsToolbarDespiteSetting() {
+        XCTAssertFalse(focusToolbarHidden(focusMode: true, hideToolbar: true,
+                                           toolbarRevealed: true, toolbarHovered: false))
+    }
+
+    func testHoveredFlagAloneShowsToolbarDespiteSetting() {
+        XCTAssertFalse(focusToolbarHidden(focusMode: true, hideToolbar: true,
+                                           toolbarRevealed: false, toolbarHovered: true))
+    }
+
+    func testBothRevealedAndHoveredShowToolbar() {
+        XCTAssertFalse(focusToolbarHidden(focusMode: true, hideToolbar: true,
+                                           toolbarRevealed: true, toolbarHovered: true))
     }
 }
