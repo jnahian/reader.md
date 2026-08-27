@@ -52,7 +52,7 @@ private struct ReaderToolbar: ViewModifier {
                     }
 
                     Button { state.toggleFocusMode() } label: {
-                        Image(systemName: "rectangle.inset.filled")
+                        Image(systemName: "plus.viewfinder")
                     }
                     .dockTooltip("Focus mode (⌥⌘F)")
                 }

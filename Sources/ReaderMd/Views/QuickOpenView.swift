@@ -227,7 +227,7 @@ func paletteCommands(_ state: AppState) -> [PaletteCommand] {
         PaletteCommand(id: "width", title: "Cycle Canvas Width", subtitle: "Layout",
                        systemImage: "arrow.left.and.right") { $0.cycleContentWidth() },
         PaletteCommand(id: "focus", title: "Focus Mode", subtitle: "Layout",
-                       systemImage: "rectangle.inset.filled",
+                       systemImage: "plus.viewfinder",
                        run: { $0.toggleFocusMode() }),
         PaletteCommand(id: "addFolder", title: "Add Folder…", subtitle: "Files",
                        systemImage: "folder.badge.plus") { $0.pickFolders() },

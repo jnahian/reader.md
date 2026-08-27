@@ -64,7 +64,7 @@ reading style → width → outline → focus.
 
 ```swift
 Button { state.toggleFocusMode() } label: {
-    Image(systemName: "rectangle.inset.filled")
+    Image(systemName: "plus.viewfinder")
 }
 .dockTooltip("Focus mode (⌥⌘F)")
 ```
@@ -73,8 +73,7 @@ One icon, no on-state variant — matching the sidebar and outline toggles besid
 which do not vary either. In the default configuration the button is hidden the
 moment it is pressed, so an on-state would only ever show in the "Hide the toolbar
 off" configuration: not worth a second symbol, or the availability question a
-newer one would raise. The filled-centre variant
-carries the on-state without a second control; AppKit draws the capsule.
+newer one would raise. AppKit draws the capsule around the group.
 
 Consequence, accepted rather than fixed: in the default configuration this button
 hides itself the moment it is pressed, because focus mode hides the toolbar.
