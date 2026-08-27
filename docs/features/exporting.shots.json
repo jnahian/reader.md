@@ -14,12 +14,6 @@
       "manual": true,
       "open": "field-notes/guides/setup.md",
       "caption": "The export dialog (⌘E), with the Layout control below the name field"
-    },
-    {
-      "id": "02-export-menu",
-      "manual": true,
-      "open": "field-notes/guides/setup.md",
-      "caption": "The export menu, with Export as PDF and Share PDF"
     }
   ]
 }

@@ -47,8 +47,6 @@ The export button in the toolbar is a menu. Beside **Export as PDF…** it holds
 it — AirDrop, Mail, Messages, Notes, and any share extension you have installed.
 It is also in **File ▸ Share PDF…** and in ⌘P as "Share PDF".
 
-![The export menu, with Export as PDF and Share PDF](../assets/screenshots/exporting/02-export-menu.png)
-
 What gets shared is the rendered PDF, not the markdown, so whoever receives it
 does not need a markdown reader. It arrives named after the document — AirDrop a
 `README.md` and `README.pdf` lands in the other machine's Downloads.
@@ -58,9 +56,8 @@ Export** has as the default, because the per-export **Layout** control lives in
 the save dialog and a share has no dialog to put it in. If you want a shared PDF
 paginated differently, change the default, or export and share the saved file.
 
-Rendering happens before the share sheet can open, so on a long document with
-diagrams there is a moment between the click and the sheet. The toolbar button
-becomes a spinner while that runs.
+Rendering happens before the share sheet can open, so on a long document there
+can be a short pause between the click and the sheet.
 
 The file it shares is temporary. Reader.md keeps it for the rest of the session —
 an AirDrop transfer is still reading it after the sheet closes — and clears it
