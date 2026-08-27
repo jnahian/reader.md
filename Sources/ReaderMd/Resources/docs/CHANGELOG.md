@@ -15,6 +15,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The shared PDF uses the default layout from **Settings ▸ Editing & Export**,
   and arrives named after the document, so AirDropping a `README.md` lands a
   `README.pdf` on the other machine.
+- **Share the markdown file itself.** The same menu offers **Share Markdown
+  File…**, which sends the `.md` rather than a rendered PDF. Nothing is
+  rendered, so it opens the share sheet at once — and it stays available while
+  the diff view is up, where there is no rendered document to export.
 
 ## [1.18.2] - 2026-08-26
 

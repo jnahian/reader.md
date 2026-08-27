@@ -2,7 +2,7 @@
 title: Exporting and editing
 category: Guides
 order: 20
-summary: PDF export and its two layouts, sharing a rendered PDF, and handing the open document to your editor.
+summary: PDF export and its two layouts, sharing a PDF or the markdown itself, and handing the open document to your editor.
 related: [settings, rendering, reading]
 ---
 
@@ -40,28 +40,35 @@ have zoomed are reset for the export and put back afterwards. Exporting in the
 middle of a search neither bakes the highlights in nor loses your place in the
 matches.
 
-## Share a PDF
+## Share
 
 The export button in the toolbar is a menu. Beside **Export as PDF…** it holds
-**Share PDF…**, which renders the same PDF and opens the system share sheet on
-it — AirDrop, Mail, Messages, Notes, and any share extension you have installed.
-It is also in **File ▸ Share PDF…** and in ⌘P as "Share PDF".
+two ways to send the document somewhere without saving it first, both opening the
+system share sheet — AirDrop, Mail, Messages, Notes, and any share extension you
+have installed. Both are also in the **File** menu and in ⌘P.
 
-What gets shared is the rendered PDF, not the markdown, so whoever receives it
-does not need a markdown reader. It arrives named after the document — AirDrop a
+**Share PDF…** renders the same PDF that ⌘E would save. Whoever receives it does
+not need a markdown reader, and it arrives named after the document — AirDrop a
 `README.md` and `README.pdf` lands in the other machine's Downloads.
 
-Sharing does not ask about layout. It uses whatever **Settings ▸ Editing &
+**Share Markdown File…** sends the `.md` itself. Nothing is rendered, so the
+share sheet opens at once, and it stays available while the diff view is up —
+there is no rendered document to export from a diff, but the file is still on
+disk.
+
+Sharing a PDF does not ask about layout. It uses whatever **Settings ▸ Editing &
 Export** has as the default, because the per-export **Layout** control lives in
 the save dialog and a share has no dialog to put it in. If you want a shared PDF
 paginated differently, change the default, or export and share the saved file.
 
-Rendering happens before the share sheet can open, so on a long document there
-can be a short pause between the click and the sheet.
+Rendering happens before the share sheet can open, so sharing a PDF of a long
+document can pause briefly between the click and the sheet. Sharing the markdown
+never does.
 
-The file it shares is temporary. Reader.md keeps it for the rest of the session —
+The PDF it shares is temporary. Reader.md keeps it for the rest of the session —
 an AirDrop transfer is still reading it after the sheet closes — and clears it
-the next time the app starts.
+the next time the app starts. Sharing the markdown copies nothing: the share
+sheet gets your actual file, wherever it lives.
 
 ## Hand the document to an editor
 
