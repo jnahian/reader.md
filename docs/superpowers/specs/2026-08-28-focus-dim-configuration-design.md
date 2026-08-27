@@ -188,6 +188,10 @@ shortcuts appear in both places, and no shortcut changes here.
   the shipped behaviour.
 - `docs/features/reading.md`, the focus mode section's dimming paragraph.
 - `Sources/ReaderMd/Resources/docs/CHANGELOG.md`.
-- `docs/features/reading.shots.json` — the Settings shot shows the Focus Mode
-  section, which gains two rows; re-run the manifest rather than editing the
-  image.
+- `docs/features/settings.md` — the page still describes the window as
+  "Appearance, Reading, and Editing & Export" and has no Focus Mode section at
+  all. That drift arrived with focus mode itself; the two new rows land in the
+  section it is missing, so it is fixed here rather than left.
+- `docs/features/settings.shots.json`, shot `01-window` — it shows the whole
+  Settings window, which gains two rows. Re-run the manifest through the
+  `reader-docs` skill rather than editing the image.
