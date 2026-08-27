@@ -548,6 +548,7 @@ struct MarkdownWebView: NSViewRepresentable {
         }
 
         /// Renders the document to `url` and reports whether it landed there.
+        /// `completion` is always called on the main queue.
         ///
         /// Both callers come through here. Find highlights and diagram zoom
         /// would otherwise bake into the PDF: beforeExport() resets them, and
@@ -670,7 +671,14 @@ struct MarkdownWebView: NSViewRepresentable {
             // finished PDF in place, and handing the URL to the share picker
             // mid-rewrite would AirDrop a file being overwritten under the
             // transfer.
-            pending.completion(success)
+            //
+            // Hopped to the main queue because this is not it — the print
+            // operation calls its didRun delegate on the thread it ran
+            // (`_continueModalOperationToTheEnd:`), and NSSharingServicePicker
+            // traps on `dispatch_assert_queue` if shown from anywhere else. The
+            // hop is scheduled after paintPageBackground has already run, so the
+            // ordering above still holds.
+            DispatchQueue.main.async { pending.completion(success) }
         }
 
         /// "rgb(13, 17, 23)" / "rgba(…)" → CGColor. Nil for anything else,
