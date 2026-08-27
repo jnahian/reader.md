@@ -184,6 +184,12 @@ struct MarkdownWebView: NSViewRepresentable {
             coord.sharePDF()
         }
 
+        // Share the markdown file itself.
+        if state.shareSourceToken != coord.lastShareSource {
+            coord.lastShareSource = state.shareSourceToken
+            coord.shareSource()
+        }
+
         // Highlights: re-apply whenever the mark set OR resolved-thread visibility
         // changes. A fresh render always re-applies too (see the "rendered" message
         // handler), since re-rendering wipes the <mark> wrapper spans regardless.
@@ -211,6 +217,7 @@ struct MarkdownWebView: NSViewRepresentable {
         var lastFindPrev: Int = 0
         var lastExport: Int = 0
         var lastShare: Int = 0
+        var lastShareSource: Int = 0
         var lastPushedMarks: [Mark] = []
         var lastShowResolved: Bool = true
         private var lastDark: Bool?
@@ -506,19 +513,36 @@ struct MarkdownWebView: NSViewRepresentable {
                     state.sharing = false
                     // A failed render matches export: return silently. An alert
                     // here would be the only one in the app.
-                    guard ok, let self, let webView = self.webView else { return }
-                    // The picker needs a real NSView to anchor to, and a SwiftUI
-                    // toolbar item doesn't hand you one. The web view's
-                    // top-trailing corner sits directly under the toolbar, so
-                    // .maxY puts the picker where the share button is. (Reading
-                    // the item out of window.toolbar?.items would depend on
-                    // SwiftUI's generated identifiers and break silently.)
-                    let anchor = NSRect(x: webView.bounds.maxX - 1, y: webView.bounds.maxY,
-                                        width: 1, height: 1)
-                    NSSharingServicePicker(items: [url])
-                        .show(relativeTo: anchor, of: webView, preferredEdge: .maxY)
+                    guard ok, let self else { return }
+                    presentSharePicker(for: url)
                 }
             }
+        }
+
+        /// Shares the markdown itself. No render, so no temp file and no
+        /// in-flight flag — the picker opens on the document where it sits.
+        func shareSource() {
+            // Deferred like the other two: the token arrives mid-render-pass.
+            DispatchQueue.main.async { [weak self] in
+                guard let self, let url = state.selectedFile?.url else { return }
+                presentSharePicker(for: url)
+            }
+        }
+
+        /// The picker needs a real NSView to anchor to, and a SwiftUI toolbar
+        /// item doesn't hand you one. The web view's top-trailing corner sits
+        /// directly under the toolbar, so .maxY puts the picker where the share
+        /// button is. (Reading the item out of `window.toolbar?.items` would
+        /// depend on SwiftUI's generated identifiers and break silently.)
+        ///
+        /// Main queue only: NSSharingServicePicker traps on
+        /// `dispatch_assert_queue` anywhere else.
+        private func presentSharePicker(for url: URL) {
+            guard let webView else { return }
+            let anchor = NSRect(x: webView.bounds.maxX - 1, y: webView.bounds.maxY,
+                                width: 1, height: 1)
+            NSSharingServicePicker(items: [url])
+                .show(relativeTo: anchor, of: webView, preferredEdge: .maxY)
         }
 
         private func presentExportPanel() {

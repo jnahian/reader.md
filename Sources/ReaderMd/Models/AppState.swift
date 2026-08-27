@@ -262,6 +262,7 @@ final class AppState: ObservableObject {
     @Published var findPrevToken: Int = 0
     @Published var exportToken: Int = 0
     @Published var shareToken: Int = 0
+    @Published var shareSourceToken: Int = 0
 
     /// A share render is in flight. The system share picker can only be shown a
     /// file that already exists, so there is a real gap between the click and
@@ -1235,6 +1236,10 @@ final class AppState: ObservableObject {
     func triggerFindNext() { findNextToken += 1 }
     func triggerFindPrev() { findPrevToken += 1 }
     func triggerExport() { exportToken += 1 }
+
+    /// Shares the markdown itself. Unlike `triggerShare()` there is nothing to
+    /// render — the file is already on disk — so no in-flight flag and no guard.
+    func triggerShareSource() { shareSourceToken += 1 }
 
     func triggerShare() {
         // The re-entrancy guard for every surface. The toolbar also greys its

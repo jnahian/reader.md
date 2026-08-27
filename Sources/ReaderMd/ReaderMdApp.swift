@@ -100,6 +100,8 @@ struct ReaderMdApp: App {
                 // keystroke-worthy.
                 Button("Share PDF…") { state.triggerShare() }
                     .disabled(!state.canExport || state.sharing)
+                Button("Share Markdown File…") { state.triggerShareSource() }
+                    .disabled(state.selectedFile == nil)
                 Button("Reload") { state.triggerReload() }
                     .keyboardShortcut("r", modifiers: .command)
                     .disabled(state.selectedFile == nil)

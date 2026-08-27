@@ -257,6 +257,13 @@ func paletteCommands(_ state: AppState) -> [PaletteCommand] {
             cmds.append(PaletteCommand(id: "share", title: "Share PDF…", subtitle: "Document",
                                        systemImage: "square.and.arrow.up") { $0.triggerShare() })
         }
+        // Outside the diff gate above: sharing the markdown needs no render, so
+        // it stays available while the diff pane is up.
+        cmds.append(PaletteCommand(id: "shareSource", title: "Share Markdown File…",
+                                   subtitle: "Document",
+                                   systemImage: "square.and.arrow.up.on.square") {
+            $0.triggerShareSource()
+        })
         cmds.append(PaletteCommand(id: "copyPath", title: "Copy File Path", subtitle: "Document",
                                    systemImage: "doc.on.clipboard") { s in
             guard let file = s.selectedFile else { return }

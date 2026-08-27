@@ -65,4 +65,33 @@ final class ShareGateTests: XCTestCase {
         state.sharing = true
         XCTAssertTrue(state.canExport)
     }
+
+    // MARK: Sharing the markdown itself
+
+    func testTriggerShareSourceBumpsItsOwnToken() {
+        let state = loadedState()
+        let before = state.shareSourceToken
+        state.triggerShareSource()
+        XCTAssertEqual(state.shareSourceToken, before + 1)
+        // Independent of the PDF path — one must not drive the other.
+        XCTAssertEqual(state.shareToken, 0)
+    }
+
+    /// There is nothing to render, so nothing to be busy with: a PDF render in
+    /// flight must not block sharing the file that is already on disk.
+    func testShareSourceIsNotBlockedByAnInFlightPdfRender() {
+        let state = loadedState()
+        state.sharing = true
+        let before = state.shareSourceToken
+        state.triggerShareSource()
+        XCTAssertEqual(state.shareSourceToken, before + 1)
+    }
+
+    /// Repeated presses each open a picker — no guard, unlike triggerShare().
+    func testShareSourceHasNoReentrancyGuard() {
+        let state = loadedState()
+        state.triggerShareSource()
+        state.triggerShareSource()
+        XCTAssertEqual(state.shareSourceToken, 2)
+    }
 }
