@@ -237,7 +237,7 @@ struct SearchResultRow: View {
         )
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
-        .onTapGesture { state.open(file.node) }
+        .rowButton { state.open(file.node) }
         .contextMenu {
             if isSelected {
                 Button("Close") { state.closeFile() }
@@ -273,15 +273,20 @@ struct FavoriteRow: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            Color.clear.frame(width: 10)
-            Image(systemName: "doc.text")
-                .font(.system(size: 12))
-                .foregroundStyle(isSelected ? Color.white : Color.secondary)
-            Text((path as NSString).lastPathComponent)
-                .font(.system(size: 13))
-                .foregroundStyle(isSelected ? Color.white : Color.primary)
-                .lineLimit(1)
-            Spacer(minLength: 0)
+            HStack(spacing: 6) {
+                Color.clear.frame(width: 10)
+                Image(systemName: "doc.text")
+                    .font(.system(size: 12))
+                    .foregroundStyle(isSelected ? Color.white : Color.secondary)
+                Text((path as NSString).lastPathComponent)
+                    .font(.system(size: 13))
+                    .foregroundStyle(isSelected ? Color.white : Color.primary)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+            }
+            .contentShape(Rectangle())
+            .rowButton { state.openPath(path) }
+
             if hovering {
                 Button { state.removeFavorite(path) } label: {
                     Image(systemName: "xmark").font(.system(size: 10))
@@ -307,7 +312,6 @@ struct FavoriteRow: View {
         )
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
-        .onTapGesture { state.openPath(path) }
         .dockTooltip(path)
         .opacity(dragging?.favoritePath == path ? 0.4 : 1)
         .onDrag {
@@ -372,15 +376,20 @@ struct RecentRow: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            Color.clear.frame(width: 10)
-            Image(systemName: "clock")
-                .font(.system(size: 11))
-                .foregroundStyle(isSelected ? Color.white : Color.secondary)
-            Text((path as NSString).lastPathComponent)
-                .font(.system(size: 13))
-                .foregroundStyle(isSelected ? Color.white : Color.primary)
-                .lineLimit(1)
-            Spacer(minLength: 0)
+            HStack(spacing: 6) {
+                Color.clear.frame(width: 10)
+                Image(systemName: "clock")
+                    .font(.system(size: 11))
+                    .foregroundStyle(isSelected ? Color.white : Color.secondary)
+                Text((path as NSString).lastPathComponent)
+                    .font(.system(size: 13))
+                    .foregroundStyle(isSelected ? Color.white : Color.primary)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+            }
+            .contentShape(Rectangle())
+            .rowButton { state.openPath(path) }
+
             if hovering {
                 Button { state.removeRecent(path) } label: {
                     Image(systemName: "xmark").font(.system(size: 10))
@@ -401,7 +410,6 @@ struct RecentRow: View {
         )
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
-        .onTapGesture { state.openPath(path) }
         .contextMenu {
             if isSelected {
                 Button("Close") { state.closeFile() }
@@ -436,34 +444,39 @@ struct RootSectionView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
             HStack(spacing: 5) {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                    .rotationEffect(.degrees(expanded ? 90 : 0))
-                Image(systemName: "folder.fill")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Color.accentColor)
-                Text(root.name)
-                    .font(.system(size: 13, weight: .semibold))
-                    .lineLimit(1)
-                if root.isRemote {
-                    Image(systemName: root.remote?.isGit == true ? "arrow.triangle.branch" : "cloud")
-                        .font(.system(size: 10))
+                HStack(spacing: 5) {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 9, weight: .semibold))
                         .foregroundStyle(.secondary)
-                        .dockTooltip(root.remote?.isGit == true ? "Cloned git repository" : "Remote folder")
-                    switch root.syncStatus {
-                    case .syncing:
-                        ProgressView().controlSize(.small).scaleEffect(0.7)
-                    case .failed(let msg):
-                        Image(systemName: "exclamationmark.triangle.fill")
+                        .rotationEffect(.degrees(expanded ? 90 : 0))
+                    Image(systemName: "folder.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.accentColor)
+                    Text(root.name)
+                        .font(.system(size: 13, weight: .semibold))
+                        .lineLimit(1)
+                    if root.isRemote {
+                        Image(systemName: root.remote?.isGit == true ? "arrow.triangle.branch" : "cloud")
                             .font(.system(size: 10))
-                            .foregroundStyle(.orange)
-                            .dockTooltip(msg)
-                    case .idle:
-                        EmptyView()
+                            .foregroundStyle(.secondary)
+                            .dockTooltip(root.remote?.isGit == true ? "Cloned git repository" : "Remote folder")
+                        switch root.syncStatus {
+                        case .syncing:
+                            ProgressView().controlSize(.small).scaleEffect(0.7)
+                        case .failed(let msg):
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 10))
+                                .foregroundStyle(.orange)
+                                .dockTooltip(msg)
+                        case .idle:
+                            EmptyView()
+                        }
                     }
+                    Spacer(minLength: 4)
                 }
-                Spacer(minLength: 4)
+                .contentShape(Rectangle())
+                .rowButton { withAnimation(.easeInOut(duration: 0.12)) { expanded.toggle() } }
+
                 if hovering {
                     if let spec = root.remote {
                         Button { state.editingRemote = spec } label: {
@@ -492,7 +505,6 @@ struct RootSectionView: View {
             .padding(.vertical, 5)
             .padding(.horizontal, 10)
             .contentShape(Rectangle())
-            .onTapGesture { withAnimation(.easeInOut(duration: 0.12)) { expanded.toggle() } }
             .onHover { hovering = $0 }
             .opacity(dragging?.rootID == root.id ? 0.4 : 1)
             .onDrag {

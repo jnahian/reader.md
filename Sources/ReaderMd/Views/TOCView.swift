@@ -22,9 +22,11 @@ struct TOCView: View {
                         // off) until the fresh entries for the new mode arrive.
                         if state.tocIsDiffOutline == state.canShowDiff {
                             ForEach(state.toc) { entry in
-                                TOCRow(entry: entry, active: entry.id == reading.activeHeadingID)
-                                    .id(entry.id)
-                                    .onTapGesture { state.requestScroll(to: entry.id) }
+                                Button { state.requestScroll(to: entry.id) } label: {
+                                    TOCRow(entry: entry, active: entry.id == reading.activeHeadingID)
+                                }
+                                .buttonStyle(.plain)
+                                .id(entry.id)
                             }
                         }
                     }

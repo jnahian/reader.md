@@ -170,9 +170,11 @@ private struct ScopeRow: View {
         )
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
-        .onTapGesture(perform: action)
+        .rowButton(action)
         .accessibilityAddTraits(traits)
     }
 
-    private var traits: AccessibilityTraits { selected ? [.isButton, .isSelected] : .isButton }
+    /// `.isButton` used to be spelled out here because the row was an
+    /// `.onTapGesture` on an `HStack`; as a real Button it carries that itself.
+    private var traits: AccessibilityTraits { selected ? [.isSelected] : [] }
 }
