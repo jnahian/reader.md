@@ -8,6 +8,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Focus mode** (⌥⌘F) — hides the sidebar, outline and toolbar, goes
+  fullscreen, and dims every section but the one you're reading. Each of the
+  four pieces can be switched off in Settings; ⎋ or ⌥⌘F leaves, and so does
+  leaving fullscreen any other way — the green traffic-light button. The hidden
+  toolbar slides back on a top-edge hover, or on ⌘F, without leaving the mode.
+  Settings also sets how wide the lit region is — every heading, or only
+  headings down to H3, H2 or H1, so a section keeps its subsections lit — and
+  how far the rest dims.
+
 - **Share a PDF.** The export button in the toolbar is now a menu. Beside
   **Export as PDF…** it holds **Share PDF…**, which renders the same PDF and
   opens the system share sheet on it — AirDrop, Mail, Messages, and any share

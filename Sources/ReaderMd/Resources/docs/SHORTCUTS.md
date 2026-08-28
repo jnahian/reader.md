@@ -55,6 +55,7 @@ document you're reading.
 | ⌘0 | Actual Size |
 | ⇧⌘\\ | Cycle Canvas Width (Narrow / Wide / Full) |
 | ⇧⌘D | Toggle Diff (in a git repository) |
+| ⌥⌘F | Focus Mode (hides the chrome, dims other sections) |
 
 ## Settings
 

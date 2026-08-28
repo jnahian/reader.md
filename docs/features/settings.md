@@ -9,7 +9,8 @@ related: [rendering, reading, features]
 # Settings
 
 Settings (⌘,) collects every preference in one window, grouped the way you would
-look for them: **Appearance**, **Reading**, and **Editing & Export**.
+look for them: **Appearance**, **Reading**, **Focus Mode**, and
+**Editing & Export**.
 
 ![The Settings window (⌘,), with every preference in one place](../assets/screenshots/settings/01-window.png)
 
@@ -54,6 +55,23 @@ sidebar and toolbar stay as Light, Dark, or System left them.
 move in steps. **Canvas width** is **Narrow**, **Wide**, or **Full Width**, the
 same three ⇧⌘\\ cycles through. Both are described in more detail on
 [Reading a document](reading.md).
+
+## Focus Mode
+
+Focus mode (⌥⌘F) is four things at once, and each is a switch here: **Enter
+fullscreen**, **Dim other sections**, **Narrow the canvas**, and **Hide the
+toolbar**. All four are on by default. Turning all four off leaves ⌥⌘F with
+nothing to do, and the window says so.
+
+Two settings shape the dimming itself. **Region ends at** decides how much of
+the document counts as the section you're reading: *Any heading* is the default
+and lights one heading's worth at a time, while *H2 or above* keeps a whole `h2`
+section lit including its subheadings. **Dimming** sets how far everything else
+fades, from 40% to 88%.
+
+Both only matter with **Dim other sections** on, and grey out without it. While
+this window is open the document behind it previews them, so dragging the slider
+shows you the result.
 
 ## Editing and export
 

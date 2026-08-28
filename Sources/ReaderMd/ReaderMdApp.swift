@@ -110,7 +110,10 @@ struct ReaderMdApp: App {
             }
 
             CommandMenu("Find") {
-                Button("Find in Page") { state.focusFind.toggle() }
+                Button("Find in Page") {
+                    state.revealToolbarForFind()
+                    state.focusFind.toggle()
+                }
                     .keyboardShortcut("f", modifiers: .command)
                     .disabled(state.selectedFile == nil)
                 Button("Find Next") { state.triggerFindNext() }
@@ -129,6 +132,8 @@ struct ReaderMdApp: App {
                     .keyboardShortcut("b", modifiers: .command)
                 Button("Toggle Outline") { state.setShowTOC(!state.showTOC) }
                     .keyboardShortcut("b", modifiers: [.command, .shift])
+                Button("Focus Mode") { state.toggleFocusMode() }
+                    .keyboardShortcut("f", modifiers: [.command, .option])
                 Button("Toggle Diff") { state.toggleDiffMode() }
                     .keyboardShortcut("d", modifiers: [.command, .shift])
                     .disabled(!state.diffAvailable)

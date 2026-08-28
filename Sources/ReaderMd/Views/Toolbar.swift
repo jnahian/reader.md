@@ -39,7 +39,7 @@ private struct ReaderToolbar: ViewModifier {
                     OrphanedMarksBadge()
                 }
 
-                // View: reading style + canvas width + outline.
+                // View: reading style + canvas width + outline + focus.
                 ToolbarItemGroup(placement: .primaryAction) {
                     readingStyleMenu
                     canvasWidthMenu
@@ -50,6 +50,15 @@ private struct ReaderToolbar: ViewModifier {
                         }
                         .dockTooltip("Toggle outline (⇧⌘B)")
                     }
+
+                    // Tinted rather than swapped for a filled variant: SF Symbols
+                    // has no `plus.viewfinder.fill`, and an absent symbol renders
+                    // as blank space rather than failing to build.
+                    Button { state.toggleFocusMode() } label: {
+                        Image(systemName: "plus.viewfinder")
+                            .foregroundStyle(state.focusMode ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
+                    }
+                    .dockTooltip("Focus mode (⌥⌘F)")
                 }
 
                 // Diff: hidden entirely outside a git repo, and gated on nothing
@@ -97,6 +106,7 @@ private struct ReaderToolbar: ViewModifier {
 
                 ToolbarItem(placement: .primaryAction) { findField }
             }
+            .toolbar(state.focusToolbarHidden ? .hidden : .automatic, for: .windowToolbar)
     }
 
     /// The proxy icon: click the title to reveal in Finder, drag it to move the file.
