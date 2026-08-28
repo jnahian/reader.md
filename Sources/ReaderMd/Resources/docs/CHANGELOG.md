@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.19.0] - 2026-08-28
+
 ### Added
 
 - **Focus mode** (⌥⌘F) — hides the sidebar, outline and toolbar, goes
@@ -16,6 +18,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Settings also sets how wide the lit region is — every heading, or only
   headings down to H3, H2 or H1, so a section keeps its subsections lit — and
   how far the rest dims.
+
+- **Keyboard navigation.** ⇥ now moves focus through the sidebar rows, the
+  outline, the empty-state hints and the toolbar, each showing a focus ring as
+  it takes focus — they were clickable and nothing else before. ␣ has always
+  pressed whatever has focus; ⏎ now does the same, so tabbing to a file and
+  pressing Return opens it. Requires **System Settings → Keyboard → Keyboard
+  navigation**, which macOS owns.
 
 - **Share a PDF.** The export button in the toolbar is now a menu. Beside
   **Export as PDF…** it holds **Share PDF…**, which renders the same PDF and
