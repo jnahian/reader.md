@@ -22,9 +22,24 @@ export interface Release {
 
 export const releasesLog: Release[] = [
   {
+    version: "1.19.0",
+    date: "Aug 28, 2026",
+    badge: "LATEST",
+    groups: [
+      {
+        tag: "ADDED",
+        items: [
+          "<strong>Focus mode</strong> (\u2325\u2318F) \u2014 hides the sidebar, outline and toolbar, goes fullscreen, and dims every section but the one you're reading. Each of the four pieces can be switched off in Settings; \u238b or \u2325\u2318F leaves, and so does leaving fullscreen any other way \u2014 the green traffic-light button. The hidden toolbar slides back on a top-edge hover, or on \u2318F, without leaving the mode. Settings also sets how wide the lit region is \u2014 every heading, or only headings down to H3, H2 or H1, so a section keeps its subsections lit \u2014 and how far the rest dims.",
+          "<strong>Keyboard navigation</strong> \u2014 \u21e5 now moves focus through the sidebar rows, the outline, the empty-state hints and the toolbar, each showing a focus ring as it takes focus; they were clickable and nothing else before. \u2423 has always pressed whatever has focus, and \u23ce now does the same, so tabbing to a file and pressing Return opens it. Requires <strong>System Settings \u25b8 Keyboard \u25b8 Keyboard navigation</strong>, which macOS owns.",
+          "<strong>Share a PDF</strong> \u2014 the export button in the toolbar is now a menu. Beside <strong>Export as PDF\u2026</strong> it holds <strong>Share PDF\u2026</strong>, which renders the same PDF and opens the system share sheet on it \u2014 AirDrop, Mail, Messages, and any share extension you have installed. It's also in <strong>File \u25b8 Share PDF\u2026</strong> and in \u2318P. The shared PDF uses the default layout from <strong>Settings \u25b8 Editing &amp; Export</strong>, and arrives named after the document, so AirDropping a <code>README.md</code> lands a <code>README.pdf</code> on the other machine.",
+          "<strong>Share the markdown file itself</strong> \u2014 the same menu offers <strong>Share Markdown File\u2026</strong>, which sends the <code>.md</code> rather than a rendered PDF. Nothing is rendered, so it opens the share sheet at once, and it stays available while the diff view is up, where there is no rendered document to export.",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.18.2",
     date: "Aug 26, 2026",
-    badge: "LATEST",
     groups: [
       {
         tag: "FIXED",
