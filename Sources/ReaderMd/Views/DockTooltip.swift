@@ -194,7 +194,7 @@ final class TrackerNSView: NSView {
                     // Own bubble only: nested trackers (a row and the × inside it)
                     // both see this click, and the one that doesn't own the bubble
                     // must not tear down the one that does.
-                    TooltipController.shared.hideIfOwner(self)
+                    TooltipController.shared.hideNowIfOwner(self)
                 }
                 return event
             }
@@ -378,6 +378,25 @@ final class TooltipController {
     /// unconditional `orderOut` here would hide the bubble it just put up.
     private func finishFade(_ generation: Int) {
         guard fadeGeneration == generation else { return }
+        panel.orderOut(nil)
+    }
+
+    /// Drop the bubble on the spot, skipping the fade — for a click.
+    ///
+    /// The fade is a 0.1s `NSAnimationContext` animation, and the panel is only
+    /// ordered out by its completion handler. A click that opens a menu puts
+    /// AppKit into a nested event-tracking run loop, where neither the animation
+    /// nor its completion runs: the bubble sat fully opaque on top of the open
+    /// menu — it draws above one, at `.popUpMenu` level — until the menu closed,
+    /// which measured 3.5s in the toolbar's export menu. Ordering out directly
+    /// needs no run loop, and a click means the bubble's moment has passed
+    /// anyway. Hover-exit keeps the fade.
+    func hideNowIfOwner(_ view: TrackerNSView) {
+        guard owner === view else { return }
+        owner = nil
+        // Claim the panel so a fade still in flight can't order it back out,
+        // or re-show it, after this.
+        fadeGeneration &+= 1
         panel.orderOut(nil)
     }
 
