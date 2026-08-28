@@ -266,6 +266,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.async { self.closeFileOrQuit(nil) }
             return nil
         }
+        // Return activates whatever control has focus. Installed here, beside the
+        // ⌘W monitor, so the two have one fixed order and one lifetime.
+        ReturnKeyMonitor.install()
+
         // The menu item itself is rebuilt constantly, so re-point it each time the user
         // pulls the menu bar down — otherwise clicking Close would still quit.
         NotificationCenter.default.addObserver(
