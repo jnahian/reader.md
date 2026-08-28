@@ -108,6 +108,7 @@ No page of its own — this is the whole of it.
 - **About panel** — version and credits in the standard macOS window, with
   clickable **Website**, **Docs**, and **Report an Issue** links; the Help menu
   carries the same destinations
+- **Keyboard navigation** — ⇥ moves focus through the sidebar, outline, and toolbar; ␣ or ⏎ activates whatever has it
 - **A command-line companion** — see [the CLI reference](cli.md)
 
 ## Keyboard shortcuts
@@ -137,6 +138,21 @@ the two from drifting: every shortcut in the app's copy has to appear here.
 | ⌘] | Forward |
 | ⌘B | Toggle Sidebar |
 | ⇧⌘B | Toggle Outline |
+
+### Keyboard navigation
+
+| Shortcut | Action |
+|---|---|
+| ⇥ | Move focus to the next control |
+| ⇧⇥ | Move focus to the previous control |
+| ␣ | Activate the focused control |
+| ⏎ | Activate the focused control — open the file, jump to the heading, expand the folder |
+
+Focus runs through the sidebar rows, the outline, the empty-state hints, and the
+toolbar. ␣ has always pressed whatever has focus; ⏎ now does the same, so
+whichever key you reach for works. macOS gates focus movement on **System
+Settings → Keyboard → Keyboard navigation** being turned on — with it off, ⇥
+reaches only text fields.
 
 ### Find
 
