@@ -95,6 +95,27 @@ enum ContentWidth: String, CaseIterable {
     }
 }
 
+/// The deepest heading level that ends a focus mode dim region.
+///
+/// Deliberately an ABSOLUTE level, not one relative to the active heading. The
+/// relative rule — "the next heading of the same or higher level" — was rejected
+/// in the original focus mode design: with `h2 A / h3 A.1 / h2 B` it makes a
+/// ~20px scroll swing the lit region between one paragraph and the whole of A.
+/// An absolute level changes the region only when a boundary heading is crossed,
+/// and at `.h2` the `h3` is not a boundary at all.
+enum FocusRegionDepth: Int, CaseIterable {
+    case h1 = 1, h2 = 2, h3 = 3, any = 4
+
+    var displayName: String {
+        switch self {
+        case .any: return "Any heading"
+        case .h3:  return "H3 or above"
+        case .h2:  return "H2 or above"
+        case .h1:  return "H1 only"
+        }
+    }
+}
+
 /// How ⌘E lays out the PDF: real pages via the print engine, or one
 /// continuous page the height of the whole document.
 enum ExportLayout: String, CaseIterable {
@@ -202,6 +223,107 @@ final class AppState: ObservableObject {
     @Published var showSidebar: Bool = true
     @Published var sidebarWidth: Double = 260
 
+    // MARK: - Focus mode
+
+    @Published var focusMode: Bool = false
+
+    @Published var focusFullscreen: Bool = Settings.loadFocusFullscreen()
+    @Published var focusDimSections: Bool = Settings.loadFocusDimSections()
+    @Published var focusNarrowCanvas: Bool = Settings.loadFocusNarrowCanvas()
+    @Published var focusHideToolbar: Bool = Settings.loadFocusHideToolbar()
+
+    @Published var focusRegionDepth: FocusRegionDepth = Settings.loadFocusRegionDepth()
+    @Published var focusDimOpacity: Double = Settings.loadFocusDimOpacity()
+
+    /// True while the Settings window is open, so the two dimming controls have
+    /// visible effect on the document behind it. Widens what counts as "dimming
+    /// is showing" — never what counts as "focus mode is on", which is why
+    /// `focusMode` itself is untouched by it.
+    @Published var focusDimPreview: Bool = false
+
+    /// What the web view is told. Dimming needs both the mode and its switch.
+    var focusDimActive: Bool { (focusMode || focusDimPreview) && focusDimSections }
+
+    /// Every switch off makes ⌥⌘F a no-op. Settings shows a note when this is true.
+    var focusModeDoesNothing: Bool {
+        !focusFullscreen && !focusDimSections && !focusNarrowCanvas && !focusHideToolbar
+    }
+
+    /// The layout as it was before focus mode took it over.
+    ///
+    /// Deliberately not `@Published` — nothing renders from it. Deliberately not
+    /// written through `toggleSidebar()` / `setShowTOC()` / `setContentWidth()`
+    /// either: those persist to UserDefaults, and focus mode's values must never
+    /// become the user's saved preferences.
+    struct FocusStash {
+        var showSidebar: Bool
+        var showTOC: Bool
+        var contentWidth: ContentWidth
+        var wasAlreadyFullscreen: Bool
+    }
+    private(set) var focusStash: FocusStash?
+
+    /// Observes `didExitFullScreenNotification` for as long as focus mode is
+    /// running in fullscreen. The green traffic-light button and the native
+    /// ⌃⌘F are ordinary, always-available ways to leave fullscreen that focus
+    /// mode doesn't disable — without this, the window would drop back to
+    /// windowed mode (toolbar included, since auto-hide only applies in
+    /// fullscreen) while `focusMode` stayed true, stranding the sidebar,
+    /// outline, narrow canvas and dimming suppressed with nothing left to
+    /// resync them. Firing this exits focus mode the same way ⌥⌘F would, so
+    /// leaving fullscreen by any route lands in one coherent state.
+    private var fullScreenExitObserver: NSObjectProtocol?
+
+    private func clearFullScreenExitObserver() {
+        if let fullScreenExitObserver { NotificationCenter.default.removeObserver(fullScreenExitObserver) }
+        fullScreenExitObserver = nil
+    }
+
+    /// Sticky until focus mode is left: ⌘F sets this to bring the toolbar back
+    /// without costing the mode, and re-hiding it the moment the search field
+    /// clears would yank the field out from under someone stepping through
+    /// matches with ⌘G. `@Published` because `AppState.focusToolbarHidden`
+    /// reads it and the `.toolbar(_:for:)` modifier needs to react.
+    @Published private var focusToolbarRevealed = false
+
+    /// Transient counterpart to `focusToolbarRevealed`: true only while the
+    /// pointer sits near the top of the screen, driven by `focusHoverMonitor`.
+    /// Unlike the ⌘F reveal, this un-sets itself the moment the pointer moves
+    /// away — there is no "stepping through matches" case to stay sticky for.
+    @Published private var focusToolbarHovered = false
+
+    /// Whether the SwiftUI toolbar modifier should hide the window's toolbar
+    /// right now. See `focusToolbarHidden(focusMode:hideToolbar:toolbarRevealed:toolbarHovered:)`.
+    var focusToolbarHidden: Bool {
+        ReaderMd.focusToolbarHidden(focusMode: focusMode, hideToolbar: focusHideToolbar,
+                                     toolbarRevealed: focusToolbarRevealed,
+                                     toolbarHovered: focusToolbarHovered)
+    }
+
+    /// How close to the screen's top edge (in points) the pointer must get
+    /// before the hover reveal kicks in.
+    private static let focusToolbarHoverRevealDistance: CGFloat = 4
+
+    /// How far from the screen's top edge the pointer must move before the
+    /// hover reveal goes away again. Deliberately much larger than the reveal
+    /// distance: the revealed toolbar itself occupies roughly the top 30–50
+    /// points, and the user has to be able to move the pointer down onto it to
+    /// click something there. A single 4pt threshold would hide it again the
+    /// instant they moved a few points toward the button they were reaching
+    /// for; 80 comfortably clears the tallest toolbar, so the dead zone
+    /// between the two thresholds covers "pointer is on the toolbar."
+    private static let focusToolbarHoverHideDistance: CGFloat = 80
+
+    /// Local `mouseMoved` monitor backing `focusToolbarHovered`. Installed only
+    /// while focus mode is hiding the toolbar (see `startFocusToolbarHoverMonitor()`)
+    /// and cleared on every exit path — same discipline as `fullScreenExitObserver`.
+    private var focusHoverMonitor: Any?
+
+    /// `documentWindow.acceptsMouseMovedEvents` from before the monitor turned it
+    /// on, so `stopFocusToolbarHoverMonitor()` can restore it rather than assume
+    /// the window never wanted mouse-moved events for its own reasons.
+    private var focusHoverMonitorPriorAcceptsMouseMovedEvents: Bool?
+
     /// The WindowGroup's window, tagged by `WindowAccessor` on ContentView.
     /// Deliberately not @Published — nothing renders from it, and republishing
     /// on every window change would churn the view tree. Weak so closing the
@@ -261,6 +383,14 @@ final class AppState: ObservableObject {
     @Published var findNextToken: Int = 0
     @Published var findPrevToken: Int = 0
     @Published var exportToken: Int = 0
+    @Published var shareToken: Int = 0
+    @Published var shareSourceToken: Int = 0
+
+    /// A share render is in flight. The system share picker can only be shown a
+    /// file that already exists, so there is a real gap between the click and
+    /// the picker — long enough on a Mermaid/KaTeX document to read as a dead
+    /// click if nothing says otherwise.
+    @Published var sharing: Bool = false
 
     // Diff mode — a sticky VIEW MODE, not a one-shot, so it is persisted state
     // rather than a bump token. `diffToken` is the one-shot: it's bumped after
@@ -405,6 +535,11 @@ final class AppState: ObservableObject {
     /// A file with no repo renders normally even while `diffMode` is on, so
     /// opening a remote folder mid-session isn't a dead end.
     var canShowDiff: Bool { diffMode && diffAvailable }
+
+    /// Export and share are gated identically: a document has to be loaded, and
+    /// the diff pane renders hunks rather than the document, so there is nothing
+    /// to render out of it.
+    var canExport: Bool { selectedFile != nil && !canShowDiff }
 
     func toggleDiffMode() {
         diffMode.toggle()
@@ -760,6 +895,7 @@ final class AppState: ObservableObject {
     func setShowTOC(_ value: Bool) {
         showTOC = value
         Settings.saveShowTOC(value)
+        focusStash?.showTOC = value
     }
 
     // MARK: - Layout
@@ -767,6 +903,179 @@ final class AppState: ObservableObject {
     func toggleSidebar() {
         showSidebar.toggle()
         Settings.saveShowSidebar(showSidebar)
+        focusStash?.showSidebar = showSidebar
+    }
+
+    func toggleFocusMode() {
+        focusMode ? exitFocusMode() : enterFocusMode()
+    }
+
+    private func enterFocusMode() {
+        let alreadyFullscreen = documentWindow?.styleMask.contains(.fullScreen) ?? false
+        focusStash = FocusStash(showSidebar: showSidebar,
+                                showTOC: showTOC,
+                                contentWidth: contentWidth,
+                                wasAlreadyFullscreen: alreadyFullscreen)
+        focusMode = true
+        focusToolbarRevealed = false
+
+        // Direct writes, not the setters — see FocusStash.
+        showSidebar = false
+        showTOC = false
+        if focusNarrowCanvas { contentWidth = .narrow }
+        applyFocusWindowChrome()
+        startFocusToolbarHoverMonitor()
+    }
+
+    private func exitFocusMode() {
+        focusMode = false
+        focusToolbarRevealed = false
+        stopFocusToolbarHoverMonitor()
+        guard let stash = focusStash else { return }
+        focusStash = nil
+        restoreWindowChrome(wasAlreadyFullscreen: stash.wasAlreadyFullscreen)
+        showSidebar = stash.showSidebar
+        showTOC = stash.showTOC
+        contentWidth = stash.contentWidth
+    }
+
+    private func applyFocusWindowChrome() {
+        guard let window = documentWindow, focusFullscreen else { return }
+        observeFullScreenExit()
+        if !window.styleMask.contains(.fullScreen) {
+            window.toggleFullScreen(nil)
+        }
+    }
+
+    /// See `fullScreenExitObserver` for why this exists: leaving fullscreen by an
+    /// ordinary gesture focus mode doesn't own must still exit focus mode.
+    private func observeFullScreenExit() {
+        guard let window = documentWindow else { return }
+        clearFullScreenExitObserver()
+        fullScreenExitObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didExitFullScreenNotification,
+            object: window, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                self.clearFullScreenExitObserver()
+                guard self.focusMode else { return }
+                self.exitFocusMode()
+            }
+        }
+    }
+
+    private func restoreWindowChrome(wasAlreadyFullscreen: Bool) {
+        clearFullScreenExitObserver()
+        guard let window = documentWindow else { return }
+        window.toolbar?.isVisible = true
+        // Entering focus mode from a window that was already in fullscreen leaves
+        // it there — focus mode did not put it in fullscreen, so it does not take
+        // it out.
+        if window.styleMask.contains(.fullScreen) && !wasAlreadyFullscreen {
+            window.toggleFullScreen(nil)
+        }
+    }
+
+    /// ⌘F in focus mode: bring the toolbar back rather than leaving the mode, so a
+    /// search does not cost it. Un-suspended on exit via `restoreWindowChrome()`.
+    func revealToolbarForFind() {
+        guard focusMode else { return }
+        focusToolbarRevealed = true
+    }
+
+    /// Only worth installing while the toolbar is actually being hidden — with
+    /// `focusHideToolbar` off there is nothing for the hover to reveal.
+    ///
+    /// SwiftUI removes the toolbar's items entirely rather than sliding them
+    /// off-screen, so there is no view for AppKit's own auto-hide-toolbar hover
+    /// strip to attach to (measured on the real app: pointer at the very top
+    /// edge and pointer at screen centre produced a byte-identical capture).
+    /// A monitor in screen coordinates sidesteps that, and also sidesteps the
+    /// oscillation a SwiftUI hover strip would have: the strip would sit at the
+    /// top of the content, and revealing the toolbar pushes that content down,
+    /// sliding the strip out from under a stationary pointer, un-hovering it,
+    /// hiding the toolbar, and repeating forever.
+    private func startFocusToolbarHoverMonitor() {
+        guard focusHideToolbar, let window = documentWindow, focusHoverMonitor == nil else { return }
+        focusHoverMonitorPriorAcceptsMouseMovedEvents = window.acceptsMouseMovedEvents
+        window.acceptsMouseMovedEvents = true
+        focusHoverMonitor = NSEvent.addLocalMonitorForEvents(matching: .mouseMoved) { [weak self] event in
+            MainActor.assumeIsolated { self?.handleFocusToolbarHoverMoved() }
+            return event
+        }
+    }
+
+    private func stopFocusToolbarHoverMonitor() {
+        if let focusHoverMonitor { NSEvent.removeMonitor(focusHoverMonitor) }
+        focusHoverMonitor = nil
+        focusToolbarHovered = false
+        if let window = documentWindow, let prior = focusHoverMonitorPriorAcceptsMouseMovedEvents {
+            window.acceptsMouseMovedEvents = prior
+        }
+        focusHoverMonitorPriorAcceptsMouseMovedEvents = nil
+    }
+
+    /// `NSEvent.mouseLocation` (global screen coordinates), not the event's own
+    /// `locationInWindow` — that one is only window-relative when the event has
+    /// an associated window, and is already in screen coordinates when it
+    /// doesn't, which is precisely the case right at the screen's top edge. See
+    /// `startFocusToolbarHoverMonitor()` for why screen coordinates in general.
+    /// The two different thresholds (reveal vs. hide) are what keep this from
+    /// oscillating; see `focusToolbarHoverRevealDistance` / `...HideDistance`.
+    private func handleFocusToolbarHoverMoved() {
+        guard let window = documentWindow, let screen = window.screen else { return }
+        let distanceFromTop = screen.frame.maxY - NSEvent.mouseLocation.y
+        if !focusToolbarHovered && distanceFromTop <= Self.focusToolbarHoverRevealDistance {
+            focusToolbarHovered = true
+        } else if focusToolbarHovered && distanceFromTop >= Self.focusToolbarHoverHideDistance {
+            focusToolbarHovered = false
+        }
+    }
+
+    func setFocusFullscreen(_ value: Bool) {
+        focusFullscreen = value
+        Settings.saveFocusFullscreen(value)
+    }
+
+    func setFocusDimSections(_ value: Bool) {
+        focusDimSections = value
+        Settings.saveFocusDimSections(value)
+    }
+
+    func setFocusRegionDepth(_ value: FocusRegionDepth) {
+        focusRegionDepth = value
+        Settings.saveFocusRegionDepth(value)
+    }
+
+    /// Clamped because the value is interpolated straight into a CSS custom
+    /// property: above .60 dimming stops reading as dimming, below .12 a glance
+    /// back at the previous section stops being possible.
+    func setFocusDimOpacity(_ value: Double) {
+        focusDimOpacity = min(max(value, 0.12), 0.60)
+        Settings.saveFocusDimOpacity(focusDimOpacity)
+    }
+
+    func setFocusNarrowCanvas(_ value: Bool) {
+        focusNarrowCanvas = value
+        Settings.saveFocusNarrowCanvas(value)
+    }
+
+    func setFocusHideToolbar(_ value: Bool) {
+        focusHideToolbar = value
+        Settings.saveFocusHideToolbar(value)
+    }
+
+    /// Escape, arriving from the web view. See `escapeAction` for the ordering.
+    func handleEscapeFromPage() {
+        switch escapeAction(findQuery: findQuery,
+                            showQuickOpen: showQuickOpen,
+                            focusMode: focusMode) {
+        case .clearFind: findQuery = ""
+        case .dismissQuickOpen: showQuickOpen = false
+        case .exitFocusMode: toggleFocusMode()
+        case .ignore: break
+        }
     }
 
     func setSidebarWidth(_ w: Double) {
@@ -790,6 +1099,7 @@ final class AppState: ObservableObject {
     func setContentWidth(_ value: ContentWidth) {
         contentWidth = value
         Settings.saveContentWidth(value)
+        focusStash?.contentWidth = value
     }
 
     func setExportLayout(_ value: ExportLayout) {
@@ -1223,6 +1533,18 @@ final class AppState: ObservableObject {
     func triggerFindNext() { findNextToken += 1 }
     func triggerFindPrev() { findPrevToken += 1 }
     func triggerExport() { exportToken += 1 }
+
+    /// Shares the markdown itself. Unlike `triggerShare()` there is nothing to
+    /// render — the file is already on disk — so no in-flight flag and no guard.
+    func triggerShareSource() { shareSourceToken += 1 }
+
+    func triggerShare() {
+        // The re-entrancy guard for every surface. The toolbar also greys its
+        // share row while `sharing` is set, but the File menu and the command
+        // palette have no greyed row to look at.
+        guard !sharing else { return }
+        shareToken += 1
+    }
     func triggerReload() { reloadToken += 1 }
 
     // MARK: - Search helpers
@@ -1353,4 +1675,36 @@ final class AppState: ObservableObject {
         }
         return json
     }
+}
+
+/// What Escape should do when it arrives from the page.
+///
+/// A free function over three booleans rather than a method, so the ordering — the
+/// only part of this that can silently regress — is testable without a window.
+/// The in-page overlays (Mermaid fullscreen, the image lightbox) never reach here:
+/// `bridge.js` resolves them before posting.
+enum EscapeAction: Equatable {
+    case clearFind
+    case dismissQuickOpen
+    case exitFocusMode
+    /// Not `none` — `XCTAssertEqual(x, .none)` would resolve against
+    /// `Optional.none` instead of this case.
+    case ignore
+}
+
+func escapeAction(findQuery: String, showQuickOpen: Bool, focusMode: Bool) -> EscapeAction {
+    if !findQuery.isEmpty { return .clearFind }
+    if showQuickOpen { return .dismissQuickOpen }
+    if focusMode { return .exitFocusMode }
+    return .ignore
+}
+
+/// Whether the SwiftUI toolbar modifier should hide the window's toolbar.
+///
+/// A free function over four booleans, same reasoning as `escapeAction`: the
+/// matrix is small but not obvious, and testable without a window is worth more
+/// than a method would be. See `FocusToolbarTests` for why `toolbarRevealed` and
+/// `toolbarHovered` — one sticky, one transient — both exist.
+func focusToolbarHidden(focusMode: Bool, hideToolbar: Bool, toolbarRevealed: Bool, toolbarHovered: Bool) -> Bool {
+    focusMode && hideToolbar && !toolbarRevealed && !toolbarHovered
 }

@@ -39,7 +39,7 @@ private struct ReaderToolbar: ViewModifier {
                     OrphanedMarksBadge()
                 }
 
-                // View: reading style + canvas width + outline.
+                // View: reading style + canvas width + outline + focus.
                 ToolbarItemGroup(placement: .primaryAction) {
                     readingStyleMenu
                     canvasWidthMenu
@@ -50,6 +50,15 @@ private struct ReaderToolbar: ViewModifier {
                         }
                         .dockTooltip("Toggle outline (⇧⌘B)")
                     }
+
+                    // Tinted rather than swapped for a filled variant: SF Symbols
+                    // has no `plus.viewfinder.fill`, and an absent symbol renders
+                    // as blank space rather than failing to build.
+                    Button { state.toggleFocusMode() } label: {
+                        Image(systemName: "plus.viewfinder")
+                            .foregroundStyle(state.focusMode ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
+                    }
+                    .dockTooltip("Focus mode (⌥⌘F)")
                 }
 
                 // Diff: hidden entirely outside a git repo, and gated on nothing
@@ -86,11 +95,7 @@ private struct ReaderToolbar: ViewModifier {
                     .disabled(state.selectedFile == nil)
                     .dockTooltip("Reload (⌘R)")
 
-                    Button { state.triggerExport() } label: {
-                        Image(systemName: "square.and.arrow.up")
-                    }
-                    .disabled(state.selectedFile == nil || state.canShowDiff)
-                    .dockTooltip("Export as PDF (⌘E)")
+                    exportMenu
 
                     Button { state.toggleTheme() } label: {
                         Image(systemName: state.theme.symbol)
@@ -101,6 +106,7 @@ private struct ReaderToolbar: ViewModifier {
 
                 ToolbarItem(placement: .primaryAction) { findField }
             }
+            .toolbar(state.focusToolbarHidden ? .hidden : .automatic, for: .windowToolbar)
     }
 
     /// The proxy icon: click the title to reveal in Finder, drag it to move the file.
@@ -110,6 +116,39 @@ private struct ReaderToolbar: ViewModifier {
         } else {
             content
         }
+    }
+
+    /// Export and share, built like the two menus beside it. The icon stays
+    /// `square.and.arrow.up` — already the share glyph.
+    ///
+    /// `sharing` greys the share *row*, not the menu: a disabled pull-down draws
+    /// its label static, so a spinner that only shows while the control is
+    /// disabled would never animate. The real re-entrancy guard is in
+    /// `triggerShare()`, which also covers the File menu and the palette. Leaving
+    /// the menu live during a share costs nothing — concurrent exports already
+    /// work through `activeExports`.
+    private var exportMenu: some View {
+        Menu {
+            Button("Export as PDF… (⌘E)") { state.triggerExport() }
+                .disabled(!state.canExport)
+            Divider()
+            Button("Share PDF…") { state.triggerShare() }
+                .disabled(!state.canExport || state.sharing)
+            Button("Share Markdown File…") { state.triggerShareSource() }
+        } label: {
+            if state.sharing {
+                ProgressView().controlSize(.small)
+            } else {
+                Image(systemName: "square.and.arrow.up")
+            }
+        }
+        .menuIndicator(.hidden)
+        .background(ShareAnchor.Marker())
+        // Only "a document is open" — not `canExport`. The two PDF rows gate
+        // themselves on that, but sharing the markdown needs no render, so it
+        // stays available in the diff pane where there is nothing to render.
+        .disabled(state.selectedFile == nil)
+        .dockTooltip("Export and share")
     }
 
     private var readingStyleMenu: some View {

@@ -6,6 +6,29 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Focus mode** (⌥⌘F) — hides the sidebar, outline and toolbar, goes
+  fullscreen, and dims every section but the one you're reading. Each of the
+  four pieces can be switched off in Settings; ⎋ or ⌥⌘F leaves, and so does
+  leaving fullscreen any other way — the green traffic-light button. The hidden
+  toolbar slides back on a top-edge hover, or on ⌘F, without leaving the mode.
+  Settings also sets how wide the lit region is — every heading, or only
+  headings down to H3, H2 or H1, so a section keeps its subsections lit — and
+  how far the rest dims.
+
+- **Share a PDF.** The export button in the toolbar is now a menu. Beside
+  **Export as PDF…** it holds **Share PDF…**, which renders the same PDF and
+  opens the system share sheet on it — AirDrop, Mail, Messages, and any share
+  extension you have installed. It's also in **File ▸ Share PDF…** and in ⌘P.
+  The shared PDF uses the default layout from **Settings ▸ Editing & Export**,
+  and arrives named after the document, so AirDropping a `README.md` lands a
+  `README.pdf` on the other machine.
+- **Share the markdown file itself.** The same menu offers **Share Markdown
+  File…**, which sends the `.md` rather than a rendered PDF. Nothing is
+  rendered, so it opens the share sheet at once — and it stays available while
+  the diff view is up, where there is no rendered document to export.
+
 ## [1.18.2] - 2026-08-26
 
 ### Fixed

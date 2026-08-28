@@ -43,6 +43,7 @@ See [Reading a document](features/reading.md).
 - **Text size** (⌘+ / ⌘− / ⌘0) and **canvas width** (⇧⌘\\, narrow / wide / full) — both persisted
 - **Reading feedback** — a progress bar under the toolbar, with the word count and reading time under the file name
 - **Resume where you stopped** — a long document reopens at the place you left it
+- **Focus mode** (⌥⌘F) — one toggle hides the chrome, goes fullscreen, and dims everything outside the section you're reading
 
 ## How a document is rendered
 
@@ -87,6 +88,8 @@ See [Remote and cloned folders](features/remote.md).
 See [Exporting and editing](features/exporting.md).
 
 - **Export as PDF** (⌘E) — page-by-page or one continuous page, chosen per export, defaulting to the setting
+- **Share PDF** — renders the document and opens the system share sheet (AirDrop, Mail, Messages), using the layout default from Settings
+- **Share Markdown File** — sends the `.md` itself to the share sheet, with no render
 - **Hand off to an editor** (⇧⌘E) — pick one once, and every save comes straight back through the watcher
 - **Reader.md never writes to your documents**
 
@@ -166,6 +169,7 @@ the two from drifting: every shortcut in the app's copy has to appear here.
 | ⌘0 | Actual Size |
 | ⇧⌘\\ | Cycle Canvas Width (Narrow / Wide / Full) |
 | ⇧⌘D | Toggle Diff (in a git repository) |
+| ⌥⌘F | Focus Mode (hides the chrome, dims other sections) |
 
 ### Settings and help
 

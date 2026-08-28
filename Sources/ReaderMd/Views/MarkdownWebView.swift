@@ -90,7 +90,7 @@ struct MarkdownWebView: NSViewRepresentable {
         let controller = WKUserContentController()
         let messageNames = ["ready", "toc", "activeHeading", "openExternal", "openFile", "wordCount", "progress",
                              "rendered", "textSelected", "markClicked", "marksApplied", "findResult",
-                             "diagramFullscreen"]
+                             "diagramFullscreen", "exitFocus"]
         for name in messageNames {
             controller.add(context.coordinator, name: name)
         }
@@ -124,6 +124,9 @@ struct MarkdownWebView: NSViewRepresentable {
         coord.applyAccent(isDark: context.environment.colorScheme == .dark)
         coord.applyReadingTheme(state.readingTheme.rawValue)
         coord.applyTypography(scale: state.fontScale, width: state.contentWidth)
+        coord.applyFocusDim(state.focusDimActive,
+                            opacity: state.focusDimOpacity,
+                            depth: state.focusRegionDepth.rawValue)
 
         if state.canShowDiff {
             let pathChanged = coord.loadedPath != state.selectedFile?.url.path
@@ -178,6 +181,18 @@ struct MarkdownWebView: NSViewRepresentable {
             coord.exportPDF()
         }
 
+        // Share the rendered PDF.
+        if state.shareToken != coord.lastShare {
+            coord.lastShare = state.shareToken
+            coord.sharePDF()
+        }
+
+        // Share the markdown file itself.
+        if state.shareSourceToken != coord.lastShareSource {
+            coord.lastShareSource = state.shareSourceToken
+            coord.shareSource()
+        }
+
         // Highlights: re-apply whenever the mark set OR resolved-thread visibility
         // changes. A fresh render always re-applies too (see the "rendered" message
         // handler), since re-rendering wipes the <mark> wrapper spans regardless.
@@ -204,6 +219,8 @@ struct MarkdownWebView: NSViewRepresentable {
         var lastFindNext: Int = 0
         var lastFindPrev: Int = 0
         var lastExport: Int = 0
+        var lastShare: Int = 0
+        var lastShareSource: Int = 0
         var lastPushedMarks: [Mark] = []
         var lastShowResolved: Bool = true
         private var lastDark: Bool?
@@ -211,6 +228,14 @@ struct MarkdownWebView: NSViewRepresentable {
         private var lastReadingTheme: String?
         private var lastScale: Double?
         private var lastWidth: ContentWidth?
+        /// All three values the web view needs, cached together. As a bare `Bool`
+        /// this swallowed opacity and depth changes whenever `on` was unchanged.
+        private struct FocusDimState: Equatable {
+            var on: Bool
+            var opacity: Double
+            var depth: Int
+        }
+        private var lastFocusDim: FocusDimState?
         private var lastFindQuery: String = ""
         private var activePopover: NSPopover?
 
@@ -284,6 +309,19 @@ struct MarkdownWebView: NSViewRepresentable {
                 lastWidth = width
                 webView?.evaluateJavaScript("window.ReaderMd.setContentWidth('\(width.css)');")
             }
+        }
+
+        func applyFocusDim(_ on: Bool, opacity: Double, depth: Int) {
+            let next = FocusDimState(on: on, opacity: opacity, depth: depth)
+            guard isReady else { lastFocusDim = next; return }
+            guard lastFocusDim != next else { return }
+            lastFocusDim = next
+            pushFocusDim(next)
+        }
+
+        private func pushFocusDim(_ s: FocusDimState) {
+            webView?.evaluateJavaScript(
+                "window.ReaderMd.setFocusDim(\(s.on), \(s.opacity), \(s.depth));")
         }
 
         /// `resume` is the saved scroll fraction; the web view applies it once the
@@ -477,8 +515,69 @@ struct MarkdownWebView: NSViewRepresentable {
             DispatchQueue.main.async { [weak self] in self?.presentExportPanel() }
         }
 
+        func sharePDF() {
+            // Deferred for the same reason exportPDF() is: the token arrives
+            // inside a SwiftUI render pass. Setting `sharing` here rather than in
+            // triggerShare() keeps that @Published write out of the pass too —
+            // mutating observed state during an update is the "Publishing changes
+            // from within view updates" warning, and a real source of loops.
+            DispatchQueue.main.async { [weak self] in
+                // No webView check here — renderPDF does it, and reports the
+                // failure through the completion that clears `sharing`.
+                guard let self else { return }
+                state.sharing = true
+                let url = ShareTemp.url(for: loadedPath)
+                // `state` is captured strongly, not reached through `self`:
+                // AppState outlives this coordinator, and a window closed
+                // mid-render would otherwise drop the completion with `sharing`
+                // still true — latching the flag on, so every later share is
+                // refused by triggerShare()'s guard until the app restarts.
+                let state = state
+                renderPDF(to: url, layout: state.exportLayout) { [weak self] ok in
+                    state.sharing = false
+                    // A failed render matches export: return silently. An alert
+                    // here would be the only one in the app.
+                    guard ok, let self else { return }
+                    presentSharePicker(for: url)
+                }
+            }
+        }
+
+        /// Shares the markdown itself. No render, so no temp file and no
+        /// in-flight flag — the picker opens on the document where it sits.
+        func shareSource() {
+            // Deferred like the other two: the token arrives mid-render-pass.
+            DispatchQueue.main.async { [weak self] in
+                guard let self, let url = state.selectedFile?.url else { return }
+                presentSharePicker(for: url)
+            }
+        }
+
+        /// Hangs the sheet off the export menu button itself, via the anchor view
+        /// the toolbar parks behind it. The web view is only the fallback for a
+        /// window whose toolbar is gone — anchoring there put the sheet over the
+        /// outline pane instead of under the button.
+        ///
+        /// Main queue only: NSSharingServicePicker traps on
+        /// `dispatch_assert_queue` anywhere else.
+        private func presentSharePicker(for url: URL) {
+            let picker = NSSharingServicePicker(items: [url])
+            if let anchor = ShareAnchor.view, anchor.window != nil {
+                // .minY is below an unflipped view — the sheet drops out of the
+                // toolbar rather than trying to rise into it.
+                picker.show(relativeTo: anchor.bounds, of: anchor, preferredEdge: .minY)
+            } else if let webView {
+                picker.show(relativeTo: NSRect(x: webView.bounds.maxX - 1, y: webView.bounds.maxY,
+                                               width: 1, height: 1),
+                            of: webView, preferredEdge: .maxY)
+            }
+        }
+
         private func presentExportPanel() {
-            guard let webView else { return }
+            // Kept as a presence check now that renderPDF does the binding:
+            // showing a modal save panel that could only ever no-op is worse
+            // than not showing one.
+            guard webView != nil else { return }
 
             // Panel first (it now carries the layout choice), render after.
             // Cancel ends here — beforeExport() hasn't run, nothing to restore.
@@ -504,15 +603,30 @@ struct MarkdownWebView: NSViewRepresentable {
             // export quietly changed every later export.
             let layout = ExportLayout.allCases[picker.indexOfSelectedItem]
 
-            // Find highlights and diagram zoom would both bake into the PDF.
-            // beforeExport() resets them; wait for that JS to finish, render,
-            // then endExport() puts them back. Both halves no-op when nothing
-            // is active, so there is no state to branch on here.
+            renderPDF(to: url, layout: layout) { _ in }
+        }
+
+        /// Renders the document to `url` and reports whether it landed there.
+        /// `completion` is always called on the main queue.
+        ///
+        /// Both callers come through here. Find highlights and diagram zoom
+        /// would otherwise bake into the PDF: beforeExport() resets them, and
+        /// endExport() puts them back once the last render is done. They are
+        /// document-wide, so a share has to be covered exactly as a save is —
+        /// a share rendering on its own would bake the highlights in, and a ⌘E
+        /// export running beside it would strip them mid-render. Both halves
+        /// no-op when nothing is active, so there is no state to branch on.
+        private func renderPDF(to url: URL, layout: ExportLayout,
+                               completion: @escaping (Bool) -> Void) {
+            guard let webView else { return completion(false) }
             activeExports += 1
             webView.evaluateJavaScript("window.ReaderMd.beforeExport();") { [weak self] _, _ in
+                // Gone mid-render: endExport() belongs to the vanished
+                // coordinator, so there is nothing to unwind but the caller.
+                guard let self else { return completion(false) }
                 switch layout {
-                case .continuous: self?.exportContinuous(to: url)
-                case .pageByPage: self?.exportPaginated(to: url)
+                case .continuous: exportContinuous(to: url, completion: completion)
+                case .pageByPage: exportPaginated(to: url, completion: completion)
                 }
             }
         }
@@ -531,12 +645,19 @@ struct MarkdownWebView: NSViewRepresentable {
             if activeExports == 0 { webView?.evaluateJavaScript("window.ReaderMd.afterExport();") }
         }
 
-        private func exportContinuous(to url: URL) {
-            guard let webView else { return endExport() }
+        private func exportContinuous(to url: URL, completion: @escaping (Bool) -> Void) {
+            guard let webView else { endExport(); return completion(false) }
             webView.createPDF(configuration: WKPDFConfiguration()) { [weak self] result in
                 self?.endExport()
-                guard case let .success(data) = result else { return }
-                try? data.write(to: url)
+                guard case let .success(data) = result else { return completion(false) }
+                // The write, not the render, is what the caller waits on: the
+                // share picker is handed this URL and needs a file at it.
+                do {
+                    try data.write(to: url)
+                    completion(true)
+                } catch {
+                    completion(false)
+                }
             }
         }
 
@@ -547,26 +668,36 @@ struct MarkdownWebView: NSViewRepresentable {
         private final class PendingExport {
             let url: URL
             let pageColor: CGColor?
-            init(url: URL, pageColor: CGColor?) {
+            /// Rides along for the same reason: one completion per in-flight
+            /// export, never a shared property two of them could overwrite.
+            let completion: (Bool) -> Void
+            init(url: URL, pageColor: CGColor?, completion: @escaping (Bool) -> Void) {
                 self.url = url
                 self.pageColor = pageColor
+                self.completion = completion
             }
         }
 
-        private func exportPaginated(to url: URL) {
-            guard let webView else { return endExport() }
+        private func exportPaginated(to url: URL, completion: @escaping (Bool) -> Void) {
+            guard let webView else { endExport(); return completion(false) }
             // The print engine leaves the paper margins unpainted, which reads
             // as a white frame around any non-white theme. Fetch the document
             // background so the finished PDF can be repainted edge to edge.
             webView.evaluateJavaScript("getComputedStyle(document.body).backgroundColor") { [weak self] result, _ in
-                self?.runPrintOperation(to: url, pageColor: Self.cssColor(result as? String))
+                guard let self else { return completion(false) }
+                runPrintOperation(to: url, pageColor: Self.cssColor(result as? String),
+                                  completion: completion)
             }
         }
 
-        private func runPrintOperation(to url: URL, pageColor: CGColor?) {
+        private func runPrintOperation(to url: URL, pageColor: CGColor?,
+                                       completion: @escaping (Bool) -> Void) {
             // Nothing to print into: beforeExport() has already stripped the find
             // highlights and diagram zoom, so endExport() has to put them back.
-            guard let webView, let window = webView.window else { return endExport() }
+            guard let webView, let window = webView.window else {
+                endExport()
+                return completion(false)
+            }
             let info = NSPrintInfo()   // copies the shared defaults: system paper size + margins
             info.jobDisposition = .save
             info.dictionary()[NSPrintInfo.AttributeKey.jobSavingURL] = url
@@ -580,7 +711,7 @@ struct MarkdownWebView: NSViewRepresentable {
             // WKWebView print operations only work through runModal(for:...) —
             // a bare run() silently produces nothing. Panels are hidden, so
             // nothing modal is actually shown.
-            let pending = PendingExport(url: url, pageColor: pageColor)
+            let pending = PendingExport(url: url, pageColor: pageColor, completion: completion)
             op.runModal(for: window, delegate: self,
                         didRun: #selector(printOperationDidRun(_:success:contextInfo:)),
                         contextInfo: Unmanaged.passRetained(pending).toOpaque())
@@ -595,6 +726,18 @@ struct MarkdownWebView: NSViewRepresentable {
             if success, let color = pending.pageColor {
                 Self.paintPageBackground(url: pending.url, color: color)
             }
+            // Last, and never before paintPageBackground: that rewrites the
+            // finished PDF in place, and handing the URL to the share picker
+            // mid-rewrite would AirDrop a file being overwritten under the
+            // transfer.
+            //
+            // Hopped to the main queue because this is not it — the print
+            // operation calls its didRun delegate on the thread it ran
+            // (`_continueModalOperationToTheEnd:`), and NSSharingServicePicker
+            // traps on `dispatch_assert_queue` if shown from anywhere else. The
+            // hop is scheduled after paintPageBackground has already run, so the
+            // ordering above still holds.
+            DispatchQueue.main.async { pending.completion(success) }
         }
 
         /// "rgb(13, 17, 23)" / "rgba(…)" → CGColor. Nil for anything else,
@@ -669,6 +812,7 @@ struct MarkdownWebView: NSViewRepresentable {
                 }
                 if let scale = lastScale { webView?.evaluateJavaScript("window.ReaderMd.setFontScale(\(scale));") }
                 if let width = lastWidth { webView?.evaluateJavaScript("window.ReaderMd.setContentWidth('\(width.css)');") }
+                if let dim = lastFocusDim { pushFocusDim(dim) }
                 if let name = lastReadingTheme {
                     webView?.evaluateJavaScript("window.ReaderMd.setReadingTheme('\(name)');")
                 }
@@ -716,6 +860,11 @@ struct MarkdownWebView: NSViewRepresentable {
                 // close-doc ✕ drawn above it — ContentView hides the button instead.
                 guard let open = message.body as? Bool else { return }
                 Task { @MainActor in self.state.diagramFullscreen = open }
+
+            case "exitFocus":
+                // Escape reached the page without being consumed there. Swift owns
+                // the precedence — see `escapeAction`.
+                Task { @MainActor in self.state.handleEscapeFromPage() }
 
             case "openExternal":
                 if let s = message.body as? String, let url = URL(string: s) {

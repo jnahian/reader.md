@@ -64,5 +64,6 @@ export const shortcutsHighlight: Shortcut[] = [
   { keys: "⌘F", action: "Find in page" },
   { keys: "⇧⌘F", action: "Filter files" },
   { keys: "⌘B", action: "Toggle sidebar" },
+  { keys: "⌥⌘F", action: "Focus mode" },
   { keys: "⌘E", action: "Export PDF" },
 ];

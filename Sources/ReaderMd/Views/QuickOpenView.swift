@@ -226,6 +226,9 @@ func paletteCommands(_ state: AppState) -> [PaletteCommand] {
                        systemImage: "list.bullet.indent") { $0.setShowTOC(!$0.showTOC) },
         PaletteCommand(id: "width", title: "Cycle Canvas Width", subtitle: "Layout",
                        systemImage: "arrow.left.and.right") { $0.cycleContentWidth() },
+        PaletteCommand(id: "focus", title: "Focus Mode", subtitle: "Layout",
+                       systemImage: "plus.viewfinder",
+                       run: { $0.toggleFocusMode() }),
         PaletteCommand(id: "addFolder", title: "Add Folder…", subtitle: "Files",
                        systemImage: "folder.badge.plus") { $0.pickFolders() },
         PaletteCommand(id: "openFile", title: "Open File…", subtitle: "Files",
@@ -254,7 +257,16 @@ func paletteCommands(_ state: AppState) -> [PaletteCommand] {
         if !state.canShowDiff {
             cmds.append(PaletteCommand(id: "export", title: "Export as PDF…", subtitle: "Document",
                                        systemImage: "arrow.down.doc") { $0.exportToken += 1 })
+            cmds.append(PaletteCommand(id: "share", title: "Share PDF…", subtitle: "Document",
+                                       systemImage: "square.and.arrow.up") { $0.triggerShare() })
         }
+        // Outside the diff gate above: sharing the markdown needs no render, so
+        // it stays available while the diff pane is up.
+        cmds.append(PaletteCommand(id: "shareSource", title: "Share Markdown File…",
+                                   subtitle: "Document",
+                                   systemImage: "square.and.arrow.up.on.square") {
+            $0.triggerShareSource()
+        })
         cmds.append(PaletteCommand(id: "copyPath", title: "Copy File Path", subtitle: "Document",
                                    systemImage: "doc.on.clipboard") { s in
             guard let file = s.selectedFile else { return }

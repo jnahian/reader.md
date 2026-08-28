@@ -94,7 +94,14 @@ struct ReaderMdApp: App {
                 Button("Set Default Editor…") { state.pickDefaultEditor() }
                 Button("Export as PDF…") { state.triggerExport() }
                     .keyboardShortcut("e", modifiers: .command)
-                    .disabled(state.selectedFile == nil || state.canShowDiff)
+                    .disabled(!state.canExport)
+                // No shortcut: nothing obvious is free near ⌘E (⇧⌘E is the
+                // external editor), and an action whose result is a picker isn't
+                // keystroke-worthy.
+                Button("Share PDF…") { state.triggerShare() }
+                    .disabled(!state.canExport || state.sharing)
+                Button("Share Markdown File…") { state.triggerShareSource() }
+                    .disabled(state.selectedFile == nil)
                 Button("Reload") { state.triggerReload() }
                     .keyboardShortcut("r", modifiers: .command)
                     .disabled(state.selectedFile == nil)
@@ -103,7 +110,10 @@ struct ReaderMdApp: App {
             }
 
             CommandMenu("Find") {
-                Button("Find in Page") { state.focusFind.toggle() }
+                Button("Find in Page") {
+                    state.revealToolbarForFind()
+                    state.focusFind.toggle()
+                }
                     .keyboardShortcut("f", modifiers: .command)
                     .disabled(state.selectedFile == nil)
                 Button("Find Next") { state.triggerFindNext() }
@@ -122,6 +132,8 @@ struct ReaderMdApp: App {
                     .keyboardShortcut("b", modifiers: .command)
                 Button("Toggle Outline") { state.setShowTOC(!state.showTOC) }
                     .keyboardShortcut("b", modifiers: [.command, .shift])
+                Button("Focus Mode") { state.toggleFocusMode() }
+                    .keyboardShortcut("f", modifiers: [.command, .option])
                 Button("Toggle Diff") { state.toggleDiffMode() }
                     .keyboardShortcut("d", modifiers: [.command, .shift])
                     .disabled(!state.diffAvailable)
@@ -238,6 +250,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     weak var state: AppState?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Last launch's shared PDFs. Not cleaned up when a share finishes: an
+        // AirDrop transfer keeps reading the file after the picker closes, so
+        // the only moment it is certainly safe to delete is before this launch
+        // has staged or opened anything.
+        ShareTemp.purge()
         NSApp.setActivationPolicy(.regular)
         if let url = Bundle.resources.url(forResource: "AppIcon", withExtension: "png"),
            let image = NSImage(contentsOf: url) {

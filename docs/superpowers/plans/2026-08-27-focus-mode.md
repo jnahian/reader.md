@@ -686,15 +686,7 @@ git commit -m "feat(focus): dim sections outside the active heading, and route E
 - Consumes: `AppState.focusMode` and `AppState.toggleFocusMode()` from Task 1.
 - Produces: nothing later tasks depend on.
 
-- [ ] **Step 1: Verify the toolbar icon exists on the deployment target**
-
-`rectangle.center.inset.filled` is believed to be SF Symbols 3 and therefore present on macOS 13, but a symbol missing from the target's catalogue renders **blank** rather than falling back — so confirm rather than assume.
-
-Run: `open -a "SF Symbols"` and search `rectangle.center.inset.filled`; its availability line must read macOS 12.0 or earlier.
-
-If it is **not** available on macOS 13, use `rectangle.inset.filled` for both states throughout this task and carry the on-state with `.symbolVariant(.fill)` omitted — i.e. drop the ternary and let the toolbar item's own selected styling show the state. Note the substitution in the commit message.
-
-- [ ] **Step 2: Add the menu item and the ⌥⌘F binding**
+- [ ] **Step 1: Add the menu item and the ⌥⌘F binding**
 
 In `Sources/ReaderMd/ReaderMdApp.swift`, in `CommandGroup(after: .toolbar)`, immediately after the `Toggle Outline` button:
 
@@ -703,20 +695,23 @@ In `Sources/ReaderMd/ReaderMdApp.swift`, in `CommandGroup(after: .toolbar)`, imm
                     .keyboardShortcut("f", modifiers: [.command, .option])
 ```
 
-- [ ] **Step 3: Add the toolbar button**
+- [ ] **Step 2: Add the toolbar button**
 
 In `Sources/ReaderMd/Views/Toolbar.swift`, in the View `ToolbarItemGroup(placement: .primaryAction)`, after the outline toggle's closing brace — so the cluster reads reading style → width → outline → focus:
 
 ```swift
                     Button { state.toggleFocusMode() } label: {
-                        Image(systemName: state.focusMode
-                            ? "rectangle.center.inset.filled"
-                            : "rectangle.inset.filled")
+                        Image(systemName: "rectangle.inset.filled")
                     }
                     .dockTooltip("Focus mode (⌥⌘F)")
 ```
 
-- [ ] **Step 4: Add the palette command**
+One icon, no on-state variant — matching the sidebar and outline toggles beside it,
+which do not vary either. It also sidesteps a symbol-availability risk for nothing:
+in the default configuration this button is hidden the moment it is pressed, so an
+on-state would only ever be visible in the "Hide the toolbar off" configuration.
+
+- [ ] **Step 3: Add the palette command**
 
 In `Sources/ReaderMd/Views/QuickOpenView.swift`, in the `cmds` array in `paletteCommands(_:)`, after the `width` command:
 
@@ -726,7 +721,7 @@ In `Sources/ReaderMd/Views/QuickOpenView.swift`, in the `cmds` array in `palette
                        run: { $0.toggleFocusMode() }),
 ```
 
-- [ ] **Step 5: Hide the floating close-document button**
+- [ ] **Step 4: Hide the floating close-document button**
 
 `ContentView.swift:83` draws a native ✕ **over** the web view — that is why `diagramFullscreen` had to hide it. Focus mode strips every other piece of chrome and would leave this one button sitting on the page. Replace the condition:
 
@@ -734,12 +729,12 @@ In `Sources/ReaderMd/Views/QuickOpenView.swift`, in the `cmds` array in `palette
                 if state.selectedFile != nil && !state.diagramFullscreen && !state.focusMode {
 ```
 
-- [ ] **Step 6: Build and check the whole suite**
+- [ ] **Step 5: Build and check the whole suite**
 
 Run: `swift build && swift test`
 Expected: both pass.
 
-- [ ] **Step 7: Run the app and exercise all four entry points**
+- [ ] **Step 6: Run the app and exercise all four entry points**
 
 Run: `swift run ReaderMd`, open a document, then confirm:
 - ⌥⌘F toggles; View ▸ Focus Mode toggles; the toolbar button toggles and its icon changes; ⌘P → `>focus` runs it.
@@ -747,7 +742,7 @@ Run: `swift run ReaderMd`, open a document, then confirm:
 - Sidebar and outline collapse and are restored on exit, and the canvas narrows and widens back.
 - Quit while in focus mode, relaunch: the app opens **not** in focus mode, with the sidebar and canvas width as they were before focus mode was ever entered.
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add Sources/ReaderMd/ReaderMdApp.swift Sources/ReaderMd/Views/Toolbar.swift Sources/ReaderMd/Views/QuickOpenView.swift Sources/ReaderMd/ContentView.swift
