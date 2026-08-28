@@ -275,7 +275,17 @@ struct EmptyStateView: View {
         let hint: Hint
         @State private var hovering = false
 
-        var body: some View {
+        /// Only the actionable hints become controls; the closing "…or drag a
+        /// file" line is prose, and a focus stop on it would be a dead end.
+        @ViewBuilder var body: some View {
+            if let action = hint.action {
+                row.rowButton(action)
+            } else {
+                row
+            }
+        }
+
+        private var row: some View {
             HStack(spacing: 11) {
                 Image(systemName: hint.icon)
                     .font(.system(size: 13))
@@ -309,7 +319,6 @@ struct EmptyStateView: View {
                 hovering = inside
                 if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
             }
-            .onTapGesture { hint.action?() }
         }
     }
 }

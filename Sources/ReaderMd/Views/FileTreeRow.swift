@@ -50,8 +50,9 @@ struct FileTreeRow: View {
 
     private var directoryRow: some View {
         VStack(alignment: .leading, spacing: 1) {
-            row(icon: "folder.fill", chevron: true, selected: false)
-                .onTapGesture { withAnimation(.easeInOut(duration: 0.12)) { expanded.toggle() } }
+            row(icon: "folder.fill", chevron: true, selected: false) {
+                withAnimation(.easeInOut(duration: 0.12)) { expanded.toggle() }
+            }
                 .contextMenu {
                     Button(expanded ? "Collapse" : "Expand") {
                         withAnimation(.easeInOut(duration: 0.12)) { expanded.toggle() }
@@ -81,9 +82,8 @@ struct FileTreeRow: View {
     }
 
     private var fileRow: some View {
-        row(icon: "doc.text", chevron: false, selected: isSelected)
+        row(icon: "doc.text", chevron: false, selected: isSelected) { state.open(node) }
             .contentShape(Rectangle())
-            .onTapGesture { state.open(node) }
             .contextMenu {
                 if isSelected {
                     Button("Close") { state.closeFile() }
@@ -109,24 +109,29 @@ struct FileTreeRow: View {
         NSPasteboard.general.setString(node.url.path, forType: .string)
     }
 
-    private func row(icon: String, chevron: Bool, selected: Bool) -> some View {
+    private func row(icon: String, chevron: Bool, selected: Bool,
+                     action: @escaping () -> Void) -> some View {
         HStack(spacing: 6) {
-            if chevron {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                    .rotationEffect(.degrees(expanded ? 90 : 0))
-            } else {
-                Color.clear.frame(width: 9)
+            HStack(spacing: 6) {
+                if chevron {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .rotationEffect(.degrees(expanded ? 90 : 0))
+                } else {
+                    Color.clear.frame(width: 9)
+                }
+                Image(systemName: icon)
+                    .font(.system(size: 12))
+                    .foregroundStyle(iconColor(selected: selected))
+                Text(node.name)
+                    .font(.system(size: 13))
+                    .foregroundStyle(selected ? Color.white : Color.primary)
+                    .lineLimit(1)
+                Spacer(minLength: 4)
             }
-            Image(systemName: icon)
-                .font(.system(size: 12))
-                .foregroundStyle(iconColor(selected: selected))
-            Text(node.name)
-                .font(.system(size: 13))
-                .foregroundStyle(selected ? Color.white : Color.primary)
-                .lineLimit(1)
-            Spacer(minLength: 4)
+            .contentShape(Rectangle())
+            .rowButton(action)
 
             // Files only, and only while hovered — except a pinned file, which
             // keeps its star so the tree shows what's in Favorites.

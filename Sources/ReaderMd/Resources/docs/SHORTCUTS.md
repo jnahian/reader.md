@@ -23,6 +23,21 @@
 | ⌘B | Toggle Sidebar |
 | ⇧⌘B | Toggle Outline |
 
+## Keyboard navigation
+
+| Shortcut | Action |
+| --- | --- |
+| ⇥ | Move focus to the next control |
+| ⇧⇥ | Move focus to the previous control |
+| ␣ | Activate the focused control |
+| ⏎ | Activate the focused control — open the file, jump to the heading, expand the folder |
+
+Focus runs through the sidebar rows, the outline, the empty-state hints, and the
+toolbar. ␣ has always pressed whatever has focus; ⏎ now does the same, so
+whichever key you reach for works. macOS gates focus movement on **System
+Settings → Keyboard → Keyboard navigation** being turned on — with it off, ⇥
+reaches only text fields.
+
 ## Find
 
 | Shortcut | Action |

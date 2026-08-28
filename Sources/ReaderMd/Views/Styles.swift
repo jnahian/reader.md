@@ -61,6 +61,24 @@ struct ToolbarIconButtonStyle: ButtonStyle {
 }
 
 extension View {
+    /// Turns a list row into a real control.
+    ///
+    /// These rows were `.onTapGesture` on a plain `HStack`, which the mouse
+    /// reaches and nothing else does: no focus, no focus ring, no Space or
+    /// Return, and nothing but a group for VoiceOver. Wrapping the row the
+    /// modifier is applied to in a `Button` gets all of that from SwiftUI —
+    /// including the focus ring, which it draws for `.plain` buttons — while
+    /// keeping every modifier the row already carried.
+    ///
+    /// Apply it to the row's *content* only. A `Button` nested inside another
+    /// Button's label never receives its click — the outer one swallows it — so
+    /// a row's trailing affordances (the favourite star, the hover ×) have to
+    /// stay siblings of this, not children.
+    func rowButton(_ action: @escaping () -> Void) -> some View {
+        Button(action: action) { self }
+            .buttonStyle(.plain)
+    }
+
     /// Interactive Liquid Glass capsule for topbar controls that aren't plain
     /// Buttons (e.g. the typography Menu) on macOS 26; a no-op below.
     @ViewBuilder func toolbarGlassCapsule() -> some View {

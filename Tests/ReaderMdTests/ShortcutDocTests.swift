@@ -14,7 +14,11 @@ import XCTest
 final class ShortcutDocTests: XCTestCase {
     /// Runs of modifier glyphs with whatever key follows, plus keys that stand
     /// alone. `⌘1–⌘9` stays one token; both files write it that way.
-    private static let tokenPattern = "[⌃⌥⇧⌘]+[^\\s|]*|[⎋⏎↑↓]"
+    ///
+    /// The standalone set has to list every unmodified key either file uses: a
+    /// glyph missing from it parses as nothing, so a row carrying it would be
+    /// compared against nothing and drift between the two documents unnoticed.
+    private static let tokenPattern = "[⌃⌥⇧⌘]+[^\\s|]*|[⎋⏎↑↓⇥␣]"
 
     /// The first cell of every table row, minus separators and headers.
     private func shortcutTokens(in markdown: String) -> Set<String> {
@@ -65,7 +69,7 @@ final class ShortcutDocTests: XCTestCase {
     func testTheParserFindsTheShortcutsAtAll() throws {
         let bundled = shortcutTokens(in: try bundledShortcuts())
         XCTAssertGreaterThan(bundled.count, 25, "parsed only \(bundled.count) shortcuts out of SHORTCUTS.md")
-        for expected in ["⌘O", "⇧⌘A", "⌥⌘A", "⌘1–⌘9", "⎋", "⏎", "↑", "↓", "⇧⌘\\"] {
+        for expected in ["⌘O", "⇧⌘A", "⌥⌘A", "⌘1–⌘9", "⎋", "⏎", "↑", "↓", "⇧⌘\\", "⇥", "⇧⇥", "␣"] {
             XCTAssertTrue(bundled.contains(expected), "SHORTCUTS.md parse is missing \(expected)")
         }
     }
