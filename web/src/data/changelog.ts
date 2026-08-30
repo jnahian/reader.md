@@ -22,9 +22,28 @@ export interface Release {
 
 export const releasesLog: Release[] = [
   {
+    version: "1.19.1",
+    date: "Aug 30, 2026",
+    badge: "LATEST",
+    groups: [
+      {
+        tag: "IMPROVED",
+        items: [
+          "<strong>Every toolbar control says \"on\" the same way</strong> \u2014 the sidebar and outline toggles, diff mode, focus mode, and the reading-style and canvas-width menus now all tint with your accent colour while they're active. Diff mode used to signal itself by swapping to a filled icon, and the sidebar, the outline and the two menus gave no indication at all, so at a glance you can now tell which of them are doing something.",
+        ],
+      },
+      {
+        tag: "FIXED",
+        items: [
+          "<strong>A tooltip no longer covers the menu it just opened</strong> \u2014 clicking a toolbar button that opens a menu (export and share, reading style, canvas width) left its tooltip sitting on top of the menu, hiding the first item. The bubble now goes the moment you click.",
+          "<strong>The export and share icon is the same size as its neighbours</strong> \u2014 it drew noticeably smaller than the buttons on either side of it.",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.19.0",
     date: "Aug 28, 2026",
-    badge: "LATEST",
     groups: [
       {
         tag: "ADDED",
