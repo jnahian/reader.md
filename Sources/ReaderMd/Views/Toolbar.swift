@@ -6,6 +6,18 @@ extension View {
     func readerToolbar() -> some View { modifier(ReaderToolbar()) }
 }
 
+private extension View {
+    /// The toolbar's one "this control is on" signal: accent tint, never a
+    /// filled symbol variant. A swap to `.fill` can't be the convention because
+    /// it isn't available for every glyph here — SF Symbols has no
+    /// `plus.viewfinder.fill`, and an absent symbol renders as blank space
+    /// rather than failing to build. `AnyShapeStyle` because the two branches
+    /// are different concrete styles.
+    func activeTint(_ active: Bool) -> some View {
+        foregroundStyle(active ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
+    }
+}
+
 /// A ViewModifier rather than a `ToolbarContent` type so the find field's
 /// `@FocusState` and the `@EnvironmentObject` live in a real view scope.
 private struct ReaderToolbar: ViewModifier {
@@ -18,7 +30,7 @@ private struct ReaderToolbar: ViewModifier {
             .toolbar {
                 ToolbarItem(placement: .navigation) {
                     Button { state.toggleSidebar() } label: {
-                        Image(systemName: "sidebar.left")
+                        Image(systemName: "sidebar.left").activeTint(state.showSidebar)
                     }
                     .dockTooltip("Toggle sidebar (⌘B)")
                 }
@@ -46,17 +58,13 @@ private struct ReaderToolbar: ViewModifier {
 
                     if !state.toc.isEmpty {
                         Button { state.setShowTOC(!state.showTOC) } label: {
-                            Image(systemName: "list.bullet")
+                            Image(systemName: "list.bullet").activeTint(state.showTOC)
                         }
                         .dockTooltip("Toggle outline (⇧⌘B)")
                     }
 
-                    // Tinted rather than swapped for a filled variant: SF Symbols
-                    // has no `plus.viewfinder.fill`, and an absent symbol renders
-                    // as blank space rather than failing to build.
                     Button { state.toggleFocusMode() } label: {
-                        Image(systemName: "plus.viewfinder")
-                            .foregroundStyle(state.focusMode ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
+                        Image(systemName: "plus.viewfinder").activeTint(state.focusMode)
                     }
                     .dockTooltip("Focus mode (⌥⌘F)")
                 }
@@ -72,8 +80,7 @@ private struct ReaderToolbar: ViewModifier {
                 ToolbarItemGroup(placement: .primaryAction) {
                     if state.diffAvailable {
                         Button { state.toggleDiffMode() } label: {
-                            Image(systemName: state.diffMode
-                                  ? "plusminus.circle.fill" : "plusminus.circle")
+                            Image(systemName: "plusminus.circle").activeTint(state.diffMode)
                         }
                         .dockTooltip(state.diffMode
                                      ? "Show rendered view (⇧⌘D)" : "Show diff (⇧⌘D)")
@@ -139,7 +146,12 @@ private struct ReaderToolbar: ViewModifier {
             if state.sharing {
                 ProgressView().controlSize(.small)
             } else {
+                // Optically matched, not nominally: at the same point size this
+                // glyph's ink is 11x14 against 14x17 for `arrow.clockwise` right
+                // beside it, because the symbol reserves vertical room for the
+                // arrow and is drawn narrow. `.large` levels the two.
                 Image(systemName: "square.and.arrow.up")
+                    .imageScale(.large)
             }
         }
         .menuIndicator(.hidden)
@@ -171,6 +183,10 @@ private struct ReaderToolbar: ViewModifier {
         } label: {
             Image(systemName: "textformat.size")
         }
+        // On the `Menu`, not on its label: a toolbar pull-down draws its label
+        // image as a template and drops a `foregroundStyle` set inside. (`.tint`
+        // is not the same thing — it draws a selection chip behind the glyph.)
+        .activeTint(state.readingTheme != .standard)
         .menuIndicator(.hidden)
         .dockTooltip("Reading style")
     }
@@ -189,6 +205,7 @@ private struct ReaderToolbar: ViewModifier {
         } label: {
             Image(systemName: "arrow.left.and.right")
         }
+        .activeTint(state.contentWidth != .wide)
         .menuIndicator(.hidden)
         .dockTooltip("Canvas width (⇧⌘\\)")
     }
