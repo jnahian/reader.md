@@ -205,7 +205,7 @@ private enum Links {
 // ponytail: fallback version for `swift run` (no Info.plist); keep in sync with make-app.sh.
 private func showAboutPanel() {
     let info = Bundle.main.infoDictionary
-    let version = info?["CFBundleShortVersionString"] as? String ?? "1.19.0"
+    let version = info?["CFBundleShortVersionString"] as? String ?? "1.19.1"
     let build = info?["CFBundleVersion"] as? String ?? "dev"
     let center = NSMutableParagraphStyle()
     center.alignment = .center

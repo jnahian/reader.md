@@ -6,6 +6,26 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.19.1] - 2026-08-30
+
+### Changed
+
+- **Every toolbar control says "on" the same way.** The sidebar and outline
+  toggles, diff mode, focus mode, and the reading-style and canvas-width menus
+  now all tint with your accent colour while they're active. Diff mode used to
+  signal itself by swapping to a filled icon, and the sidebar, the outline and
+  the two menus gave no indication at all — so at a glance you can now tell
+  which of them are doing something.
+
+### Fixed
+
+- **A tooltip no longer covers the menu it just opened.** Clicking a toolbar
+  button that opens a menu — export and share, reading style, canvas width —
+  left its tooltip sitting on top of the menu, hiding the first item. The
+  bubble now goes the moment you click.
+- **The export and share icon is the same size as its neighbours.** It drew
+  noticeably smaller than the buttons on either side of it.
+
 ## [1.19.0] - 2026-08-28
 
 ### Added
