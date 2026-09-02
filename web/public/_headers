@@ -1,0 +1,4 @@
+# Astro emits content-hashed filenames under /_astro/, so a new build is a new
+# URL — these can be cached forever instead of revalidated every 4 hours.
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
