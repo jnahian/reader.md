@@ -140,13 +140,6 @@ pre {
   color: var(--cyan-text);
 }
 
-.gradient-text {
-  background: linear-gradient(120deg, oklch(0.82 0.13 260), oklch(0.85 0.12 205));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
 /* Glass card */
 .card {
   border-radius: 18px;
@@ -355,42 +348,6 @@ pre {
   60%,
   100% {
     transform: translateX(320%) skewX(-18deg);
-  }
-}
-@keyframes blink {
-  0%,
-  50% {
-    opacity: 1;
-  }
-  51%,
-  100% {
-    opacity: 0;
-  }
-}
-@keyframes railSlide {
-  0%,
-  12% {
-    top: 8px;
-  }
-  30%,
-  42% {
-    top: 44px;
-  }
-  60%,
-  72% {
-    top: 96px;
-  }
-  88%,
-  100% {
-    top: 8px;
-  }
-}
-@keyframes fillBar {
-  from {
-    width: 8%;
-  }
-  to {
-    width: 64%;
   }
 }
 @keyframes dotPulse {
