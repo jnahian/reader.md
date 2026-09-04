@@ -161,10 +161,16 @@ word-count counter), and every `.mock__*` rule in the `<style>` block — the
 sweep, the progress fill, the rail slide, the fake tree, the fake code block, the
 chips, the status bar, and the mobile-hiding media query. Roughly 450 lines.
 
-`riseIn`, `blink`, `sweep`, `fillBar`, and `railSlide` keyframes: keep only those
-still referenced after the deletion. `riseIn` stays (the badge, title, sub, and
-CTA all use it); the rest are checked and removed if orphaned. Keyframes defined
-in `global.css` and shared with other components are left alone.
+**Every keyframe lives in `global.css`, not in `Hero.astro`** — the component only
+references them. After the mock is deleted, `blink`, `fillBar`, and `railSlide`
+have no remaining user anywhere in `web/src/`, so they are removed from
+`global.css` as orphans this change created. `riseIn` stays (the badge, title,
+sub, CTA, and `changelog.astro` use it) and `sweep` stays (`FinalCta.astro` uses
+it). `floatY`, `hueDrift`, and `dotPulse` are pre-existing and untouched.
+
+The mock's other classes — `.chip`, `.accent-*`, `.tok`, and the `.c-*` code
+tokens — are all shared with `FinalCta.astro`, `KeyboardCli.astro`,
+`RemoteShowcase.astro`, and `docs.astro`. None are removed.
 
 ### Added
 
@@ -199,8 +205,9 @@ design direction is flat.
 The sizing change is not cosmetic taste: the current values were chosen for a
 five-word headline and stack the new one four lines deep at the top of the clamp.
 
-The `.gradient-text` class is used elsewhere on the site and is not removed —
-only this one usage stops.
+`.gradient-text` is defined in `global.css` and the hero headline is its **only**
+user site-wide, so dropping the span leaves the rule dead. It is removed too —
+an orphan this change creates, not pre-existing dead code.
 
 ## 4 · `README.md`
 
