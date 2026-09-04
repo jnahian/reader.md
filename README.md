@@ -1,21 +1,21 @@
-# Reader.md (Swift / SwiftUI)
+# Reader.md
 
 **Website:** [reader-md.jnahian.me](https://reader-md.jnahian.me)
 
-A native macOS markdown viewer built with SwiftUI and AppKit. The whole shell —
-toolbar, sidebar, file search, outline, folder management, file watching, and SF
-Symbol icons — is native SwiftUI. The markdown content pane is a `WKWebView` that
-renders through bundled JS engines, because Mermaid diagrams and LaTeX math have
-no native equivalent.
+Your agent just wrote 400 lines of markdown. Reader.md opens plans, specs and
+READMEs in a real Mac reading window — outline, search, highlights, live
+reload — instead of one more tab in your code editor.
+
+![Reader.md showing an agent-written plan, with the file tree and outline beside it](docs/assets/screenshots/hero/01-hero.png)
 
 ## Highlights
 
-- **Multi-folder browser** with ⌘P fuzzy quick-open across every root, plus a pinned Favorites section (⌘D) and a document that reopens where you left it
+- **Live reload** — the open file re-renders with scroll preserved the moment it changes on disk
 - **Highlights and notes** — five highlight colours, notes and comment threads with replies and Resolve, anchored to the words rather than a position and never written into your markdown
-- **Remote folders** — `rsync`'d read-only from a VPS or cloned from a git URL, reusing your existing SSH and git credentials, storing none
+- **Multi-folder browser** with ⌘P fuzzy quick-open across every root, plus a pinned Favorites section (⌘D) and a document that reopens where you left it
 - **Git-aware** — status badges in the sidebar, ⇧⌘D for a side-by-side diff against unstaged / staged / all / any branch, and `.gitignore`d files kept out of the tree
 - **Mermaid, LaTeX, and syntax highlighting** from bundled engines — no network access
-- **Live reload** — the open file re-renders with scroll preserved the moment it changes on disk
+- **Remote folders** — `rsync`'d read-only from a VPS or cloned from a git URL, reusing your existing SSH and git credentials, storing none
 - **Hand off to your editor** with ⇧⌘E, which turns an editor beside Reader.md into a live preview
 - **Settings in one window** (⌘,) — appearance, Standard / Editorial / Terminal reading themes, typography, and the default PDF layout
 - **Liquid Glass chrome** on macOS 26, falling back to `NSVisualEffectView` on 13–15
