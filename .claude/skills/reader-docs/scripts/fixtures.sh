@@ -144,6 +144,97 @@ cat > "$ROOT/field-notes/reference/glossary.md" <<'EOF'
 **Root** — a folder added to the sidebar.
 EOF
 
+# --- agent-run fixture -------------------------------------------------------
+# A second root, deliberately separate from field-notes. Every other manifest
+# seeds only <fixtures>/field-notes, so nothing added here can change the
+# sidebar in the committed screenshot sets. Used by docs/hero.shots.json for
+# the README and landing-page hero image.
+mkdir -p "$ROOT/agent-run/runs"
+
+cat > "$ROOT/agent-run/plan.md" <<'EOF'
+# Extract the settings sheet
+
+*Generated 2026-03-04 · 6 phases · 34 tasks · unreviewed*
+
+The settings sheet reaches into three view models directly. This plan moves it
+behind a single store, in phases that each leave the app building.
+
+```mermaid
+graph LR
+  Sheet[SettingsSheet] --> Store[SettingsStore]
+  Store --> Disk[(UserDefaults)]
+  Store --> Views[Observers]
+```
+
+## Phase 1 — Read the current shape
+
+- [x] Map every caller of `SettingsStore`
+- [x] List the defaults keys written outside it
+- [ ] Note which writes race the in-memory copy
+- [ ] Decide what stays a direct read
+
+## Phase 2 — Introduce the store
+
+One owner for every preference, with the sheet reading through it.
+
+### The interface
+
+`SettingsStore` exposes typed properties, not a dictionary. A missing key
+returns the declared default rather than nil.
+
+### Migrating the keys
+
+Keys move one at a time. Each move is its own commit, so a bad default can be
+reverted without unwinding the phase.
+
+## Phase 3 — Move the writes
+
+Every write goes through the store. Direct defaults calls are removed as their
+key migrates.
+
+### Ordering
+
+Writes are ordered so the sheet never observes a half-migrated state.
+
+## Phase 4 — Delete the old path
+
+The three view models drop their preference properties once nothing reads them.
+
+## Phase 5 — Tests
+
+Round-trip every key, then assert the declared defaults survive a cold start.
+
+## Phase 6 — Ship
+
+Behind no flag. The change is invisible if it works.
+EOF
+
+cat > "$ROOT/agent-run/spec.md" <<'EOF'
+# Spec — one owner for preferences
+
+Preferences are read in three places and written in five. This is the design
+for collapsing that to one store.
+
+## Constraints
+
+The on-disk format does not change. A downgrade must still read its own keys.
+EOF
+
+cat > "$ROOT/agent-run/review.md" <<'EOF'
+# Review
+
+Notes from reading the plan back.
+
+- Phase 3 assumes Phase 2 landed whole. Say so.
+- The cold-start test belongs in Phase 2, not Phase 5.
+EOF
+
+cat > "$ROOT/agent-run/runs/2026-03-04.md" <<'EOF'
+# Run 2026-03-04
+
+Phases 1 and 2 complete. Phase 3 stopped on the ordering question.
+EOF
+
 # --- git fixture -------------------------------------------------------------
 # A repository cannot be nested inside this one, so it is built here. Dates are
 # pinned; without that, every sweep produces new commit SHAs and new diffs.
