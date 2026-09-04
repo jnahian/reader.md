@@ -175,6 +175,7 @@ struct ReaderMdApp: App {
                 Button("Reader.md Website") { NSWorkspace.shared.open(Links.home) }
                 Button("Documentation") { NSWorkspace.shared.open(Links.docs) }
                 Button("Report an Issue…") { NSWorkspace.shared.open(Links.issues) }
+                Button("Send Feedback…") { NSWorkspace.shared.open(Links.feedback) }
                 Button("View on GitHub") { NSWorkspace.shared.open(Links.repo) }
             }
         }
@@ -194,11 +195,12 @@ struct ReaderMdApp: App {
 }
 
 /// The addresses the app points at, in one place: the Help menu and the About
-/// panel both offer them, and a URL typed twice is a URL that goes stale once.
+/// panel share most of them, and a URL typed twice is a URL that goes stale once.
 private enum Links {
     static let home = URL(string: "https://reader-md.jnahian.me")!
     static let docs = URL(string: "https://reader-md.jnahian.me/docs")!
     static let issues = URL(string: "https://github.com/jnahian/reader.md/issues/new")!
+    static let feedback = URL(string: "https://github.com/jnahian/reader.md/discussions/new?category=ideas")!
     static let repo = URL(string: "https://github.com/jnahian/reader.md")!
 }
 
