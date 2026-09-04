@@ -16,7 +16,7 @@ Lives at `docs/features/<slug>.shots.json`, committed beside the page it feeds.
 
 | Field | Required | Meaning |
 |---|---|---|
-| `page` | yes | Must match `docs/features/<page>.md`; also the asset directory name |
+| `page` | yes | The asset directory name. For a feature page it must match `docs/features/<page>.md`; `hero` is the one manifest with no page — it feeds the README and the landing-page hero |
 | `window` | no | Logical window size, default 1400×900. Captured at 2× |
 | `domain` | no | Preference domain; defaults to `com.nahian.reader-md.shots`. Setting it to the real domain is refused |
 | `prefs` | no | Seeded before launch. `<fixtures>` expands to the generated corpus root |

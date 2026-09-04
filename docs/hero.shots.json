@@ -1,0 +1,18 @@
+{
+  "page": "hero",
+  "window": { "width": 1400, "height": 900 },
+  "prefs": {
+    "reader.md.folders": ["<fixtures>/agent-run"],
+    "reader.md.theme": "dark",
+    "reader.md.contentWidth": "wide",
+    "reader.md.showSidebar": true,
+    "reader.md.showTOC": true
+  },
+  "shots": [
+    {
+      "id": "01-hero",
+      "open": "agent-run/plan.md",
+      "caption": "An agent-written plan open in Reader.md, with the file tree and outline beside it"
+    }
+  ]
+}
