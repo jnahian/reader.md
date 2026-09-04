@@ -10,6 +10,7 @@ design tokens.
 ```bash
 cd web
 npm install
+npm run prebuild # copies ../docs/assets/screenshots → public/ (build does this itself)
 npm run dev      # http://localhost:4321
 npm run build    # static output → dist/
 npm run preview  # serve the build

@@ -12,7 +12,7 @@ interface Props {
 
 const {
   title,
-  description = "Reader.md is a native macOS markdown viewer with live reload, Mermaid diagrams, LaTeX math, and remote SSH folders — wrapped in Liquid Glass chrome.",
+  description = "Reader.md opens plans, specs and READMEs in a native macOS reading window — outline, search across every folder, highlights, live reload, Mermaid diagrams and LaTeX math.",
   page = "home",
 } = Astro.props;
 
@@ -35,10 +35,10 @@ const wideFooter = page === "docs";
     <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:image" content={new URL("/icon.png", Astro.site)} />
+    <meta property="og:image" content={new URL("/screenshots/hero/01-hero.png", Astro.site)} />
     <meta property="og:url" content={new URL(Astro.url.pathname, Astro.site)} />
     <meta property="og:type" content="website" />
-    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:card" content="summary_large_image" />
   </head>
   <body>
     <Nav page={page} solid={solidNav} />
