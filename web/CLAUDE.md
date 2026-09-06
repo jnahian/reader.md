@@ -111,7 +111,8 @@ people. All of it is generated — none of it is a list to keep up to date by ha
   `public/robots.txt` points at the index.
 - `llms.txt` ([llmstxt.org](https://llmstxt.org)), from `src/pages/llms.txt.ts`,
   built off the `docs` collection — so a new page under the repo's `docs/`
-  appears in it for the same reason it appears on the `/docs` hub.
+  appears in it for the same reason it appears on the `/docs` hub. It links the
+  `.md` twins below, not the pages: what follows an entry there is an agent.
 - **A `.md` twin of every docs page**, from `src/pages/docs/[slug].md.ts`:
   `/docs/reading` is the page, `/docs/reading.md` is the markdown it was
   rendered from. The "Copy markdown" button on each page fetches its own twin,

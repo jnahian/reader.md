@@ -30,7 +30,9 @@ export const GET: APIRoute = async () => {
     ([category, group]) =>
       `## ${category}\n\n` +
       group
-        .map((p) => `- [${p.data.title}](${website}/docs/${p.id}): ${p.data.summary}`)
+        // The .md twin rather than the page: an agent reading this index wants
+        // the markdown next, not the HTML it was rendered into.
+        .map((p) => `- [${p.data.title}](${website}/docs/${p.id}.md): ${p.data.summary}`)
         .join("\n")
   );
 
