@@ -102,8 +102,36 @@ shipped belongs in the app's `CHANGELOG.md` only.
   a fallback for republishing without a commit, per
   [DEPLOYMENT.md](./DEPLOYMENT.md).
 
+## Machine readers
+
+Three files exist for crawlers and agents rather than people, and all three are
+generated — none is a list to keep up to date by hand:
+
+- `sitemap.xml` (a sitemap index over `sitemap-0.xml`), from `@astrojs/sitemap`.
+  `public/robots.txt` points at the index.
+- `llms.txt` ([llmstxt.org](https://llmstxt.org)), from `src/pages/llms.txt.ts`,
+  built off the `docs` collection — so a new page under the repo's `docs/`
+  appears in it for the same reason it appears on the `/docs` hub.
+- JSON-LD, passed to `Base.astro` as a `schema` prop by the page that knows what
+  it is describing: `SoftwareApplication` from `index.astro`, `FAQPage` from
+  `docs/[...slug].astro`.
+
+The `FAQPage` one has a **silent** failure mode. Its questions are collected by
+`rehype-faq-accordion.mjs` as it builds the accordion and handed over as
+`render()`'s `remarkPluginFrontmatter` — so the markup and the structured data
+can't disagree, but a stale Astro content cache drops the JSON-LD with the build
+still exiting 0 (see Verify below). It also treats every `### heading` under a
+`## section` of `docs/faq.md` as a real question, so a `###` that isn't one lands
+in `mainEntity` as a question with whatever prose follows it.
+
 ## Verify
 
 `npm run build` is the check that matters — `src/data/*.ts` is typed, so a
 malformed entry fails the build rather than rendering wrong. Run it after any
 data edit.
+
+**After editing a remark or rehype plugin, `rm -rf .astro node_modules/.astro`
+first.** The content cache keys on the markdown, not on the plugins, so a plugin
+edit alone re-emits the previous HTML — a passing build proving nothing. Confirm
+the output rather than the exit code: `grep -rl 'ld+json' dist` should list
+`dist/index.html` and `dist/docs/faq/index.html`.

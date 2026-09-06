@@ -15,10 +15,30 @@ export async function getStaticPaths() {
 }
 
 const { page } = Astro.props;
-const { Content, headings } = await render(page);
+const { Content, headings, remarkPluginFrontmatter } = await render(page);
+
+// Only the FAQ page carries these — rehype-faq-accordion collects them as it
+// builds the accordion, so the markup and the JSON-LD state the same answers.
+const faq = remarkPluginFrontmatter.faq as { q: string; a: string }[] | undefined;
+const schema = faq?.length
+  ? {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: faq.map(({ q, a }) => ({
+        "@type": "Question",
+        name: q,
+        acceptedAnswer: { "@type": "Answer", text: a },
+      })),
+    }
+  : undefined;
 ---
 
-<Base title={`${page.data.title} — Reader.md`} description={page.data.summary} page="docs">
+<Base
+  title={`${page.data.title} — Reader.md`}
+  description={page.data.summary}
+  page="docs"
+  schema={schema}
+>
   <div class="doc">
     <DocsNav current={page.id} headings={headings} />
     <main class="doc__body">

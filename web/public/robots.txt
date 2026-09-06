@@ -1,0 +1,5 @@
+# Everything here is public documentation for a free, open-source app.
+User-agent: *
+Allow: /
+
+Sitemap: https://reader-md.jnahian.me/sitemap.xml

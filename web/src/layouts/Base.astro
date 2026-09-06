@@ -2,18 +2,22 @@
 import "../styles/global.css";
 import Nav from "../components/Nav.astro";
 import Footer from "../components/Footer.astro";
-import type { Page } from "../data/site";
+import { description as siteDescription, type Page } from "../data/site";
 
 interface Props {
   title: string;
   description?: string;
   page?: Page;
+  // schema.org JSON-LD for this page, if it has any worth stating. Built by the
+  // page, not here — only the page knows what it is describing.
+  schema?: Record<string, unknown>;
 }
 
 const {
   title,
-  description = "Reader.md opens plans, specs and READMEs in a native macOS reading window — outline, search across every folder, highlights, live reload, Mermaid diagrams and LaTeX math.",
+  description = siteDescription,
   page = "home",
+  schema,
 } = Astro.props;
 
 // Home nav starts transparent and turns solid on scroll; inner pages are solid.
@@ -39,6 +43,17 @@ const wideFooter = page === "docs";
     <meta property="og:url" content={new URL(Astro.url.pathname, Astro.site)} />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
+    {
+      /* `<` is escaped rather than written raw: the FAQ's answers become part of
+         this payload, and one of them contains a shell command. */
+      schema && (
+        <script
+          type="application/ld+json"
+          is:inline
+          set:html={JSON.stringify(schema).replace(/</g, "\\u003c")}
+        />
+      )
+    }
   </head>
   <body>
     <Nav page={page} solid={solidNav} />
