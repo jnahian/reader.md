@@ -8,6 +8,12 @@ Allow: /
 # of on HTML that will 403. This list is advisory and safe to let drift — the
 # WAF is the enforcement, and a crawler missing from it falls back to the group
 # above and is stopped at the edge anyway, which is the same answer, just later.
+#
+# The Allow lines come first on purpose. An RFC 9309 parser takes the longest
+# match and doesn't care about order, but a first-match parser reads `Disallow: /`
+# and stops there — leading with it denies the two paths this group exists to
+# open. The .md line needs `*` and `$`, which are Google extensions: the crawlers
+# named here support them, and one that doesn't just won't open the .md files.
 User-agent: GPTBot
 User-agent: OAI-SearchBot
 User-agent: ChatGPT-User
@@ -19,8 +25,8 @@ User-agent: Perplexity-User
 User-agent: meta-externalagent
 User-agent: Bytespider
 User-agent: CCBot
-Disallow: /
 Allow: /llms.txt
 Allow: /docs/*.md$
+Disallow: /
 
 Sitemap: https://reader-md.jnahian.me/sitemap.xml
