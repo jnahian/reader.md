@@ -3,7 +3,7 @@ title: Install
 category: Getting started
 order: 1
 summary: Homebrew or the DMG, what it needs, how updates arrive, and clearing the first-launch warning.
-related: [features, cli, building]
+related: [faq, features, cli, building]
 ---
 
 # Install
