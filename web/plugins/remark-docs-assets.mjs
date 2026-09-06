@@ -25,7 +25,9 @@ const BLOB = "https://github.com/jnahian/reader.md/blob/main/";
 // Absolute URLs, site-absolute paths, and bare fragments are already correct.
 const ABSOLUTE = /^(?:[a-z][a-z0-9+.-]*:|\/|#)/i;
 
-function rewriteLink(url, from) {
+// Exported: pages/docs/[slug].md.ts rewrites the same links in the raw markdown
+// it serves, and the two readings of a link must not disagree.
+export function rewriteLink(url, from) {
   if (!from || ABSOLUTE.test(url)) return null;
   const cut = url.indexOf("#");
   const target = cut === -1 ? url : url.slice(0, cut);

@@ -104,17 +104,29 @@ shipped belongs in the app's `CHANGELOG.md` only.
 
 ## Machine readers
 
-Three files exist for crawlers and agents rather than people, and all three are
-generated — none is a list to keep up to date by hand:
+Some of what the site serves is addressed to crawlers and agents rather than
+people. All of it is generated — none of it is a list to keep up to date by hand:
 
 - `sitemap.xml` (a sitemap index over `sitemap-0.xml`), from `@astrojs/sitemap`.
   `public/robots.txt` points at the index.
 - `llms.txt` ([llmstxt.org](https://llmstxt.org)), from `src/pages/llms.txt.ts`,
   built off the `docs` collection — so a new page under the repo's `docs/`
   appears in it for the same reason it appears on the `/docs` hub.
+- **A `.md` twin of every docs page**, from `src/pages/docs/[slug].md.ts`:
+  `/docs/reading` is the page, `/docs/reading.md` is the markdown it was
+  rendered from. The "Copy markdown" button on each page fetches its own twin,
+  so the HTML never carries a second copy of the prose. The body is served
+  verbatim except for its links, which are resolved to absolute URLs through the
+  same `rewriteLink` the rendered page uses — exported from
+  `remark-docs-assets.mjs` so a link cannot mean two things. It relies on the
+  docs corpus having no link titles and no reference definitions; a parser would
+  reformat the prose, and serving the source byte for byte is the point.
 - JSON-LD, passed to `Base.astro` as a `schema` prop by the page that knows what
   it is describing: `SoftwareApplication` from `index.astro`, `FAQPage` from
   `docs/[...slug].astro`.
+
+So the FAQ's answers now reach a reader three ways — the accordion, the JSON-LD,
+and `/docs/faq.md` — all three derived from `docs/faq.md` alone.
 
 The `FAQPage` one has a **silent** failure mode. Its questions are collected by
 `rehype-faq-accordion.mjs` as it builds the accordion and handed over as

@@ -3,6 +3,7 @@ import { getCollection, render } from "astro:content";
 import Base from "../../layouts/Base.astro";
 import DocsNav from "../../components/DocsNav.astro";
 import RelatedDocs from "../../components/RelatedDocs.astro";
+import Icon from "../../components/Icon.astro";
 // Base.astro already renders Nav and Footer itself and takes a `page` prop —
 // importing them here would render each twice.
 
@@ -42,6 +43,15 @@ const schema = faq?.length
   <div class="doc">
     <DocsNav current={page.id} headings={headings} />
     <main class="doc__body">
+      {/* Above the title rather than beside it: the h1 wraps to three lines on
+          a phone, and there is no room to put anything next to it. */}
+      <div class="doctools">
+        <button type="button" class="doctools__copy" data-copy-md={`/docs/${page.id}.md`}>
+          <Icon name="copy" size={14} />
+          <Icon name="check" size={14} />
+          <span data-copy-md-label>Copy markdown</span>
+        </button>
+      </div>
       <Content />
       <RelatedDocs current={page.id} related={page.data.related} />
     </main>
@@ -51,6 +61,9 @@ const schema = faq?.length
 <script>
   import { initAccordion, revealHash } from "../../scripts/accordion";
   import { initFaqSearch } from "../../scripts/faq-search";
+  import { initCopyMarkdown } from "../../scripts/copy-markdown";
+
+  initCopyMarkdown();
 
   // Only the FAQ page emits these; every other docs page finds nothing.
   document.querySelectorAll("[data-faq]").forEach((list) => initAccordion(list));
@@ -82,6 +95,47 @@ const schema = faq?.length
 
   .doc__body {
     min-width: 0;
+  }
+
+  /* Reading controls, not content — quieter than anything inside the prose, and
+     sitting above the h1 rather than in the flow of it. */
+  .doctools {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 14px;
+  }
+
+  .doctools__copy {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 13px;
+    transition: color 0.2s ease, background 0.2s ease;
+  }
+
+  .doctools__copy:hover {
+    color: var(--fg);
+    background: var(--surface-3);
+  }
+
+  .doctools__copy.is-copied {
+    color: var(--cyan);
+    border-color: color-mix(in oklch, var(--cyan) 40%, transparent);
+  }
+
+  /* Both icons ship; the class picks which one is showing, so the label and the
+     mark can never disagree about whether the copy happened. */
+  .doctools__copy :global(.icon:nth-of-type(2)),
+  .doctools__copy.is-copied :global(.icon:nth-of-type(1)) {
+    display: none;
+  }
+  .doctools__copy.is-copied :global(.icon:nth-of-type(2)) {
+    display: inline;
   }
 
   /* Stacked as a block rather than a one-column grid: DocsNav collapses to a

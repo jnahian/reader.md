@@ -54,6 +54,7 @@ web/
 │     ├─ index.astro          landing
 │     ├─ docs.astro           docs hub — card grid built from the collection
 │     ├─ docs/[...slug].astro every docs page, rendered from ../docs/*.md
+│     ├─ docs/[slug].md.ts    the same pages as raw markdown, at /docs/<x>.md
 │     ├─ changelog.astro      release notes
 │     ├─ llms.txt.ts          llmstxt.org index, built from the docs collection
 │     └─ 404.astro
