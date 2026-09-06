@@ -115,7 +115,7 @@ people. All of it is generated — none of it is a list to keep up to date by ha
   `.md` twins below, not the pages: what follows an entry there is an agent.
 - **A `.md` twin of every docs page**, from `src/pages/docs/[slug].md.ts`:
   `/docs/reading` is the page, `/docs/reading.md` is the markdown it was
-  rendered from. The "Copy markdown" button on each page fetches its own twin,
+  rendered from. The "Copy .md" button on each page fetches its own twin,
   so the HTML never carries a second copy of the prose. The body is served
   verbatim except for its links, which are resolved to absolute URLs through the
   same `rewriteLink` the rendered page uses — exported from
