@@ -22,9 +22,21 @@ export interface Release {
 
 export const releasesLog: Release[] = [
   {
+    version: "1.20.0",
+    date: "Sep 6, 2026",
+    badge: "LATEST",
+    groups: [
+      {
+        tag: "ADDED",
+        items: [
+          "<strong>Send Feedback\u2026</strong> in the Help menu, opening a new discussion under <strong>Ideas</strong> on GitHub. <strong>Report an Issue\u2026</strong> stays where it is for bugs; this is the place for everything that isn't one \u2014 a request, a rough edge, an impression.",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.19.1",
     date: "Aug 30, 2026",
-    badge: "LATEST",
     groups: [
       {
         tag: "IMPROVED",
