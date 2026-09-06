@@ -40,6 +40,7 @@ download — are in [the install guide](docs/install.md).
 | [Features & shortcuts](docs/features.md) | everything the app does, the keys that do it, and a page with screenshots per feature area |
 | [Install](docs/install.md) | requirements, Homebrew, direct download, quarantine |
 | [Command line](docs/cli.md) | the `reader` CLI |
+| [FAQ](docs/faq.md) | what it costs, what it needs, and short answers to the common questions |
 | [Architecture](docs/architecture.md) | how the native shell and web pane fit together |
 | [Building](docs/building.md) | run from source, package a `.app`, cut a release |
 | [Changelog](Sources/ReaderMd/Resources/docs/CHANGELOG.md) | release history (also in-app, Help → Release Notes) |

@@ -10,6 +10,7 @@
 
 export const DOC_PATTERNS = [
   "install.md",
+  "faq.md",
   "features.md",
   "features/*.md",
   "cli.md",
