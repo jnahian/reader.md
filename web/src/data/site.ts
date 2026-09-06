@@ -9,6 +9,10 @@ export const brewTap = "brew tap jnahian/reader.md https://github.com/jnahian/re
 export const brewTrust = "brew trust --cask jnahian/reader.md/reader.md";
 export const brewInstall = "brew install --cask reader-md";
 export const author = "Julkar Naen Nahian";
+// The site's one-sentence description: the default <meta name="description">,
+// and the summary line of llms.txt.
+export const description =
+  "Reader.md opens plans, specs and READMEs in a native macOS reading window — outline, search across every folder, highlights, live reload, Mermaid diagrams and LaTeX math.";
 
 export type Page = "home" | "docs" | "changelog";
 

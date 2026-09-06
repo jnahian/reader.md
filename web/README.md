@@ -38,6 +38,7 @@ web/
 │  └─ remark-docs-assets.mjs  rewrites .md links + screenshot paths at build time
 ├─ public/
 │  ├─ icon.png                app icon (favicon + OG image)
+│  ├─ robots.txt              crawlers welcome; points at the generated sitemap
 │  └─ screenshots/            GENERATED — `prebuild` copies ../docs/assets/screenshots
 ├─ src/
 │  ├─ styles/global.css       design tokens, base styles, keyframes, shared utilities
@@ -54,6 +55,7 @@ web/
 │     ├─ docs.astro           docs hub — card grid built from the collection
 │     ├─ docs/[...slug].astro every docs page, rendered from ../docs/*.md
 │     ├─ changelog.astro      release notes
+│     ├─ llms.txt.ts          llmstxt.org index, built from the docs collection
 │     └─ 404.astro
 ```
 

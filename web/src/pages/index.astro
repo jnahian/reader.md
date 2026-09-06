@@ -7,9 +7,31 @@ import RenderShowcase from "../components/RenderShowcase.astro";
 import KeyboardCli from "../components/KeyboardCli.astro";
 import Faq from "../components/Faq.astro";
 import FinalCta from "../components/FinalCta.astro";
+import { repo, releasesLatest, website, author, description } from "../data/site";
+import { latestVersion } from "../data/changelog";
+
+// What the app is, in the vocabulary a machine reads. Everything here is
+// already stated on the page in prose — this is the same claim, typed.
+const schema = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Reader.md",
+  applicationCategory: "DeveloperApplication",
+  operatingSystem: "macOS 13 or later, Apple silicon",
+  softwareVersion: latestVersion,
+  description,
+  url: website,
+  downloadUrl: releasesLatest,
+  codeRepository: repo,
+  license: "https://opensource.org/licenses/MIT",
+  screenshot: `${website}/screenshots/hero/01-hero.png`,
+  author: { "@type": "Person", name: author },
+  // Free, with no paid tier — the price has to be stated to be believed.
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+};
 ---
 
-<Base title="Reader.md — read your markdown in a real Mac window" page="home">
+<Base title="Reader.md — read your markdown in a real Mac window" page="home" schema={schema}>
   <Hero />
   <FeatureGrid />
   <RemoteShowcase />

@@ -37,8 +37,10 @@ function text(node) {
   return (node.children ?? []).map(text).join("");
 }
 
-const searchable = (nodes) =>
-  nodes.map(text).join(" ").replace(/\s+/g, " ").trim().toLowerCase();
+const flatten = (nodes) =>
+  nodes.map(text).join(" ").replace(/\s+/g, " ").trim();
+
+const searchable = (nodes) => flatten(nodes).toLowerCase();
 
 // The field, the live count, and the empty state. Emitted here rather than in
 // the page component so everything that knows the FAQ is special stays in this
@@ -100,6 +102,11 @@ export function rehypeFaqAccordion() {
   return (tree, file) => {
     if (!/(^|\/)docs\/faq\.md$/.test(file?.path?.replace(/\\/g, "/") ?? "")) return;
 
+    // The same questions, as plain text, for the page's FAQPage JSON-LD. Read
+    // off the tree here because this is where the answer's extent is already
+    // known — a second parse in the page would have to re-derive it.
+    const questionsAndAnswers = [];
+
     visit(tree, "root", (root) => {
       const { lead, groups } = sections(root.children, "h2");
 
@@ -109,15 +116,16 @@ export function rehypeFaqAccordion() {
         ...groups.map(([heading, ...body]) => {
           const { lead: prose, groups: questions } = sections(body, "h3");
 
-          const list = questions.map(([q, ...answer]) =>
-            el("details", {
+          const list = questions.map(([q, ...answer]) => {
+            questionsAndAnswers.push({ q: flatten([q]), a: flatten(answer) });
+            return el("details", {
               className: ["faq-q"],
               dataSearch: searchable([q, ...answer]),
             }, [
               el("summary", { className: ["faq-q__q"] }, [q]),
               el("div", { className: ["faq-q__a"] }, answer),
-            ])
-          );
+            ]);
+          });
 
           return el("section", {
             className: ["faq-group"],
@@ -136,5 +144,10 @@ export function rehypeFaqAccordion() {
         }),
       ];
     });
+
+    // Reaches the page as render()'s remarkPluginFrontmatter, which is outside
+    // the collection schema — so this doesn't have to be declared as content.
+    const frontmatter = file?.data?.astro?.frontmatter;
+    if (frontmatter) frontmatter.faq = questionsAndAnswers;
   };
 }
