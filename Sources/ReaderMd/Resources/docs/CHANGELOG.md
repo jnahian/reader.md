@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.20.0] - 2026-09-06
+
 ### Added
 
 - **Send Feedback…** in the Help menu, opening a new discussion under **Ideas**
