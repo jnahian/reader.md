@@ -539,3 +539,81 @@ pre {
   border-top: 1px solid var(--border-soft);
   margin: 48px 0;
 }
+
+/* FAQ accordion ------------------------------------------------------------ */
+/* docs/faq.md is grouped into sections and collapsible questions at build time
+   by plugins/rehype-faq-accordion.mjs; the rows match the landing page's FAQ so
+   the two read as one pattern. */
+.qa-list {
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  overflow: hidden;
+}
+
+.faq-q + .faq-q {
+  border-top: 1px solid var(--border-soft);
+}
+
+.faq-q__q {
+  position: relative;
+  padding: 15px 52px 15px 22px;
+  cursor: pointer;
+  list-style: none;
+}
+.faq-q__q::-webkit-details-marker {
+  display: none;
+}
+.faq-q__q:hover {
+  background: var(--surface-2);
+}
+.doc__body .faq-q__q h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* The same plus-into-cross mark the landing page uses. Two absolutely placed
+   rules rather than one rotated box, because a <summary> has no element to
+   hang a marker on that the plugin would have to invent. */
+.faq-q__q::before,
+.faq-q__q::after {
+  content: "";
+  position: absolute;
+  right: 22px;
+  top: 50%;
+  width: 13px;
+  border-top: 1.5px solid var(--faint);
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.28s ease;
+}
+.faq-q__q::after {
+  transform: rotate(90deg);
+}
+.faq-q[open] > .faq-q__q::before {
+  transform: rotate(45deg);
+}
+.faq-q[open] > .faq-q__q::after {
+  transform: rotate(135deg);
+}
+.faq-q[open] > .faq-q__q::before,
+.faq-q[open] > .faq-q__q::after {
+  border-color: var(--fg);
+}
+
+/* Clipping is what makes the slide read as a slide rather than a fade. */
+.faq-q__a {
+  overflow: hidden;
+  padding: 0 52px 4px 22px;
+}
+.faq-q__a > :last-child {
+  margin-bottom: 18px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .faq-q__q::before,
+  .faq-q__q::after {
+    transition: none;
+  }
+}
