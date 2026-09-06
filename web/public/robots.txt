@@ -2,4 +2,25 @@
 User-agent: *
 Allow: /
 
+# AI crawlers are blocked at the edge, with a WAF skip for the two surfaces
+# built for them: the llms.txt index and the markdown behind every docs page.
+# Saying so here spends a crawler's budget on the two paths that answer instead
+# of on HTML that will 403. This list is advisory and safe to let drift — the
+# WAF is the enforcement, and a crawler missing from it falls back to the group
+# above and is stopped at the edge anyway, which is the same answer, just later.
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: Claude-User
+User-agent: Claude-SearchBot
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: meta-externalagent
+User-agent: Bytespider
+User-agent: CCBot
+Disallow: /
+Allow: /llms.txt
+Allow: /docs/*.md$
+
 Sitemap: https://reader-md.jnahian.me/sitemap.xml
