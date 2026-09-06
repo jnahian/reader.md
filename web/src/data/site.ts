@@ -14,12 +14,13 @@ export type Page = "home" | "docs" | "changelog";
 
 // Nav links shown per page (the current page is surfaced as a badge instead).
 export const navLinksFor = (page: Page) => {
-  const home = { href: "/", label: "Home" };
   const features = { href: "/#features", label: "Features" };
   const docs = { href: "/docs", label: "Docs" };
+  const faq = { href: "/docs/faq", label: "FAQ" };
   const changelog = { href: "/changelog", label: "Changelog" };
-  if (page === "docs") return [home, changelog];
-  if (page === "changelog") return [home, docs];
+  // No Home link: the brand on the left is already one.
+  if (page === "docs") return [faq, changelog];
+  if (page === "changelog") return [faq, docs];
   return [features, docs, changelog];
 };
 
