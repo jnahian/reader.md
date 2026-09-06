@@ -43,13 +43,13 @@ const schema = faq?.length
   <div class="doc">
     <DocsNav current={page.id} headings={headings} />
     <main class="doc__body">
-      {/* Above the title rather than beside it: the h1 wraps to three lines on
-          a phone, and there is no room to put anything next to it. */}
+      {/* Floated rather than laid out in a row: the h1 it sits beside is
+          rendered markdown, so there is no wrapper to make a flex parent of. */}
       <div class="doctools">
         <button type="button" class="doctools__copy" data-copy-md={`/docs/${page.id}.md`}>
           <Icon name="copy" size={14} />
           <Icon name="check" size={14} />
-          <span data-copy-md-label>Copy markdown</span>
+          <span data-copy-md-label>Copy .md</span>
         </button>
       </div>
       <Content />
@@ -100,9 +100,8 @@ const schema = faq?.length
   /* Reading controls, not content — quieter than anything inside the prose, and
      sitting above the h1 rather than in the flow of it. */
   .doctools {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 14px;
+    float: right;
+    margin: 4px 0 12px 20px;
   }
 
   .doctools__copy {

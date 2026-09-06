@@ -1,7 +1,7 @@
 // The markdown behind every docs page, at the page's own URL plus `.md`:
 // /docs/reading is the page, /docs/reading.md is what it was rendered from.
 // Agents and LLMs get the source instead of parsing the HTML back into prose,
-// and the "Copy markdown" button on each page fetches its own twin.
+// and the "Copy .md" button on each page fetches its own twin.
 //
 // The body is served verbatim except for its links, which are written as
 // on-disk relative paths (`../cli.md`) so they resolve in Reader.md and on

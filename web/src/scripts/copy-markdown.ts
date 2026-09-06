@@ -28,7 +28,7 @@ export function initCopyMarkdown() {
     clearTimeout(timer);
     timer = window.setTimeout(() => {
       button.classList.remove("is-copied");
-      if (label) label.textContent = "Copy markdown";
+      if (label) label.textContent = "Copy .md";
     }, RESET);
   });
 }
