@@ -110,7 +110,8 @@ No page of its own — this is the whole of it.
 - **Auto-update** — the packaged app checks for and installs new releases through Sparkle, and opens the changelog once afterwards. See [Install](install.md)
 - **About panel** — version and credits in the standard macOS window, with
   clickable **Website**, **Docs**, and **Report an Issue** links; the Help menu
-  carries the same destinations
+  carries the same destinations, plus **Send Feedback…** for anything that
+  isn't a bug
 - **Keyboard navigation** — ⇥ moves focus through the sidebar, outline, and toolbar; ␣ or ⏎ activates whatever has it
 - **A command-line companion** — see [the CLI reference](cli.md)
 

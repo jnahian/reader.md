@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Send Feedback…** in the Help menu, opening a new discussion under **Ideas**
+  on GitHub. **Report an Issue…** stays where it is for bugs; this is the place
+  for everything that isn't one — a request, a rough edge, an impression.
+
 ## [1.19.1] - 2026-08-30
 
 ### Changed

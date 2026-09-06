@@ -128,5 +128,6 @@ passes on a release for good; a later release is still offered.
 
 ## Something's wrong
 
-Found a bug or have a request? **Help → Report an Issue…** opens the GitHub
-issue tracker.
+Found a bug? **Help → Report an Issue…** opens the GitHub issue tracker. For
+anything else — a request, a rough edge, an impression — **Help → Send
+Feedback…** opens a new discussion under **Ideas**.
