@@ -661,3 +661,27 @@ pre {
 .filter__input:focus {
   outline: none;
 }
+
+/* The FAQ's copy parks under the fixed nav so it stays reachable through all
+   nine sections. Below 900px it goes back to scrolling with the page: the
+   DocsNav rail collapses into its own sticky control at the same offset, and
+   two of them would fight for the band. */
+.faq-search {
+  position: sticky;
+  top: var(--nav-stick);
+  z-index: 10;
+  margin: 0 0 34px;
+  padding-bottom: 8px;
+  background: linear-gradient(var(--bg) 78%, transparent);
+}
+
+.faq-search__empty {
+  margin: 16px 0 0;
+  color: var(--muted);
+}
+
+@media (max-width: 900px) {
+  .faq-search {
+    position: static;
+  }
+}

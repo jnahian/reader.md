@@ -49,6 +49,17 @@ export function slide(item: HTMLDetailsElement, open: boolean) {
     .catch(() => {}); // cancelled by a newer click
 }
 
+// Filtering opens and closes rows per keystroke, where an animation would be
+// 280ms of queued work across 31 rows. This skips it — and clears the state
+// slide() keeps, so a row taken over mid-animation doesn't leave a stale
+// `closing` flag for the next click to read the wrong direction from.
+export function setOpenImmediate(item: HTMLDetailsElement, open: boolean) {
+  running.get(item)?.cancel();
+  running.delete(item);
+  delete item.dataset.closing;
+  item.open = open;
+}
+
 export function initAccordion(list: Element, { exclusive = false } = {}) {
   const items = [...list.querySelectorAll("details")];
 
