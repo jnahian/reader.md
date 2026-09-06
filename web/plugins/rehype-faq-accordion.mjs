@@ -13,6 +13,12 @@
 //
 // The h3 keeps its id, so /docs/faq#is-it-sandboxed still addresses a question;
 // the client script opens the <details> around a targeted one.
+//
+// Each question also carries the lowercased text of its question and answer as
+// data-search, so the field above the page filters without walking 31 rows of
+// DOM on every keystroke. A section with no questions ("Something's wrong")
+// carries its own instead, so it is filtered as one unit rather than being
+// stranded on screen with nothing under it.
 import { visit } from "unist-util-visit";
 
 const el = (tagName, properties, children) => ({
@@ -23,6 +29,59 @@ const el = (tagName, properties, children) => ({
 });
 
 const isTag = (node, tag) => node.type === "element" && node.tagName === tag;
+
+// Recurses through <code>, <strong>, <a> and friends, so "arm64" inside a code
+// span is findable.
+function text(node) {
+  if (node.type === "text") return node.value;
+  return (node.children ?? []).map(text).join("");
+}
+
+const searchable = (nodes) =>
+  nodes.map(text).join(" ").replace(/\s+/g, " ").trim().toLowerCase();
+
+// The field, the live count, and the empty state. Emitted here rather than in
+// the page component so everything that knows the FAQ is special stays in this
+// file.
+const searchField = () =>
+  el("div", { className: ["faq-search"] }, [
+    el("div", { className: ["filter"] }, [
+      {
+        type: "element",
+        tagName: "svg",
+        properties: {
+          className: ["filter__icon"],
+          viewBox: "0 0 24 24",
+          width: "17",
+          height: "17",
+          fill: "none",
+          stroke: "currentColor",
+          strokeWidth: "2",
+          strokeLinecap: "round",
+          ariaHidden: "true",
+        },
+        children: [
+          el("circle", { cx: "11", cy: "11", r: "7" }, []),
+          el("path", { d: "M20 20l-3.5-3.5" }, []),
+        ],
+      },
+      el("input", {
+        id: "faqsearch",
+        className: ["filter__input"],
+        type: "search",
+        autoComplete: "off",
+        placeholder: "Search the questions…",
+        ariaLabel: "Search the FAQ",
+      }, []),
+    ]),
+    el("p", { className: ["faq-search__empty"], dataFaqEmpty: "", hidden: true }, [
+      { type: "text", value: "No question matches that. " },
+      el("a", { href: "https://github.com/jnahian/reader.md/issues" }, [
+        { type: "text", value: "Ask on the issue tracker" },
+      ]),
+      { type: "text", value: ", or read the app's own help — Help → FAQ." },
+    ]),
+  ]);
 
 // Splits a flat list of siblings on `tag`, keeping anything before the first
 // match as a leading remainder.
@@ -46,17 +105,26 @@ export function rehypeFaqAccordion() {
 
       root.children = [
         ...lead,
+        searchField(),
         ...groups.map(([heading, ...body]) => {
           const { lead: prose, groups: questions } = sections(body, "h3");
 
           const list = questions.map(([q, ...answer]) =>
-            el("details", { className: ["faq-q"] }, [
+            el("details", {
+              className: ["faq-q"],
+              dataSearch: searchable([q, ...answer]),
+            }, [
               el("summary", { className: ["faq-q__q"] }, [q]),
               el("div", { className: ["faq-q__a"] }, answer),
             ])
           );
 
-          return el("section", { className: ["faq-group"] }, [
+          return el("section", {
+            className: ["faq-group"],
+            // Only a section with no questions of its own needs this; the rest
+            // are filtered by the questions inside them.
+            ...(questions.length ? {} : { dataSearch: searchable(prose) }),
+          }, [
             heading,
             ...prose,
             // A section of plain prose ("Something's wrong") has no questions;

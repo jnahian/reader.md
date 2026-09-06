@@ -30,9 +30,11 @@ const { Content, headings } = await render(page);
 
 <script>
   import { initAccordion, revealHash } from "../../scripts/accordion";
+  import { initFaqSearch } from "../../scripts/faq-search";
 
   // Only the FAQ page emits these; every other docs page finds nothing.
   document.querySelectorAll("[data-faq]").forEach((list) => initAccordion(list));
+  initFaqSearch();
   revealHash();
   window.addEventListener("hashchange", revealHash);
 
