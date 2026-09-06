@@ -29,6 +29,13 @@ const { Content, headings } = await render(page);
 </Base>
 
 <script>
+  import { initAccordion, revealHash } from "../../scripts/accordion";
+
+  // Only the FAQ page emits these; every other docs page finds nothing.
+  document.querySelectorAll("[data-faq]").forEach((list) => initAccordion(list));
+  revealHash();
+  window.addEventListener("hashchange", revealHash);
+
   // A reader who asked for reduced motion gets a paused clip with controls
   // rather than a looping one. The poster frame still fills the slot.
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
