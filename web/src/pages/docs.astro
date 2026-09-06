@@ -206,46 +206,6 @@ const steps = [
     color: var(--muted);
   }
 
-  .filter {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 0 16px;
-    border-radius: 12px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
-  }
-
-  .filter:focus-within {
-    border-color: oklch(0.72 0.16 260 / 0.45);
-  }
-
-  .filter__icon {
-    flex: none;
-    color: var(--faint);
-  }
-
-  .filter__input {
-    flex: 1;
-    min-width: 0;
-    padding: 14px 0;
-    border: none;
-    background: none;
-    color: var(--fg);
-    font-family: inherit;
-    font-size: 15px;
-  }
-
-  .filter__input::placeholder {
-    color: var(--faint);
-  }
-
-  .filter__input:focus {
-    outline: none;
-  }
-
   .hub__popular {
     display: flex;
     flex-wrap: wrap;
