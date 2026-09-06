@@ -1,6 +1,6 @@
-// Landing-page copy only: the highlight cards and the compact shortcut strip,
-// both condensed from the repo's docs/features.md so the site stays in sync with
-// the app's own description.
+// Landing-page copy only: the highlight cards, the compact shortcut strip, and
+// the FAQ accordion — condensed from the repo's docs/features.md and docs/faq.md
+// so the site stays in sync with the app's own description.
 //
 // The docs pages themselves are no longer mirrored here — /docs renders the
 // repo's docs/*.md directly (see src/content.config.ts).
@@ -66,4 +66,39 @@ export const shortcutsHighlight: Shortcut[] = [
   { keys: "⌘B", action: "Toggle sidebar" },
   { keys: "⌥⌘F", action: "Focus mode" },
   { keys: "⌘E", action: "Export PDF" },
+];
+
+// --- Landing: FAQ accordion ------------------------------------------------
+export interface Faq {
+  q: string;
+  a: string; // HTML
+}
+
+// The six questions people ask before downloading, condensed from the "Before
+// you install" section of docs/faq.md. The rest of that page stays there.
+export const faqsHighlight: Faq[] = [
+  {
+    q: "Is it really free?",
+    a: 'MIT-licensed and open source. No account, no trial, no paid tier — the <a href="https://github.com/jnahian/reader.md">repository</a> is the whole thing.',
+  },
+  {
+    q: "Why does macOS say it can't check it for malicious software?",
+    a: 'The app is ad-hoc signed but not notarized, so the first launch is gated. Right-click → <strong>Open</strong> once, or run <code class="tok">xattr -dr com.apple.quarantine</code> on it. <a href="/docs/install#clearing-quarantine">Details</a>.',
+  },
+  {
+    q: "Does it need macOS 26?",
+    a: "No — macOS 13 or later. Liquid Glass chrome lights up on macOS 26 (Tahoe); 13 through 15 get the <code class=\"tok\">NSVisualEffectView</code> fallback automatically, with nothing to configure.",
+  },
+  {
+    q: "Can I edit files in it?",
+    a: 'No. Reader.md reads, and hands editing to the editor you already use — <code class="tok">⇧⌘E</code> opens the current document there, and the folder watcher re-renders on save, so the two side by side behave like a live preview.',
+  },
+  {
+    q: "Does it phone home?",
+    a: "No. Mermaid, KaTeX, and highlight.js are bundled, so a document renders identically with the network off. The only outbound request is the update check.",
+  },
+  {
+    q: "Does it work on Intel Macs?",
+    a: 'The binary is arm64-only, so both the app and its updates are offered to Apple silicon only. <a href="/docs/install#requirements">Requirements</a>.',
+  },
 ];

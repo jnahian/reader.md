@@ -11,7 +11,7 @@ repo above, so **edit the source first, then mirror it down**:
 
 | Site file | Mirrors |
 |---|---|
-| `src/data/content.ts` | `docs/features.md` — landing-page copy only (highlight cards, the compact shortcut strip) |
+| `src/data/content.ts` | `docs/features.md` and `docs/faq.md` — landing-page copy only (highlight cards, the compact shortcut strip, the FAQ accordion) |
 | `src/data/changelog.ts` | `Sources/ReaderMd/Resources/docs/CHANGELOG.md` |
 
 **The docs pages are not mirrored at all.** `/docs/<page>` renders the repo's
