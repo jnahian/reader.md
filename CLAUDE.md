@@ -67,13 +67,14 @@ key actually does — check them rather than copying an existing table.
   only copy of that prose. See `web/CLAUDE.md`.
 
 Each `docs/features/<slug>.md` has a `<slug>.shots.json` manifest beside it —
-plus `docs/hero.shots.json`, which has no page, because it captures the hero
-image shared by the README and the landing page. A manifest describes every
-screenshot: window size, prefs, the file to open, the actions to reach the
-state. `.claude/skills/reader-docs` is the harness that captures them from the
-running app (`scripts/capture.sh <manifest>`); follow that skill rather than
-shooting screens by hand, and re-run the manifest after a UI change instead of
-editing an image.
+plus two manifests with no page, which feed the site directly:
+`docs/hero.shots.json` (the hero image shared by the README and the landing
+page) and `docs/rendering-showcase.shots.json` (the landing page's rendering
+section). A manifest describes every screenshot: window size, prefs, the file
+to open, the actions to reach the state. `.claude/skills/reader-docs` is the
+harness that captures them from the running app (`scripts/capture.sh <manifest>`);
+follow that skill rather than shooting screens by hand, and re-run the manifest
+after a UI change instead of editing an image.
 
 A user-visible change updates the bundled docs first, then `docs/`, then the
 site data. `web/` is an Astro static site with its own `CLAUDE.md`, deployed by

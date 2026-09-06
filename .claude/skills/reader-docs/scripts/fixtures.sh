@@ -235,6 +235,33 @@ cat > "$ROOT/agent-run/runs/2026-03-04.md" <<'EOF'
 Phases 1 and 2 complete. Phase 3 stopped on the ordering question.
 EOF
 
+# --- showcase fixture --------------------------------------------------------
+# A third root, separate for the same reason agent-run is: no other manifest
+# seeds it, so a file added here cannot change a committed sidebar. Used by
+# docs/rendering-showcase.shots.json for the landing page's rendering section,
+# which is shot with the sidebar hidden — a vertical diagram so it reads in a
+# narrow column.
+mkdir -p "$ROOT/showcase"
+
+cat > "$ROOT/showcase/pipeline.md" <<'EOF'
+# Rendering pipeline
+
+Every document takes the same path from disk to the window.
+
+```mermaid
+graph TD
+  File[Markdown on disk] --> Marked[marked]
+  Marked --> Render[Mermaid · KaTeX · highlight.js]
+  Render --> View[WKWebView]
+```
+
+## Throughput
+
+Given a queue of $n$ documents and a service rate $\mu$, the steady-state wait is:
+
+$$W = \frac{1}{\mu - \lambda}$$
+EOF
+
 # --- git fixture -------------------------------------------------------------
 # A repository cannot be nested inside this one, so it is built here. Dates are
 # pinned; without that, every sweep produces new commit SHAs and new diffs.

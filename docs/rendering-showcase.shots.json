@@ -1,0 +1,18 @@
+{
+  "page": "rendering-showcase",
+  "window": { "width": 1000, "height": 900 },
+  "prefs": {
+    "reader.md.folders": ["<fixtures>/showcase"],
+    "reader.md.theme": "dark",
+    "reader.md.contentWidth": "narrow",
+    "reader.md.showSidebar": false,
+    "reader.md.showTOC": false
+  },
+  "shots": [
+    {
+      "id": "01-rendering",
+      "open": "showcase/pipeline.md",
+      "caption": "A vertical Mermaid diagram and a KaTeX equation, with the sidebar hidden"
+    }
+  ]
+}
