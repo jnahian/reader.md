@@ -6,6 +6,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.20.1] - 2026-09-07
+
+### Changed
+
+- **The in-app FAQ now answers everything the website's does.** **Help → FAQ**
+  gained an **About Reader.md** section — what it costs, what it runs on,
+  whether it phones home, whether it's sandboxed, and why macOS gates a freshly
+  downloaded copy — along with answers on opening files from the terminal,
+  where your highlights are stored, where remote credentials go (nowhere), and
+  why `brew upgrade` won't fight the in-app updater. These had been landing on
+  the website's FAQ only.
+
 ## [1.20.0] - 2026-09-06
 
 ### Added
