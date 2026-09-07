@@ -22,9 +22,21 @@ export interface Release {
 
 export const releasesLog: Release[] = [
   {
+    version: "1.20.1",
+    date: "Sep 7, 2026",
+    badge: "LATEST",
+    groups: [
+      {
+        tag: "IMPROVED",
+        items: [
+          "<strong>The in-app FAQ now answers everything this one does</strong> \u2014 <strong>Help \u2192 FAQ</strong> gained an <strong>About Reader.md</strong> section (what it costs, what it runs on, whether it phones home, whether it's sandboxed, and why macOS gates a freshly downloaded copy) along with answers on opening files from the terminal, where your highlights are stored, where remote credentials go (nowhere), and why <code>brew upgrade</code> won't fight the in-app updater. These had been landing on the website's FAQ only.",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.20.0",
     date: "Sep 6, 2026",
-    badge: "LATEST",
     groups: [
       {
         tag: "ADDED",
