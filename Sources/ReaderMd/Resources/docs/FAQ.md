@@ -3,11 +3,48 @@
 A native macOS markdown viewer. Everything renders locally; the only network
 access is the auto-update check.
 
+## About Reader.md
+
+**Is it really free?**
+Yes. MIT-licensed, no account, no trial, no paid tier. The source on GitHub is
+the whole thing.
+
+**What does it need?**
+macOS 13 or later, on an Apple-silicon Mac. The binary is arm64-only, so Intel
+Macs aren't supported — and neither are their updates.
+
+**Do I need macOS 26?**
+No. Liquid Glass chrome appears on macOS 26 (Tahoe); 13 through 15 fall back to
+`NSVisualEffectView` automatically, with nothing to configure.
+
+**Does it phone home?**
+No. Markdown, diagrams, math, and syntax highlighting all render from bundled
+assets, so a document renders the same with the network off. The only outbound
+request is Sparkle's update check — the appcast, and the DMG if you accept an
+update.
+
+**Is it sandboxed?**
+No. Folder access is direct paths, which is why you can add any folder — and
+any remote — without re-granting permission every launch. Nothing is written
+into your markdown; annotations and remote caches live in
+`~/Library/Application Support/Reader.md/`.
+
+**Why does macOS say it can't check a new copy for malicious software?**
+The app is ad-hoc signed but not notarized, so a fresh copy is gated on first
+launch. Clear it once: right-click the app → **Open**, then **Open** in the
+dialog — or run
+`xattr -dr com.apple.quarantine "/Applications/Reader.md.app"`.
+
+**Why does Homebrew need a `brew trust` step?**
+The repository isn't named `homebrew-*`, so the tap is added by its explicit
+URL, and the cask has to be trusted once before `brew install --cask reader-md`
+will run it.
+
 ## Opening files
 
 **How do I open a folder?**
-Drag a folder onto the window, or **File → Add Folder…**. Reader.md scans it
-recursively for markdown files (skipping `node_modules`, `.git`, and friends)
+Drag a folder onto the window, or **File → Add Folder…** (⇧⌘A). Reader.md scans
+it recursively for markdown files (skipping `node_modules`, `.git`, and friends)
 and watches it for changes — edits re-render live. In a git repository it also
 skips anything your `.gitignore` covers, so vendored and generated markdown
 stays out of the sidebar.
@@ -19,6 +56,11 @@ open without adding a folder to the sidebar.
 **Can I set Reader.md as my default markdown app?**
 Yes — in Finder, right-click a `.md` file → **Get Info** → **Open with** →
 choose Reader.md → **Change All…**.
+
+**Can I open files from the terminal?**
+Yes. **File → Install `reader` Command Line Tool…** puts `reader` on your PATH
+(Homebrew does it for you), and then `reader .` opens the folder you're in,
+`reader README.md` a single file, and `git diff | reader -` piped markdown.
 
 **Can I edit files in Reader.md?**
 No — Reader.md is a reader, and it hands editing to your editor. Choose one in
@@ -51,7 +93,8 @@ to it.
 
 **Does it support diagrams and math?**
 Yes. Mermaid fenced code blocks render as diagrams, and LaTeX (`$…$` /
-`$$…$$`) renders via KaTeX. Syntax highlighting is built in.
+`$$…$$`) renders via KaTeX. Syntax highlighting is built in. All three are
+bundled, so none of it touches the network.
 
 **Can I change the theme or text size?**
 Light/dark follows the toggle in the topbar, which also picks a reading theme —
@@ -68,9 +111,12 @@ their own accents.
 
 **How do I highlight or comment on text?**
 Select text and use the markup popover to highlight or attach a note. Comment
-threads can be resolved. Annotations are stored locally in
-`~/Library/Application Support/Reader.md/` keyed by file — they survive edits
-to the file, but are lost if the file is renamed or moved.
+threads can be resolved.
+
+**Where are my highlights stored?**
+Locally, in `~/Library/Application Support/Reader.md/`, keyed by file path — the
+markdown itself is never written to. They survive edits to the file, but are
+lost if the file is renamed or moved.
 
 ## Exporting & searching
 
@@ -115,6 +161,11 @@ clones it read-only into a local cache and fast-forwards it on launch, using
 your existing git credentials. It never prompts, so a repository you can't
 authenticate to fails with git's own error instead of hanging.
 
+**Where do my credentials go?**
+Nowhere. Remote sync shells out to `rsync` and `git`, which use your own
+`~/.ssh` config and git credential helper. Reader.md stores no password, key, or
+token of its own.
+
 ## Updates
 
 **How do I update?**
@@ -125,6 +176,10 @@ Reader.md checks for updates automatically. You can also trigger it from
 **Remind Later** only defers an offer, so the next check — automatic or from
 **Check for Updates…** — brings it back. **Skip This Version** is the one that
 passes on a release for good; a later release is still offered.
+
+**Does `brew upgrade` fight with the in-app updater?**
+No. The cask sets `auto_updates true`, so Homebrew leaves an already-updated
+build alone rather than replacing it with the cask's version.
 
 ## Something's wrong
 
