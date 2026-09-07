@@ -2,8 +2,7 @@ cask "reader-md" do
   version "1.20.0"
   sha256 "160e7c14876e8d9d24290f3d83ba3bdc383b6adc912b5e9b6ece8d29f017028c"
 
-  url "https://github.com/jnahian/reader.md/releases/download/v#{version}/Reader.md.dmg",
-      verified: "github.com/jnahian/reader.md/"
+  url "https://github.com/jnahian/reader.md/releases/download/v#{version}/Reader.md.dmg"
   name "Reader.md"
   desc "Native Markdown viewer for macOS"
   homepage "https://github.com/jnahian/reader.md"
