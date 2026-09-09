@@ -88,7 +88,14 @@ shipped belongs in the app's `CHANGELOG.md` only.
   blocks over the custom properties in `src/styles/global.css`. Don't reach for
   Tailwind, a component library, or a client-side framework — there is no
   client-side JS framework here on purpose, and shared patterns (`.card`,
-  `.pill`, `.btn`, `.tok`) already exist in `global.css`.
+  `.frost`, `.pill`, `.btn`, `.tok`) already exist in `global.css` — `.frost` is
+  the blur every card carries, so reach for it rather than hand-rolling another
+  `backdrop-filter`.
+- **Write `-webkit-backdrop-filter` before the unprefixed property**, here and in
+  `Nav.astro` / `DocsNav.astro`. esbuild's minifier treats the pair as one
+  property and keeps the one written last, so standard-first ships only the
+  prefix — which Chrome has removed and Firefox never had, silently killing the
+  blur outside Safari. `global.css` carries the long version of this note.
 - **Colours, radii, and spacing come from tokens**, so a change lands in one
   place. A hard-coded hex in a component is a mistake.
 - **Motion is optional.** Scroll-reveal, parallax, and typing effects must stay

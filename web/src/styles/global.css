@@ -147,19 +147,22 @@ pre {
   border: 1px solid var(--border);
 }
 
-/* Frost every card-like surface so text stays readable over the dot grid. */
-.card,
-.fcard,
-.entry__card,
-.arch__card,
-.req__card,
-.showcase__panel,
-.cta__code,
-.scut__row,
+/* Frosts a surface so text stays readable over the dot grid. Cards carry
+   .frost as a class in the markup; .btn, .pill and .cta__code always frost, so
+   they take it here rather than repeating the class at every call site.
+
+   The -webkit- line comes FIRST here and at every other backdrop-filter in this
+   site, and the order is load-bearing: esbuild's CSS minifier treats the two as
+   one property and keeps whichever is written last. Standard-first therefore
+   ships only the prefix, which Chrome has since removed and Firefox never had —
+   the blur silently dies everywhere but Safari. Prefix-first keeps the standard
+   property, and Safari <18 loses the blur rather than everyone else. */
+.frost,
 .btn,
-.pill {
-  backdrop-filter: blur(2px);
+.pill,
+.cta__code {
   -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
 }
 
 /* Pills / badges */
@@ -548,8 +551,8 @@ pre {
   border-radius: 18px;
   border: 1px solid var(--border);
   background: var(--surface);
-  backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
   overflow: hidden;
 }
 
@@ -630,8 +633,8 @@ pre {
   border-radius: 12px;
   background: var(--surface-2);
   border: 1px solid var(--border);
-  backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
 }
 
 .filter:focus-within {

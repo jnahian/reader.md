@@ -35,7 +35,7 @@ const pages = (related ?? []).map((id) => {
     <h2 class="related__title">Where to go next</h2>
     <div class="related__grid">
       {pages.map((p) => (
-        <a href={`/docs/${p.id}`} class="related__card card">
+        <a href={`/docs/${p.id}`} class="related__card card frost">
           <span class="related__name">{p.data.title}</span>
           <span class="related__summary">{p.data.summary}</span>
         </a>
