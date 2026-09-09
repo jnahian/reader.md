@@ -118,8 +118,10 @@ enum Settings {
         defaults.set(value, forKey: sidebarWidthKey)
     }
 
-    // Focus mode. All four default on: the mode's advertised behaviour is the
-    // full takeover, and each switch only subtracts from it.
+    // Focus mode. Fullscreen, the narrow canvas and the hidden toolbar default
+    // on: that takeover is the mode's advertised behaviour, and each switch only
+    // subtracts from it. Dimming is the exception — it rewrites the page itself
+    // rather than the chrome around it, so it is opt-in.
     static func loadFocusFullscreen() -> Bool {
         defaults.object(forKey: focusFullscreenKey) as? Bool ?? true
     }
@@ -128,7 +130,7 @@ enum Settings {
     }
 
     static func loadFocusDimSections() -> Bool {
-        defaults.object(forKey: focusDimSectionsKey) as? Bool ?? true
+        defaults.object(forKey: focusDimSectionsKey) as? Bool ?? false
     }
     static func saveFocusDimSections(_ value: Bool) {
         defaults.set(value, forKey: focusDimSectionsKey)
@@ -148,13 +150,14 @@ enum Settings {
         defaults.set(value, forKey: focusHideToolbarKey)
     }
 
-    // Both default to what focus mode shipped with, so an existing install sees
-    // no change until it touches a setting. `object(forKey:) as?` rather than
+    // The region defaults to `.h3`: every heading is too fine a grain for most
+    // documents, where an `h4` is a step inside the section being read rather
+    // than a section of its own. `object(forKey:) as?` rather than
     // `integer`/`double`: those return 0 for an absent key, and 0 is neither a
     // valid heading level nor a legible opacity.
     static func loadFocusRegionDepth() -> FocusRegionDepth {
         guard let raw = defaults.object(forKey: focusRegionDepthKey) as? Int,
-              let depth = FocusRegionDepth(rawValue: raw) else { return .any }
+              let depth = FocusRegionDepth(rawValue: raw) else { return .h3 }
         return depth
     }
     static func saveFocusRegionDepth(_ value: FocusRegionDepth) {

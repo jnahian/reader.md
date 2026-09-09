@@ -60,14 +60,17 @@ same three ⇧⌘\\ cycles through. Both are described in more detail on
 
 Focus mode (⌥⌘F) is four things at once, and each is a switch here: **Enter
 fullscreen**, **Dim other sections**, **Narrow the canvas**, and **Hide the
-toolbar**. All four are on by default. Turning all four off leaves ⌥⌘F with
-nothing to do, and the window says so.
+toolbar**. Three of them are on by default; **Dim other sections** is off, since
+it changes the page itself rather than the chrome around it — switch it on if
+you want it. Turning all four off leaves ⌥⌘F with nothing to do, and the window
+says so.
 
 Two settings shape the dimming itself. **Region ends at** decides how much of
-the document counts as the section you're reading: *Any heading* is the default
-and lights one heading's worth at a time, while *H2 or above* keeps a whole `h2`
-section lit including its subheadings. **Dimming** sets how far everything else
-fades, from 40% to 88%.
+the document counts as the section you're reading: *H3 or above* is the default,
+so an `h4` step inside a section doesn't split it, while *H2 or above* keeps a
+whole `h2` section lit including its subheadings and *Any heading* lights one
+heading's worth at a time. **Dimming** sets how far everything else fades, from
+40% to 88%.
 
 Both only matter with **Dim other sections** on, and grey out without it. While
 this window is open the document behind it previews them, so dragging the slider

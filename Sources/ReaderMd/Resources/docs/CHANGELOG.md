@@ -6,6 +6,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Focus mode no longer dims other sections out of the box.** ⌥⌘F still hides
+  the chrome, goes fullscreen and narrows the canvas; dimming — the one piece
+  that changes the page itself rather than the chrome around it — is now
+  opt-in, under **Dim other sections** in Settings → Focus Mode.
+- **A dim region now ends at H3 rather than at every heading.** With dimming
+  on, an `h4` inside the section you're reading no longer splits it. *Any
+  heading* is still there in **Region ends at**, alongside H2 and H1.
+
 ## [1.20.1] - 2026-09-07
 
 ### Changed

@@ -56,7 +56,7 @@
     {
       "id": "06-focus-mode",
       "open": "field-notes/guides/setup.md",
-      "prefs": { "reader.md.focus.fullscreen": false },
+      "prefs": { "reader.md.focus.fullscreen": false, "reader.md.focus.dimSections": true },
       "actions": [
         { "key": "f", "mods": ["command", "option"] },
         { "waitMs": 900 }
