@@ -22,9 +22,22 @@ export interface Release {
 
 export const releasesLog: Release[] = [
   {
+    version: "1.20.2",
+    date: "Sep 9, 2026",
+    badge: "LATEST",
+    groups: [
+      {
+        tag: "IMPROVED",
+        items: [
+          "<strong>Focus mode no longer dims other sections out of the box</strong> \u2014 \u2325\u2318F still hides the chrome, goes fullscreen and narrows the canvas; dimming \u2014 the one piece that changes the page itself rather than the chrome around it \u2014 is now opt-in, under <strong>Dim other sections</strong> in Settings \u2192 Focus Mode.",
+          "<strong>A dim region now ends at H3 rather than at every heading</strong> \u2014 with dimming on, an <code>h4</code> inside the section you're reading no longer splits it. <em>Any heading</em> is still there in <strong>Region ends at</strong>, alongside H2 and H1 \u2014 and the setting is now a floor rather than a hard rule, so a document with no headings that coarse falls back to the next level down instead of dimming nothing.",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.20.1",
     date: "Sep 7, 2026",
-    badge: "LATEST",
     groups: [
       {
         tag: "IMPROVED",
