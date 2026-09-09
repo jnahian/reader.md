@@ -75,7 +75,7 @@ const steps = [
       </div>
     </header>
 
-    <section class="start card" data-hidewhenfiltering>
+    <section class="start card frost" data-hidewhenfiltering>
       <div class="start__head">
         <div>
           <div class="pill hub__eyebrow">New to Reader.md?</div>
@@ -85,7 +85,7 @@ const steps = [
       </div>
       <ol class="start__steps">
         {steps.map((s, i) => (
-          <li class="step">
+          <li class="step frost">
             <div class="step__n">{i + 1}</div>
             <div class="step__title">{s.title}</div>
             <p class="step__body" set:html={s.body} />
@@ -103,7 +103,7 @@ const steps = [
         {pages.map((p) => (
           <a
             href={`/docs/${p.id}`}
-            class="dcard card"
+            class="dcard card frost"
             data-card
             data-search={`${p.data.title} ${p.data.summary} ${p.data.category}`.toLowerCase()}
           >

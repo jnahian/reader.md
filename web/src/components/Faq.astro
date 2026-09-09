@@ -13,7 +13,7 @@ import { faqsHighlight } from "../data/content";
       <h2 class="faq__title">Before you download.</h2>
     </div>
 
-    <div class="faq__list reveal" style="--reveal-delay:.1s" data-faq>
+    <div class="faq__list frost reveal" style="--reveal-delay:.1s" data-faq>
       {
         faqsHighlight.map((f) => (
           <details class="faq__item" name="faq">
@@ -55,8 +55,6 @@ import { faqsHighlight } from "../data/content";
     border-radius: 18px;
     background: var(--surface);
     border: 1px solid var(--border);
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
     overflow: hidden;
   }
   .faq__item + .faq__item {

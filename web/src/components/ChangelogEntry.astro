@@ -16,7 +16,7 @@ const dot = featured ? "var(--green)" : dots[index] ?? "rgba(255,255,255,0.4)";
   style={`--dot:${dot};--reveal-delay:${Math.min(index, 4) * 0.05}s`}
 >
   <span class="entry__dot"></span>
-  <div class="entry__card">
+  <div class="entry__card frost">
     <div class="entry__head">
       <h2 class="entry__version">{release.version}</h2>
       {release.badge && <span class:list={["entry__tag", `entry__tag--${release.badge.toLowerCase()}`]}>{release.badge}</span>}

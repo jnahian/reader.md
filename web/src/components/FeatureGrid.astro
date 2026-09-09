@@ -11,7 +11,7 @@ import { highlights } from "../data/content";
     {
       highlights.map((c, i) => (
         <article
-          class:list={["fcard", "reveal", { "fcard--tinted": c.hue !== null }]}
+          class:list={["fcard", "frost", "reveal", { "fcard--tinted": c.hue !== null }]}
           style={`--hue:${c.hue ?? 0};--reveal-delay:${(i % 3) * 0.08}s`}
         >
           <div class="fcard__icon">{c.glyph}</div>

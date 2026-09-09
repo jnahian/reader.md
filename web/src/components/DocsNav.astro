@@ -211,8 +211,8 @@ const currentTitle = pages.find((p) => p.id === current)?.data.title ?? "Docs";
     /* Nearly opaque, not glass: it parks over screenshots and code blocks, and
        a light backdrop showed straight through a lower alpha. */
     background: rgba(10, 11, 14, 0.95);
-    backdrop-filter: blur(18px) saturate(160%);
     -webkit-backdrop-filter: blur(18px) saturate(160%);
+    backdrop-filter: blur(18px) saturate(160%);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
     color: var(--muted);
     font-family: inherit;
