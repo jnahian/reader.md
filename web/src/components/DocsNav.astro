@@ -32,7 +32,7 @@ const currentTitle = pages.find((p) => p.id === current)?.data.title ?? "Docs";
 {/* Below 900px the rail is a stacked block, and every page opened with a
     fourteen-page index plus this page's own sections above the first
     paragraph. There it collapses into one sticky control instead. */}
-<aside class="docsnav" data-docsnav>
+<aside class="docsnav card frost" data-docsnav>
   <button
     type="button"
     class="docsnav__toggle"
@@ -135,12 +135,17 @@ const currentTitle = pages.find((p) => p.id === current)?.data.title ?? "Docs";
 </script>
 
 <style>
+  /* The rail is a card: .card gives it the radius, surface and border, .frost
+     the blur. Only the padding is its own. The card sits on .docsnav rather
+     than on the panel inside it so the frame stays put while a long index
+     scrolls within it. */
   .docsnav {
     position: sticky;
     top: 92px;
     align-self: start;
     max-height: calc(100vh - 120px);
     overflow-y: auto;
+    padding: 14px;
   }
 
   .docsnav__panel {
@@ -256,10 +261,19 @@ const currentTitle = pages.find((p) => p.id === current)?.data.title ?? "Docs";
     /* Without the script this stays the full list stacked above the article —
        long, but every link works. Everything below is the collapsed version,
        so it only applies once the script has run. */
+    /* Undoes the card: down here the rail is one control (or, without the
+       script, a plain stacked list), and .docsnav__toggle carries its own
+       surface. The blur goes too — over a transparent box it would otherwise
+       smear a band of the article behind the toggle. */
     .docsnav {
       position: static;
       max-height: none;
       margin-bottom: 28px;
+      padding: 0;
+      background: none;
+      border: none;
+      border-radius: 0;
+      backdrop-filter: none;
     }
 
     /* Sticky needs a block container: as a grid item the rail could only
