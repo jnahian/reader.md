@@ -80,7 +80,7 @@ narrows. Switch on **Dim other sections** in Settings and every section but
 the one you're reading dims too. The toolbar's focus button and `>Focus Mode`
 in ⌘P do the same thing.
 
-![Focus mode — chrome gone, everything but the current section dimmed](../assets/screenshots/reading/06-focus-mode.png)
+![Focus mode with Dim other sections switched on — chrome gone, everything but the current section dimmed](../assets/screenshots/reading/06-focus-mode.png)
 
 **⌥⌘F again, or ⎋, brings it all back** — and back means back: the sidebar,
 outline, and column width return to what they were, not to a default. ⎋
@@ -96,8 +96,9 @@ than the scroll position, so it holds still while you read a section and fades
 across when you reach the next heading. **Region ends at** in Settings decides
 how wide "a section" is: headings down to H3 by default, or H2, H1, or every
 heading — at *H2 or above* an `h2` stays lit across all of its subheadings, and
-crossing one of them changes nothing. A document whose headings are all deeper
-than that setting has no regions to tell apart, so nothing dims. **Dimming**
+crossing one of them changes nothing. The setting is a floor rather than a hard
+rule: a document with no headings that coarse — an `h1` title over `h4` steps,
+say — falls back to the next level down rather than dimming nothing. **Dimming**
 sets how far the rest fades, from 40% to 88%. Dimming steps aside entirely
 while you're searching, in diff mode, and in a document with fewer than two
 headings.
@@ -110,10 +111,9 @@ Settings (⌘,) has a switch for each of the four pieces — fullscreen, dimming
 narrow canvas, hidden toolbar — so you can keep only the parts you want; all
 are on out of the box except dimming. Hiding the toolbar behaves the same
 whether or not fullscreen is on, and the toolbar is never far away: nudge the
-pointer to the top edge of
-the screen and it slides back down for as long as you're up there — long enough
-to reach a control and click it. ⌘F brings it down too, and keeps it down while
-you search. Neither costs you focus mode.
+pointer to the top edge of the screen and it slides back down for as long as
+you're up there — long enough to reach a control and click it. ⌘F brings it
+down too, and keeps it down while you search. Neither costs you focus mode.
 
 Focus mode never persists. However you leave the app, it starts up outside it.
 

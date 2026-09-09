@@ -11,10 +11,10 @@ final class FocusModeTests: XCTestCase {
     private var savedTOC = false
     private var savedWidth = ContentWidth.wide
     private var savedFocusFullscreen = true
-    private var savedFocusDimSections = true
+    private var savedFocusDimSections = false
     private var savedFocusNarrowCanvas = true
     private var savedFocusHideToolbar = true
-    private var savedFocusRegionDepth = FocusRegionDepth.any
+    private var savedFocusRegionDepth = FocusRegionDepth.h3
     private var savedFocusDimOpacity = 0.38
 
     override func setUp() async throws {
@@ -29,14 +29,15 @@ final class FocusModeTests: XCTestCase {
         savedFocusDimOpacity = Settings.loadFocusDimOpacity()
 
         // Tests below flip individual focus switches, and those persist to
-        // UserDefaults like any other setter. Pin an explicit baseline — every
-        // switch on, so the dimming tests have something to assert — instead of
-        // whatever an earlier test in this suite left behind.
+        // UserDefaults like any other setter. Pin the shipped defaults so each
+        // test starts from a known baseline instead of whatever an earlier test
+        // left behind — except dimming, which ships off and is pinned on here so
+        // the dimming tests have something to assert.
         Settings.saveFocusFullscreen(true)
         Settings.saveFocusDimSections(true)
         Settings.saveFocusNarrowCanvas(true)
         Settings.saveFocusHideToolbar(true)
-        Settings.saveFocusRegionDepth(.any)
+        Settings.saveFocusRegionDepth(.h3)
         Settings.saveFocusDimOpacity(0.38)
     }
 

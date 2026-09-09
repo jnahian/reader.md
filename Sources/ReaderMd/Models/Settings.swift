@@ -152,9 +152,12 @@ enum Settings {
 
     // The region defaults to `.h3`: every heading is too fine a grain for most
     // documents, where an `h4` is a step inside the section being read rather
-    // than a section of its own. `object(forKey:) as?` rather than
-    // `integer`/`double`: those return 0 for an absent key, and 0 is neither a
-    // valid heading level nor a legible opacity.
+    // than a section of its own. Only an ABSENT key takes that default, and the
+    // focus keys move independently — an install that switched dimming on but
+    // never opened the picker keeps its toggle and does widen to `.h3`.
+    // `object(forKey:) as?` rather than `integer`/`double`: those return 0 for
+    // an absent key, and 0 is neither a valid heading level nor a legible
+    // opacity.
     static func loadFocusRegionDepth() -> FocusRegionDepth {
         guard let raw = defaults.object(forKey: focusRegionDepthKey) as? Int,
               let depth = FocusRegionDepth(rawValue: raw) else { return .h3 }

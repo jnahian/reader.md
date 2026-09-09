@@ -649,20 +649,23 @@ function postTOC() {
 }
 
 let focusDim = false;
-// The deepest heading level that ends a region; 4 = every heading, the default.
-let focusDepth = 4;
+// The deepest heading level that ends a region; 3 = H3 or above. Mirrors
+// `Settings.loadFocusRegionDepth`'s default — Swift pushes the real value on
+// `ready`, so this only has to agree with it.
+let focusDepth = 3;
 
 // Classes the top-level blocks OUTSIDE the active heading's region. Deliberately
 // no <section> wrappers: marked emits a flat h2/p/p/h2 sibling list, and mark
 // anchoring, find, footnotes and diff hunks all read that flat structure.
 //
-// The region ends at the next heading at or above `focusDepth` — every heading
-// by default. Depth is an ABSOLUTE level, fixed by the setting, never one
-// relative to the active heading. The relative rule ("the next heading of the
-// same or higher level") would make a 20px scroll across a nested heading swing
-// the lit region between a paragraph and its whole parent section; an absolute
-// level changes the region only when a boundary heading is crossed, and a
-// heading deeper than the setting is not a boundary at all.
+// The region ends at the next heading at or above `focusDepth` — H3 or above by
+// default, and a floor rather than a fixed rule (see below). Depth is an
+// ABSOLUTE level, fixed by the setting, never one relative to the active
+// heading. The relative rule ("the next heading of the same or higher level")
+// would make a 20px scroll across a nested heading swing the lit region between
+// a paragraph and its whole parent section; an absolute level changes the region
+// only when a boundary heading is crossed, and a heading deeper than the depth
+// in force is not a boundary at all.
 function applyFocusDim() {
   const blocks = [...contentEl.children];
   for (const b of blocks) b.classList.remove('focus-dim');
@@ -672,13 +675,16 @@ function applyFocusDim() {
   // side-by-side).
   if (!focusDim || diffMode || findQuery) return;
 
-  const headings = [];
-  blocks.forEach((b, i) => {
-    if (/^H[1-4]$/.test(b.tagName) && +b.tagName[1] <= focusDepth) headings.push(i);
-  });
-  // One region means dimming has nothing to say. Also the answer when every
-  // heading in the document is deeper than the chosen depth: no boundaries, so
-  // no regions to tell apart.
+  // `focusDepth` is a floor, not a fixed rule: a document with fewer than two
+  // headings that coarse (an h1 title over h4 steps, say) would have no
+  // boundaries at all, so widen a level at a time until it has two.
+  let headings = [];
+  for (let depth = focusDepth; depth <= 4 && headings.length < 2; depth++) {
+    headings = blocks.flatMap((b, i) =>
+      /^H[1-4]$/.test(b.tagName) && +b.tagName[1] <= depth ? [i] : []);
+  }
+  // Still one region at every depth: a document with fewer than two headings,
+  // where dimming has nothing to say.
   if (headings.length < 2) return;
 
   let active = headings[0];
