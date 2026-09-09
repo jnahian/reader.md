@@ -43,7 +43,7 @@ See [Reading a document](features/reading.md).
 - **Text size** (⌘+ / ⌘− / ⌘0) and **canvas width** (⇧⌘\\, narrow / wide / full) — both persisted
 - **Reading feedback** — a progress bar under the toolbar, with the word count and reading time under the file name
 - **Resume where you stopped** — a long document reopens at the place you left it
-- **Focus mode** (⌥⌘F) — one toggle hides the chrome, goes fullscreen, and dims everything outside the section you're reading
+- **Focus mode** (⌥⌘F) — one toggle hides the chrome, goes fullscreen, and narrows the canvas; an optional setting also dims everything outside the section you're reading
 
 ## How a document is rendered
 
@@ -186,7 +186,7 @@ reaches only text fields.
 | ⌘0 | Actual Size |
 | ⇧⌘\\ | Cycle Canvas Width (Narrow / Wide / Full) |
 | ⇧⌘D | Toggle Diff (in a git repository) |
-| ⌥⌘F | Focus Mode (hides the chrome, dims other sections) |
+| ⌥⌘F | Focus Mode (hides the chrome, goes fullscreen, narrows the canvas) |
 
 ### Settings and help
 

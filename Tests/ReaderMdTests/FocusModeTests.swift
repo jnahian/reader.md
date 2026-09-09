@@ -29,8 +29,8 @@ final class FocusModeTests: XCTestCase {
         savedFocusDimOpacity = Settings.loadFocusDimOpacity()
 
         // Tests below flip individual focus switches, and those persist to
-        // UserDefaults like any other setter. Reset to the shipped defaults
-        // (all four on) so each test starts from a known baseline instead of
+        // UserDefaults like any other setter. Pin an explicit baseline — every
+        // switch on, so the dimming tests have something to assert — instead of
         // whatever an earlier test in this suite left behind.
         Settings.saveFocusFullscreen(true)
         Settings.saveFocusDimSections(true)
@@ -133,14 +133,28 @@ final class FocusModeTests: XCTestCase {
 
     // MARK: - Configurable dimming
 
-    /// Both new preferences default to today's behaviour, so an existing install
-    /// sees no change until it touches a setting.
-    func testDimmingPreferencesDefaultToTodaysBehaviour() {
+    /// Dimming is opt-in, and when it is switched on the region is a section
+    /// down to `h3` rather than every heading.
+    func testDimmingDefaultsToOffAtH3() {
+        Settings.defaults.removeObject(forKey: "reader.md.focus.dimSections")
         Settings.defaults.removeObject(forKey: "reader.md.focus.regionDepth")
         Settings.defaults.removeObject(forKey: "reader.md.focus.dimOpacity")
 
-        XCTAssertEqual(Settings.loadFocusRegionDepth(), .any)
+        XCTAssertFalse(Settings.loadFocusDimSections())
+        XCTAssertEqual(Settings.loadFocusRegionDepth(), .h3)
         XCTAssertEqual(Settings.loadFocusDimOpacity(), 0.38, accuracy: 0.0001)
+    }
+
+    /// The other three switches are the mode's advertised takeover, so they stay
+    /// on out of the box.
+    func testTheOtherThreeSwitchesDefaultOn() {
+        Settings.defaults.removeObject(forKey: "reader.md.focus.fullscreen")
+        Settings.defaults.removeObject(forKey: "reader.md.focus.narrowCanvas")
+        Settings.defaults.removeObject(forKey: "reader.md.focus.hideToolbar")
+
+        XCTAssertTrue(Settings.loadFocusFullscreen())
+        XCTAssertTrue(Settings.loadFocusNarrowCanvas())
+        XCTAssertTrue(Settings.loadFocusHideToolbar())
     }
 
     /// An absent key must not read as 0: `defaults.integer` would make depth 0
@@ -180,10 +194,10 @@ final class FocusModeTests: XCTestCase {
 
     /// A depth stored by a future build (or corrupted) must not become a depth of
     /// 0, which would produce an empty boundary list and silently kill dimming.
-    func testUnknownStoredDepthFallsBackToAny() {
+    func testUnknownStoredDepthFallsBackToTheDefault() {
         Settings.defaults.set(99, forKey: "reader.md.focus.regionDepth")
 
-        XCTAssertEqual(Settings.loadFocusRegionDepth(), .any)
+        XCTAssertEqual(Settings.loadFocusRegionDepth(), .h3)
     }
 
     /// The preview widens what counts as "dimming is showing" — never what counts

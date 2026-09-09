@@ -75,9 +75,10 @@ tables and long code blocks.
 ## Focus mode
 
 **⌥⌘F** takes everything away except the page. The sidebar and outline
-collapse, the toolbar goes, the window moves to fullscreen, the canvas
-narrows, and every section but the one you're reading dims. The toolbar's
-focus button and `>Focus Mode` in ⌘P do the same thing.
+collapse, the toolbar goes, the window moves to fullscreen, and the canvas
+narrows. Switch on **Dim other sections** in Settings and every section but
+the one you're reading dims too. The toolbar's focus button and `>Focus Mode`
+in ⌘P do the same thing.
 
 ![Focus mode — chrome gone, everything but the current section dimmed](../assets/screenshots/reading/06-focus-mode.png)
 
@@ -90,24 +91,26 @@ doesn't outlive the fullscreen it's running in. (If the window was
 already in fullscreen before ⌥⌘F, exiting focus mode leaves it there rather
 than dropping out.)
 
-The dimming follows the outline rather than the scroll position, so it holds
-still while you read a section and fades across when you reach the next
-heading. **Region ends at** in Settings decides how wide "a section" is: every
-heading by default, or only headings down to H3, H2 or H1 — at *H2 or above* an
-`h2` stays lit across all of its subheadings, and crossing one of them changes
-nothing. A document whose headings are all deeper than that setting has no
-regions to tell apart, so nothing dims. **Dimming** sets how far the rest fades,
-from 40% to 88%. Dimming steps aside entirely while you're searching, in diff
-mode, and in a document with fewer than two headings.
+Dimming is off until you turn it on, and once on it follows the outline rather
+than the scroll position, so it holds still while you read a section and fades
+across when you reach the next heading. **Region ends at** in Settings decides
+how wide "a section" is: headings down to H3 by default, or H2, H1, or every
+heading — at *H2 or above* an `h2` stays lit across all of its subheadings, and
+crossing one of them changes nothing. A document whose headings are all deeper
+than that setting has no regions to tell apart, so nothing dims. **Dimming**
+sets how far the rest fades, from 40% to 88%. Dimming steps aside entirely
+while you're searching, in diff mode, and in a document with fewer than two
+headings.
 
 ⌘F still works: rather than dropping you out of focus mode, it slides the
 toolbar back down with the find field ready, and the toolbar stays down until
 you leave focus mode.
 
 Settings (⌘,) has a switch for each of the four pieces — fullscreen, dimming,
-narrow canvas, hidden toolbar — all on by default, so you can keep only the
-parts you want. Hiding the toolbar behaves the same whether or not fullscreen
-is on, and the toolbar is never far away: nudge the pointer to the top edge of
+narrow canvas, hidden toolbar — so you can keep only the parts you want; all
+are on out of the box except dimming. Hiding the toolbar behaves the same
+whether or not fullscreen is on, and the toolbar is never far away: nudge the
+pointer to the top edge of
 the screen and it slides back down for as long as you're up there — long enough
 to reach a control and click it. ⌘F brings it down too, and keeps it down while
 you search. Neither costs you focus mode.
