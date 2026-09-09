@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.20.2] - 2026-09-09
+
 ### Changed
 
 - **Focus mode no longer dims other sections out of the box.** ⌥⌘F still hides
