@@ -5,6 +5,8 @@ import UniformTypeIdentifiers
 struct ContentView: View {
     @EnvironmentObject var state: AppState
     @State private var dropTargeted = false
+    @State private var topInset: CGFloat = 0
+    @State private var documentWindow: NSWindow?
 
     var body: some View {
         NavigationSplitView(columnVisibility: sidebarVisibility) {
@@ -22,6 +24,7 @@ struct ContentView: View {
                 detailRow
             }
             .readerToolbar()
+            .hidingToolbarBackground()
         }
         .navigationSplitViewStyle(.balanced)
         // Overlays sit on the split view, not in the detail column, so they
@@ -37,7 +40,22 @@ struct ContentView: View {
             }
         }
         .background(findStepShortcuts)
-        .background(WindowAccessor { state.setDocumentWindow($0) })
+        .background(WindowAccessor {
+            state.setDocumentWindow($0)
+            extendContentUnderTitlebar($0)
+            documentWindow = $0
+            measureTitlebar()
+        })
+        // The titlebar's height is what the pane draws under, and it changes
+        // when focus mode hides the toolbar or takes the window fullscreen.
+        .onChange(of: state.focusToolbarHidden) { _ in measureTitlebar() }
+        .onChange(of: state.focusMode) { _ in measureTitlebar() }
+        // Entering and leaving fullscreen is animated, so the state change above
+        // measures mid-transition; these fire once it has settled.
+        .onReceive(NotificationCenter.default.publisher(
+            for: NSWindow.didEnterFullScreenNotification)) { _ in measureTitlebar() }
+        .onReceive(NotificationCenter.default.publisher(
+            for: NSWindow.didExitFullScreenNotification)) { _ in measureTitlebar() }
         .animation(.easeInOut(duration: 0.15), value: state.showTOC)
         .animation(.easeInOut(duration: 0.12), value: state.showQuickOpen)
         .animation(.easeInOut(duration: 0.12), value: showDropOverlay)
@@ -66,6 +84,44 @@ struct ContentView: View {
     }
 
 
+    /// Lets the window's content view cover the titlebar, so the content pane
+    /// can draw behind the toolbar and the toolbar's material has something to
+    /// blur — Finder's arrangement. Without this the split view lays the detail
+    /// column out below the titlebar and SwiftUI reports no top safe area at
+    /// all, so `.ignoresSafeArea` has nothing to ignore.
+    /// The pane covers the whole window now, so the page has to be told how much
+    /// of its top the toolbar sits over. AppKit is the only source for it: under
+    /// a full-height split item SwiftUI reports no top safe area at all.
+    /// Deferred a tick because the toolbar has not resized yet when the state
+    /// that hides it changes.
+    private func measureTitlebar() {
+        DispatchQueue.main.async {
+            guard let window = documentWindow, let content = window.contentView else { return }
+            topInset = max(0, content.frame.height - window.contentLayoutRect.height)
+        }
+    }
+
+    private func extendContentUnderTitlebar(_ window: NSWindow) {
+        window.styleMask.insert(.fullSizeContentView)
+        window.titlebarAppearsTransparent = true
+        window.titlebarSeparatorStyle = .none
+        // `allowsFullHeightLayout` is the split view item's own opt-in, and the
+        // only way to it: NavigationSplitView builds the controller and doesn't
+        // surface the flag. AppKit already grants it to the sidebar, which is
+        // why the traffic lights sit on it; the detail item has to ask.
+        guard let root = window.contentViewController,
+              let split = firstSplitViewController(root) else { return }
+        for item in split.splitViewItems { item.allowsFullHeightLayout = true }
+    }
+
+    private func firstSplitViewController(_ vc: NSViewController) -> NSSplitViewController? {
+        if let split = vc as? NSSplitViewController { return split }
+        for child in vc.children {
+            if let split = firstSplitViewController(child) { return split }
+        }
+        return nil
+    }
+
     /// ⌘↩ / ⇧⌘↩ as aliases for Find Next / Find Previous. They can't live in the
     /// Find menu beside ⌘G / ⇧⌘G — a menu item carries one key equivalent, and a
     /// second "Find Next" row reads as a bug — so they ride on invisible buttons
@@ -91,8 +147,16 @@ struct ContentView: View {
                 if state.selectedFile == nil {
                     EmptyStateView()
                 }
-                MarkdownWebView()
+                // Only the web view reaches under the titlebar, so the text
+                // scrolls behind the toolbar's blur the way Finder's list does.
+                // Everything else in this stack — the close button, the empty
+                // state, the outline beside it — stays inside the safe area.
+                MarkdownWebView(topInset: topInset)
                     .opacity(state.selectedFile == nil ? 0 : 1)
+                    // Gated on there actually being a titlebar to draw under.
+                    // Focus mode hides the toolbar and goes fullscreen, and
+                    // without the gate the page then runs up under the notch.
+                    .ignoresSafeArea(.container, edges: topInset > 0 ? .top : [])
 
                 if state.selectedFile != nil && !state.diagramFullscreen && !state.focusMode {
                     CloseDocButton()
@@ -310,7 +374,19 @@ struct EmptyStateView: View {
     }
 }
 
+
 private extension View {
+    /// The toolbar draws an opaque background over the content that now scrolls
+    /// beneath it. `.toolbarBackgroundVisibility` is the macOS 15+ spelling;
+    /// `.toolbarBackground` is the 13+ one, and does nothing on this window.
+    @ViewBuilder func hidingToolbarBackground() -> some View {
+        if #available(macOS 15.0, *) {
+            toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+        } else {
+            toolbarBackground(.hidden, for: .windowToolbar)
+        }
+    }
+
     /// `.toolbar(removing:)` is macOS 14+; on 13 the split view's own sidebar
     /// toggle stays, beside ours.
     @ViewBuilder func removingSidebarToggle() -> some View {

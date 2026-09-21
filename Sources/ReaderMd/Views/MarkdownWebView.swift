@@ -76,6 +76,9 @@ private let conflictNoticeMessage = "This file has unresolved merge conflicts"
 /// Wraps a WKWebView that renders markdown via bundled JS (marked, highlight.js, KaTeX, Mermaid).
 struct MarkdownWebView: NSViewRepresentable {
     @EnvironmentObject var state: AppState
+    /// Height of the titlebar the pane now draws under, so the page can start
+    /// its text below the toolbar while still scrolling behind it.
+    var topInset: CGFloat = 0
 
     func makeCoordinator() -> Coordinator { Coordinator(state: state) }
 
@@ -124,6 +127,7 @@ struct MarkdownWebView: NSViewRepresentable {
         coord.applyAccent(isDark: context.environment.colorScheme == .dark)
         coord.applyReadingTheme(state.readingTheme.rawValue)
         coord.applyTypography(scale: state.fontScale, width: state.contentWidth)
+        coord.applyTopInset(topInset)
         coord.applyFocusDim(state.focusDimActive,
                             opacity: state.focusDimOpacity,
                             depth: state.focusRegionDepth.rawValue)
@@ -228,6 +232,7 @@ struct MarkdownWebView: NSViewRepresentable {
         private var lastReadingTheme: String?
         private var lastScale: Double?
         private var lastWidth: ContentWidth?
+        private var lastTopInset: CGFloat?
         /// All three values the web view needs, cached together. As a bare `Bool`
         /// this swallowed opacity and depth changes whenever `on` was unchanged.
         private struct FocusDimState: Equatable {
@@ -309,6 +314,12 @@ struct MarkdownWebView: NSViewRepresentable {
                 lastWidth = width
                 webView?.evaluateJavaScript("window.ReaderMd.setContentWidth('\(width.css)');")
             }
+        }
+
+        func applyTopInset(_ inset: CGFloat) {
+            guard isReady, lastTopInset != inset else { lastTopInset = inset; return }
+            lastTopInset = inset
+            webView?.evaluateJavaScript("window.ReaderMd.setTopInset(\(inset));")
         }
 
         func applyFocusDim(_ on: Bool, opacity: Double, depth: Int) {

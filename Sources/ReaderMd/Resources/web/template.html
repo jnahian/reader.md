@@ -74,12 +74,13 @@
       -webkit-font-smoothing: antialiased;
     }
     .markdown-body {
-      max-width: var(--content-width); margin: 0 auto; padding: 28px 40px 160px;
+      max-width: var(--content-width); margin: 0 auto;
+      padding: calc(28px + var(--top-inset, 0px)) 40px 160px;
       line-height: 1.65; font-size: var(--content-size); word-wrap: break-word;
       transition: max-width 0.2s ease;
     }
     h1, h2 { border-bottom: 1px solid var(--border); padding-bottom: 0.3em; }
-    h1, h2, h3, h4, h5, h6 { margin-top: 1.5em; margin-bottom: 0.6em; line-height: 1.25; scroll-margin-top: 24px; position: relative; }
+    h1, h2, h3, h4, h5, h6 { margin-top: 1.5em; margin-bottom: 0.6em; line-height: 1.25; scroll-margin-top: calc(24px + var(--top-inset, 0px)); position: relative; }
     /* hover anchor link */
     .anchor { position: absolute; left: -22px; top: 0; opacity: 0; text-decoration: none; color: var(--accent); font-weight: 400; }
     h1:hover .anchor, h2:hover .anchor, h3:hover .anchor, h4:hover .anchor { opacity: 0.6; }
