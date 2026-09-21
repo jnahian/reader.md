@@ -22,6 +22,15 @@ let package = Package(
                 .copy("Resources/web"),
                 .copy("Resources/docs"),
                 .copy("Resources/AppIcon.png")
+            ],
+            // Swift 6.4 builds into .build/out/Products/<config>, where
+            // Sparkle.framework sits beside the executable, and stopped adding
+            // the rpath that used to find it — `swift run ReaderMd` aborted in
+            // dyld before reaching main. In the packaged .app nothing is beside
+            // the executable, so this falls through to the
+            // @executable_path/../Frameworks rpath make-app.sh adds.
+            linkerSettings: [
+                .unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path"])
             ]
         ),
         .executableTarget(
