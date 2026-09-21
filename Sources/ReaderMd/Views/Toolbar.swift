@@ -25,15 +25,16 @@ private extension View {
 ///
 /// One `ToolbarItem` holding an `HStack`, not a `ToolbarItemGroup`: the group
 /// is what AppKit would style itself, and under a `NavigationSplitView` it
-/// stopped doing that. The cost is native overflow — an `HStack` can't collapse
-/// into the toolbar's `»` menu, so a cluster clips on a very narrow window.
+/// stopped doing that. A cluster is one item, so it still overflows into the
+/// toolbar's `»` menu whole; it just can't collapse item by item the way a
+/// group does.
 private struct ToolbarCluster<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
         HStack(spacing: 1) { content }
-            .buttonStyle(ToolbarIconButtonStyle(width: 32, height: 26, glass: false,
-                                                iconSize: 14, iconWeight: .regular))
+            .buttonStyle(ToolbarIconButtonStyle(width: 36, height: 32, glass: false,
+                                                iconSize: 15, iconWeight: .regular))
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
             .fixedSize()
@@ -46,7 +47,7 @@ private struct ToolbarCluster<Content: View>: View {
 private struct ToolbarClusterDivider: View {
     var body: some View {
         Divider()
-            .frame(height: 14)
+            .frame(height: 18)
             .padding(.horizontal, 3)
     }
 }
@@ -55,8 +56,8 @@ private extension View {
     /// A `Menu`'s label doesn't pick up the cluster's button style, so it takes
     /// the same metrics directly.
     func toolbarClusterIcon() -> some View {
-        font(.system(size: 14, weight: .regular))
-            .frame(width: 32, height: 26)
+        font(.system(size: 15, weight: .regular))
+            .frame(width: 36, height: 32)
     }
 }
 
@@ -270,7 +271,7 @@ private struct ReaderToolbar: ViewModifier {
     private var findField: some View {
         HStack(spacing: 6) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 12))
+                .font(.system(size: 13))
                 .foregroundStyle(.secondary)
 
             FindTextField(
@@ -318,9 +319,9 @@ private struct ReaderToolbar: ViewModifier {
                 .dockTooltip("Clear search")
             }
         }
-        .padding(.horizontal, 10)
-        .frame(height: 26)
-        .modifier(FindFieldSurface())
+        .padding(.horizontal, 12)
+        .frame(height: 32)
+        .glassCapsule()
         .disabled(state.selectedFile == nil)
         .opacity(state.selectedFile == nil ? 0.5 : 1)
     }
@@ -337,17 +338,6 @@ private struct ReaderToolbar: ViewModifier {
     }
 }
 
-/// The native toolbar already gives its items a glass surface on macOS 26 — only
-/// the pre-26 toolbar needs a capsule of its own, or the field reads as bare text.
-private struct FindFieldSurface: ViewModifier {
-    @ViewBuilder func body(content: Content) -> some View {
-        if #available(macOS 26.0, *) {
-            content
-        } else {
-            content.glassCapsule()
-        }
-    }
-}
 
 /// SwiftUI's `@FocusState` doesn't reach into the toolbar's own hosting view, so
 /// ⌘F can't focus a SwiftUI `TextField` there. An `NSTextField` we can make first
