@@ -71,8 +71,15 @@ fi
 # Copy resources into Contents/Resources (standard, signable). Bundle.resources
 # loads them via Bundle.main there. Placing the SwiftPM .bundle at the .app root
 # (where Bundle.module looks) is unsignable — codesign rejects contents at root.
+# Swift 6.4 builds the bundle in the versioned layout (Contents/Resources/...);
+# older toolchains laid the resources out flat. Take whichever is there.
 for b in "${BIN_DIR}"/*.bundle; do
-  [ -e "${b}" ] && cp -R "${b}"/* "${APP}/Contents/Resources/"
+  [ -e "${b}" ] || continue
+  if [ -d "${b}/Contents/Resources" ]; then
+    cp -R "${b}/Contents/Resources"/* "${APP}/Contents/Resources/"
+  else
+    cp -R "${b}"/* "${APP}/Contents/Resources/"
+  fi
 done
 
 # App icon: PNG -> .icns
