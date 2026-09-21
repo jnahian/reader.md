@@ -221,7 +221,6 @@ final class AppState: ObservableObject {
 
     // Chrome layout
     @Published var showSidebar: Bool = true
-    @Published var sidebarWidth: Double = 260
 
     // MARK: - Focus mode
 
@@ -487,7 +486,6 @@ final class AppState: ObservableObject {
         contentWidth = Settings.loadContentWidth()
         exportLayout = Settings.loadExportLayout()
         showSidebar = Settings.loadShowSidebar()
-        sidebarWidth = Settings.loadSidebarWidth()
         // Drop help-doc paths and directories. Folder paths land in both lists when
         // a file-URL open (`open -a`) used to treat them as documents — clicking one
         // then opened a blank pane. See `openPath` / `onOpenURL`. Neither list is
@@ -1078,10 +1076,6 @@ final class AppState: ObservableObject {
         }
     }
 
-    func setSidebarWidth(_ w: Double) {
-        sidebarWidth = min(460, max(180, w))
-        Settings.saveSidebarWidth(sidebarWidth)
-    }
 
     // MARK: - Typography
 

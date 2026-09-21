@@ -16,7 +16,6 @@ enum Settings {
     private static let focusHideToolbarKey = "reader.md.focus.hideToolbar"
     private static let focusRegionDepthKey = "reader.md.focus.regionDepth"
     private static let focusDimOpacityKey = "reader.md.focus.dimOpacity"
-    private static let sidebarWidthKey = "reader.md.sidebarWidth"
     private static let recentsKey = "reader.md.recents"
     private static let favoritesKey = "reader.md.favorites"
     private static let showResolvedThreadsKey = "reader.md.showResolvedThreads"
@@ -108,14 +107,6 @@ enum Settings {
     }
     static func saveShowSidebar(_ value: Bool) {
         defaults.set(value, forKey: showSidebarKey)
-    }
-
-    static func loadSidebarWidth() -> Double {
-        let v = defaults.double(forKey: sidebarWidthKey)
-        return v == 0 ? 260 : v
-    }
-    static func saveSidebarWidth(_ value: Double) {
-        defaults.set(value, forKey: sidebarWidthKey)
     }
 
     // Focus mode. Fullscreen, the narrow canvas and the hidden toolbar default

@@ -4,34 +4,40 @@ import UniformTypeIdentifiers
 
 struct ContentView: View {
     @EnvironmentObject var state: AppState
-    @State private var dragStartWidth: Double?
     @State private var dropTargeted = false
 
     var body: some View {
-        ZStack {
+        NavigationSplitView(columnVisibility: sidebarVisibility) {
+            SidebarView()
+                .navigationSplitViewColumnWidth(min: 180, ideal: 260, max: 460)
+                // The split view injects its own toggle; ours (Toolbar.swift)
+                // carries the tooltip and the accent-tint "on" state, so the
+                // system one goes. macOS 14+ only — on 13 there are two.
+                .removingSidebarToggle()
+        } detail: {
             VStack(spacing: 0) {
                 if !state.canShowDiff {
                     ReadingProgressBar()
                 }
-                contentRow
+                detailRow
             }
-
+            .readerToolbar()
+        }
+        .navigationSplitViewStyle(.balanced)
+        // Overlays sit on the split view, not in the detail column, so they
+        // cover the sidebar too — quick-open is a window-wide palette.
+        .overlay {
             if state.showQuickOpen {
-                QuickOpenView()
-                    .transition(.opacity)
-                    .zIndex(2)
-            }
-
-            if showDropOverlay {
-                DropTargetOverlay()
-                    .transition(.opacity)
-                    .zIndex(3)
+                QuickOpenView().transition(.opacity)
             }
         }
-        .readerToolbar()
+        .overlay {
+            if showDropOverlay {
+                DropTargetOverlay().transition(.opacity)
+            }
+        }
         .background(findStepShortcuts)
         .background(WindowAccessor { state.setDocumentWindow($0) })
-        .animation(.easeInOut(duration: 0.15), value: state.showSidebar)
         .animation(.easeInOut(duration: 0.15), value: state.showTOC)
         .animation(.easeInOut(duration: 0.12), value: state.showQuickOpen)
         .animation(.easeInOut(duration: 0.12), value: showDropOverlay)
@@ -45,6 +51,20 @@ struct ContentView: View {
                 .id(state.pendingRemote?.id)
         }
     }
+
+    /// `showSidebar` stays the source of truth — dragging the split view shut
+    /// has to run through `toggleSidebar()` so the preference is saved and the
+    /// focus-mode stash stays in step with it.
+    private var sidebarVisibility: Binding<NavigationSplitViewVisibility> {
+        Binding(
+            get: { state.showSidebar ? .all : .detailOnly },
+            set: { visibility in
+                let shown = visibility != .detailOnly
+                if shown != state.showSidebar { state.toggleSidebar() }
+            }
+        )
+    }
+
 
     /// ⌘↩ / ⇧⌘↩ as aliases for Find Next / Find Previous. They can't live in the
     /// Find menu beside ⌘G / ⇧⌘G — a menu item carries one key equivalent, and a
@@ -65,14 +85,8 @@ struct ContentView: View {
         .accessibilityHidden(true)
     }
 
-    private var contentRow: some View {
+    private var detailRow: some View {
         HStack(spacing: 0) {
-            if state.showSidebar {
-                SidebarView()
-                    .frame(width: CGFloat(state.sidebarWidth))
-                resizeHandle
-            }
-
             ZStack(alignment: .topTrailing) {
                 if state.selectedFile == nil {
                     EmptyStateView()
@@ -94,33 +108,6 @@ struct ContentView: View {
                     .frame(width: 240)
             }
         }
-    }
-
-    private var resizeHandle: some View {
-        Rectangle()
-            .fill(Color(nsColor: .separatorColor))
-            .frame(width: 1)
-            .overlay(
-                Rectangle()
-                    .fill(Color.clear)
-                    .frame(width: 8)
-                    .contentShape(Rectangle())
-                    .onHover { inside in
-                        if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
-                    }
-                    .gesture(
-                        DragGesture()
-                            .onChanged { value in
-                                let start = dragStartWidth ?? state.sidebarWidth
-                                if dragStartWidth == nil { dragStartWidth = start }
-                                state.sidebarWidth = min(460, max(180, start + Double(value.translation.width)))
-                            }
-                            .onEnded { _ in
-                                state.setSidebarWidth(state.sidebarWidth)
-                                dragStartWidth = nil
-                            }
-                    )
-            )
     }
 
     /// Two independent drop paths report targeting: SwiftUI's `.onDrop` for the chrome,
@@ -319,6 +306,18 @@ struct EmptyStateView: View {
                 hovering = inside
                 if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
             }
+        }
+    }
+}
+
+private extension View {
+    /// `.toolbar(removing:)` is macOS 14+; on 13 the split view's own sidebar
+    /// toggle stays, beside ours.
+    @ViewBuilder func removingSidebarToggle() -> some View {
+        if #available(macOS 14.0, *) {
+            toolbar(removing: .sidebarToggle)
+        } else {
+            self
         }
     }
 }

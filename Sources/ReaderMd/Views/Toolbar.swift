@@ -18,6 +18,48 @@ private extension View {
     }
 }
 
+
+/// A topbar cluster: several controls sharing one Liquid Glass capsule, like
+/// Finder's. The buttons pass `glass: false` — glass is never stacked, so the
+/// capsule is the surface and each button only draws its hover fill.
+///
+/// One `ToolbarItem` holding an `HStack`, not a `ToolbarItemGroup`: the group
+/// is what AppKit would style itself, and under a `NavigationSplitView` it
+/// stopped doing that. The cost is native overflow — an `HStack` can't collapse
+/// into the toolbar's `»` menu, so a cluster clips on a very narrow window.
+private struct ToolbarCluster<Content: View>: View {
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        HStack(spacing: 1) { content }
+            .buttonStyle(ToolbarIconButtonStyle(width: 32, height: 26, glass: false,
+                                                iconSize: 14, iconWeight: .regular))
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .glassCapsule()
+    }
+}
+
+/// Separates two kinds of control inside one capsule (the sidebar toggle from
+/// the history pair), rather than splitting them into two capsules.
+private struct ToolbarClusterDivider: View {
+    var body: some View {
+        Divider()
+            .frame(height: 14)
+            .padding(.horizontal, 3)
+    }
+}
+
+private extension View {
+    /// A `Menu`'s label doesn't pick up the cluster's button style, so it takes
+    /// the same metrics directly.
+    func toolbarClusterIcon() -> some View {
+        font(.system(size: 14, weight: .regular))
+            .frame(width: 32, height: 26)
+    }
+}
+
 /// A ViewModifier rather than a `ToolbarContent` type so the find field's
 /// `@FocusState` and the `@EnvironmentObject` live in a real view scope.
 private struct ReaderToolbar: ViewModifier {
@@ -28,45 +70,51 @@ private struct ReaderToolbar: ViewModifier {
             .navigationTitle(state.selectedFile?.name ?? "Reader.md")
             .navigationSubtitle(subtitle)
             .toolbar {
+                // Navigation: the sidebar toggle and the history pair, one
+                // capsule, the way Finder groups its own chrome.
                 ToolbarItem(placement: .navigation) {
-                    Button { state.toggleSidebar() } label: {
-                        Image(systemName: "sidebar.left").activeTint(state.showSidebar)
+                    ToolbarCluster {
+                        Button { state.toggleSidebar() } label: {
+                            Image(systemName: "sidebar.left").activeTint(state.showSidebar)
+                        }
+                        .dockTooltip("Toggle sidebar (⌘B)")
+
+                        ToolbarClusterDivider()
+
+                        Button { state.goBack() } label: { Image(systemName: "chevron.left") }
+                            .disabled(!state.canGoBack)
+                            .dockTooltip("Back (⌘[)")
+                        Button { state.goForward() } label: { Image(systemName: "chevron.right") }
+                            .disabled(!state.canGoForward)
+                            .dockTooltip("Forward (⌘])")
                     }
-                    .dockTooltip("Toggle sidebar (⌘B)")
                 }
 
-                // Back / forward, kept together like Finder.
-                ToolbarItemGroup(placement: .navigation) {
-                    Button { state.goBack() } label: { Image(systemName: "chevron.left") }
-                        .disabled(!state.canGoBack)
-                        .dockTooltip("Back (⌘[)")
-                    Button { state.goForward() } label: { Image(systemName: "chevron.right") }
-                        .disabled(!state.canGoForward)
-                        .dockTooltip("Forward (⌘])")
-                }
-
-                // Both hide themselves when they have nothing to report.
+                // Both hide themselves when they have nothing to report, so they
+                // stay outside the capsules rather than leaving an empty one.
                 ToolbarItemGroup(placement: .primaryAction) {
                     ResolvedThreadsToggle()
                     OrphanedMarksBadge()
                 }
 
                 // View: reading style + canvas width + outline + focus.
-                ToolbarItemGroup(placement: .primaryAction) {
-                    readingStyleMenu
-                    canvasWidthMenu
+                ToolbarItem(placement: .primaryAction) {
+                    ToolbarCluster {
+                        readingStyleMenu
+                        canvasWidthMenu
 
-                    if !state.toc.isEmpty {
-                        Button { state.setShowTOC(!state.showTOC) } label: {
-                            Image(systemName: "list.bullet").activeTint(state.showTOC)
+                        if !state.toc.isEmpty {
+                            Button { state.setShowTOC(!state.showTOC) } label: {
+                                Image(systemName: "list.bullet").activeTint(state.showTOC)
+                            }
+                            .dockTooltip("Toggle outline (⇧⌘B)")
                         }
-                        .dockTooltip("Toggle outline (⇧⌘B)")
-                    }
 
-                    Button { state.toggleFocusMode() } label: {
-                        Image(systemName: "plus.viewfinder").activeTint(state.focusMode)
+                        Button { state.toggleFocusMode() } label: {
+                            Image(systemName: "plus.viewfinder").activeTint(state.focusMode)
+                        }
+                        .dockTooltip("Focus mode (⌥⌘F)")
                     }
-                    .dockTooltip("Focus mode (⌥⌘F)")
                 }
 
                 // Diff: hidden entirely outside a git repo, and gated on nothing
@@ -77,38 +125,42 @@ private struct ReaderToolbar: ViewModifier {
                 // unchanged and disable the button while ⇧⌘D and the palette —
                 // both gated on diffAvailable alone — still worked. The pane
                 // already says "No changes…" for itself.
-                ToolbarItemGroup(placement: .primaryAction) {
+                ToolbarItem(placement: .primaryAction) {
                     if state.diffAvailable {
-                        Button { state.toggleDiffMode() } label: {
-                            Image(systemName: "plusminus.circle").activeTint(state.diffMode)
-                        }
-                        .dockTooltip(state.diffMode
-                                     ? "Show rendered view (⇧⌘D)" : "Show diff (⇧⌘D)")
+                        ToolbarCluster {
+                            Button { state.toggleDiffMode() } label: {
+                                Image(systemName: "plusminus.circle").activeTint(state.diffMode)
+                            }
+                            .dockTooltip(state.diffMode
+                                         ? "Show rendered view (⇧⌘D)" : "Show diff (⇧⌘D)")
 
-                        // A popover rather than a segmented control or a
-                        // pull-down: the branch scopes are per repo, so the list
-                        // has neither a fixed width nor a bounded length.
-                        if state.canShowDiff {
-                            DiffScopePicker()
+                            // A popover rather than a segmented control or a
+                            // pull-down: the branch scopes are per repo, so the
+                            // list has neither a fixed width nor a bounded length.
+                            if state.canShowDiff {
+                                DiffScopePicker()
+                            }
                         }
                     }
                 }
 
                 // Document actions.
-                ToolbarItemGroup(placement: .primaryAction) {
-                    Button { state.triggerReload() } label: {
-                        Image(systemName: "arrow.clockwise")
-                    }
-                    .disabled(state.selectedFile == nil)
-                    .dockTooltip("Reload (⌘R)")
+                ToolbarItem(placement: .primaryAction) {
+                    ToolbarCluster {
+                        Button { state.triggerReload() } label: {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                        .disabled(state.selectedFile == nil)
+                        .dockTooltip("Reload (⌘R)")
 
-                    exportMenu
+                        exportMenu
 
-                    Button { state.toggleTheme() } label: {
-                        Image(systemName: state.theme.symbol)
+                        Button { state.toggleTheme() } label: {
+                            Image(systemName: state.theme.symbol)
+                        }
+                        .dockTooltip(state.theme.tooltip,
+                                     accessibility: state.theme.accessibilityLabel)
                     }
-                    .dockTooltip(state.theme.tooltip,
-                                 accessibility: state.theme.accessibilityLabel)
                 }
 
                 ToolbarItem(placement: .primaryAction) { findField }
@@ -152,6 +204,7 @@ private struct ReaderToolbar: ViewModifier {
                 // arrow and is drawn narrow. `.large` levels the two.
                 Image(systemName: "square.and.arrow.up")
                     .imageScale(.large)
+                    .toolbarClusterIcon()
             }
         }
         .menuIndicator(.hidden)
@@ -181,7 +234,7 @@ private struct ReaderToolbar: ViewModifier {
                 Button("Actual Size (⌘0)") { state.resetFontScale() }
             }
         } label: {
-            Image(systemName: "textformat.size")
+            Image(systemName: "textformat.size").toolbarClusterIcon()
         }
         // On the `Menu`, not on its label: a toolbar pull-down draws its label
         // image as a template and drops a `foregroundStyle` set inside. (`.tint`
@@ -203,7 +256,7 @@ private struct ReaderToolbar: ViewModifier {
             }
             .pickerStyle(.inline)
         } label: {
-            Image(systemName: "arrow.left.and.right")
+            Image(systemName: "arrow.left.and.right").toolbarClusterIcon()
         }
         .activeTint(state.contentWidth != .wide)
         .menuIndicator(.hidden)

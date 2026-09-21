@@ -107,7 +107,6 @@ struct SidebarView: View {
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
         }
-        .background(GlassPanel())
         .onChange(of: state.focusSearch) { _ in searchFocused = true }
         .sheet(item: $state.editingRemote) { spec in
             AddRemoteView(existing: spec).environmentObject(state)
