@@ -108,6 +108,12 @@ window.ReaderMd = {
     document.documentElement.style.setProperty('--content-width', css);
   },
 
+  // The content pane draws under the window's titlebar so the page scrolls
+  // behind the toolbar's blur. This keeps the text itself clear of it.
+  setTopInset(px) {
+    document.documentElement.style.setProperty('--top-inset', `${px}px`);
+  },
+
   setFocusDim(on, opacity, depth) {
     focusDim = on;
     focusDepth = depth;
