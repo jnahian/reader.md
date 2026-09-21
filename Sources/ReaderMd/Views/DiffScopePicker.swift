@@ -29,6 +29,7 @@ struct DiffScopePicker: View {
                 // A branch name has no bound; cap the label rather than let one
                 // ref push the find field off the toolbar.
                 Text(state.diffScope.displayName)
+                    .font(.system(size: 12))
                     .lineLimit(1)
                     .truncationMode(.middle)
                     .frame(maxWidth: 150, alignment: .leading)
@@ -37,6 +38,9 @@ struct DiffScopePicker: View {
                     .foregroundStyle(.secondary)
             }
             .fixedSize()
+            // The cluster's button style sizes icon cells, not this one, so the
+            // breathing room inside the hover pill comes from the label.
+            .padding(.horizontal, 10)
         }
         .dockTooltip("What the diff compares against")
         .popover(isPresented: $showing, arrowEdge: .top) { chooser }

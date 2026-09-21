@@ -28,14 +28,50 @@ private extension View {
 /// stopped doing that. A cluster is one item, so it still overflows into the
 /// toolbar's `»` menu whole; it just can't collapse item by item the way a
 /// group does.
+/// One set of metrics for everything in a cluster. A `Button` gets them through
+/// `ToolbarIconButtonStyle` and a `Menu` has to be handed them, so keeping the
+/// numbers in two places is what let the pull-downs' hover fill drift smaller
+/// than the buttons'.
+private enum ClusterMetrics {
+    static let width: CGFloat = 36
+    static let height: CGFloat = 32
+    static let iconSize: CGFloat = 15
+    static let hoverFill: Double = 0.07
+}
+
+/// A pull-down inside a cluster. `.menuStyle(.button)` is what centres the glyph
+/// in its cell — `.borderlessButton` reserves room for the indicator it was told
+/// to hide and leaves the label sitting left of centre — but it then draws the
+/// system's own bordered background, a rounded rect where every button beside it
+/// is a pill. `.plain` drops that, and the cell and its hover fill are drawn here
+/// instead, from the same metrics `ToolbarIconButtonStyle` gives a `Button`.
+private struct ToolbarClusterMenu: ViewModifier {
+    @Environment(\.isEnabled) private var isEnabled
+    @State private var hovering = false
+
+    func body(content: Content) -> some View {
+        content
+            .buttonStyle(.plain)
+            .font(.system(size: ClusterMetrics.iconSize, weight: .regular))
+            .frame(width: ClusterMetrics.width, height: ClusterMetrics.height)
+            .background(Capsule().fill(
+                Color.primary.opacity(hovering ? ClusterMetrics.hoverFill : 0)))
+            .contentShape(Capsule())
+            .onHover { hovering = $0 && isEnabled }
+    }
+}
+
 private struct ToolbarCluster<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
         HStack(spacing: 1) { content }
-            .buttonStyle(ToolbarIconButtonStyle(width: 36, height: 32, glass: false,
-                                                iconSize: 15, iconWeight: .regular))
-            .menuStyle(.borderlessButton)
+            .buttonStyle(ToolbarIconButtonStyle(width: ClusterMetrics.width,
+                                                height: ClusterMetrics.height,
+                                                glass: false,
+                                                iconSize: ClusterMetrics.iconSize,
+                                                iconWeight: .regular))
+            .menuStyle(.button)
             .menuIndicator(.hidden)
             .fixedSize()
             .glassCapsule()
@@ -52,31 +88,7 @@ private struct ToolbarClusterDivider: View {
     }
 }
 
-/// The cluster's `buttonStyle` reaches `Button` alone, so a `Menu` draws none
-/// of it — a pull-down was the one control in the capsule that didn't answer
-/// the pointer. This is the hover fill `ToolbarIconButtonStyle` would have
-/// drawn, applied to the `Menu` rather than to its label: the menu control owns
-/// the tracking, and an `.onHover` inside the label never fires. Same reason
-/// `activeTint` sits on the menu above.
-private struct ToolbarClusterMenu: ViewModifier {
-    @Environment(\.isEnabled) private var isEnabled
-    @State private var hovering = false
-
-    func body(content: Content) -> some View {
-        content
-            .background(Capsule().fill(Color.primary.opacity(hovering ? 0.07 : 0)))
-            .onHover { hovering = $0 && isEnabled }
-    }
-}
-
 private extension View {
-    /// A `Menu`'s label doesn't pick up the cluster's button style, so it takes
-    /// the same metrics directly.
-    func toolbarClusterIcon() -> some View {
-        font(.system(size: 15, weight: .regular))
-            .frame(width: 36, height: 32)
-    }
-
     func toolbarClusterMenu() -> some View { modifier(ToolbarClusterMenu()) }
 }
 
@@ -153,13 +165,24 @@ private struct ReaderToolbar: ViewModifier {
                             }
                             .dockTooltip(state.diffMode
                                          ? "Show rendered view (⇧⌘D)" : "Show diff (⇧⌘D)")
+                        }
+                    }
+                }
 
-                            // A popover rather than a segmented control or a
-                            // pull-down: the branch scopes are per repo, so the
-                            // list has neither a fixed width nor a bounded length.
-                            if state.canShowDiff {
-                                DiffScopePicker()
-                            }
+                // A popover rather than a segmented control or a pull-down: the
+                // branch scopes are per repo, so the list has neither a fixed
+                // width nor a bounded length. It is a capsule of its own, not
+                // part of the diff cluster: its label is a branch name rather
+                // than a glyph, and inside the cluster the toolbar item kept the
+                // width it was given while diff mode was off, so turning diff on
+                // drew the name over the toggle.
+                ToolbarItem(placement: .primaryAction) {
+                    if state.canShowDiff {
+                        ToolbarCluster {
+                            DiffScopePicker()
+                                .buttonStyle(ToolbarIconButtonStyle(
+                                    width: nil, height: ClusterMetrics.height,
+                                    glass: false, iconSize: 12, iconWeight: .regular))
                         }
                     }
                 }
@@ -224,7 +247,7 @@ private struct ReaderToolbar: ViewModifier {
                 // arrow and is drawn narrow. `.large` levels the two.
                 Image(systemName: "square.and.arrow.up")
                     .imageScale(.large)
-                    .toolbarClusterIcon()
+                    
             }
         }
         .menuIndicator(.hidden)
@@ -255,12 +278,14 @@ private struct ReaderToolbar: ViewModifier {
                 Button("Actual Size (⌘0)") { state.resetFontScale() }
             }
         } label: {
-            Image(systemName: "textformat.size").toolbarClusterIcon()
+            Image(systemName: "textformat.size")
+                .activeTint(state.readingTheme != .standard)
         }
-        // On the `Menu`, not on its label: a toolbar pull-down draws its label
-        // image as a template and drops a `foregroundStyle` set inside. (`.tint`
-        // is not the same thing — it draws a selection chip behind the glyph.)
-        .activeTint(state.readingTheme != .standard)
+        // `activeTint` sits on the label now. It had to be on the `Menu` while
+        // the pull-down was drawn by the toolbar — that took the label image as
+        // a template and dropped a `foregroundStyle` set inside it — but the
+        // label is rendered plainly here. (`.tint` is still not the same thing:
+        // it draws a selection chip behind the glyph.)
         .menuIndicator(.hidden)
         .toolbarClusterMenu()
         .dockTooltip("Reading style")
@@ -278,9 +303,9 @@ private struct ReaderToolbar: ViewModifier {
             }
             .pickerStyle(.inline)
         } label: {
-            Image(systemName: "arrow.left.and.right").toolbarClusterIcon()
+            Image(systemName: "arrow.left.and.right")
+                .activeTint(state.contentWidth != .wide)
         }
-        .activeTint(state.contentWidth != .wide)
         .menuIndicator(.hidden)
         .toolbarClusterMenu()
         .dockTooltip("Canvas width (⇧⌘\\)")
