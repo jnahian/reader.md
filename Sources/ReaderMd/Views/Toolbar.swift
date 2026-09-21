@@ -52,6 +52,23 @@ private struct ToolbarClusterDivider: View {
     }
 }
 
+/// The cluster's `buttonStyle` reaches `Button` alone, so a `Menu` draws none
+/// of it — a pull-down was the one control in the capsule that didn't answer
+/// the pointer. This is the hover fill `ToolbarIconButtonStyle` would have
+/// drawn, applied to the `Menu` rather than to its label: the menu control owns
+/// the tracking, and an `.onHover` inside the label never fires. Same reason
+/// `activeTint` sits on the menu above.
+private struct ToolbarClusterMenu: ViewModifier {
+    @Environment(\.isEnabled) private var isEnabled
+    @State private var hovering = false
+
+    func body(content: Content) -> some View {
+        content
+            .background(Capsule().fill(Color.primary.opacity(hovering ? 0.07 : 0)))
+            .onHover { hovering = $0 && isEnabled }
+    }
+}
+
 private extension View {
     /// A `Menu`'s label doesn't pick up the cluster's button style, so it takes
     /// the same metrics directly.
@@ -59,6 +76,8 @@ private extension View {
         font(.system(size: 15, weight: .regular))
             .frame(width: 36, height: 32)
     }
+
+    func toolbarClusterMenu() -> some View { modifier(ToolbarClusterMenu()) }
 }
 
 /// A ViewModifier rather than a `ToolbarContent` type so the find field's
@@ -209,6 +228,7 @@ private struct ReaderToolbar: ViewModifier {
             }
         }
         .menuIndicator(.hidden)
+        .toolbarClusterMenu()
         .background(ShareAnchor.Marker())
         // Only "a document is open" — not `canExport`. The two PDF rows gate
         // themselves on that, but sharing the markdown needs no render, so it
@@ -242,6 +262,7 @@ private struct ReaderToolbar: ViewModifier {
         // is not the same thing — it draws a selection chip behind the glyph.)
         .activeTint(state.readingTheme != .standard)
         .menuIndicator(.hidden)
+        .toolbarClusterMenu()
         .dockTooltip("Reading style")
     }
 
@@ -261,6 +282,7 @@ private struct ReaderToolbar: ViewModifier {
         }
         .activeTint(state.contentWidth != .wide)
         .menuIndicator(.hidden)
+        .toolbarClusterMenu()
         .dockTooltip("Canvas width (⇧⌘\\)")
     }
 
