@@ -823,6 +823,7 @@ struct MarkdownWebView: NSViewRepresentable {
                 }
                 if let scale = lastScale { webView?.evaluateJavaScript("window.ReaderMd.setFontScale(\(scale));") }
                 if let width = lastWidth { webView?.evaluateJavaScript("window.ReaderMd.setContentWidth('\(width.css)');") }
+                if let inset = lastTopInset { webView?.evaluateJavaScript("window.ReaderMd.setTopInset(\(inset));") }
                 if let dim = lastFocusDim { pushFocusDim(dim) }
                 if let name = lastReadingTheme {
                     webView?.evaluateJavaScript("window.ReaderMd.setReadingTheme('\(name)');")
