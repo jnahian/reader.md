@@ -30,6 +30,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   three lit up under the cursor the way every button beside them did, and only
   the icon itself took a click — the space around it looked live and was not.
 
+## [1.20.2] - 2026-09-09
+
 ### Changed
 
 - **Focus mode no longer dims other sections out of the box.** ⌥⌘F still hides
