@@ -22,9 +22,30 @@ export interface Release {
 
 export const releasesLog: Release[] = [
   {
+    version: "1.21.0",
+    date: "Sep 22, 2026",
+    badge: "LATEST",
+    groups: [
+      {
+        tag: "IMPROVED",
+        items: [
+          "<strong>The sidebar now runs the full height of the window</strong> \u2014 the traffic lights sit in it and the toolbar stays over the document alone, the way Finder looks on macOS 26. The sidebar still drags to any width, but the window now remembers that width itself \u2014 so the first launch after updating starts from the default and keeps whatever you set from then on.",
+          "<strong>The toolbar's controls are grouped into glass capsules</strong> \u2014 navigation, view, diff, the document actions and search each read as their own cluster, and the reading-style, canvas-width and export pull-downs are now the same shape and size as the buttons beside them.",
+          "<strong>The page scrolls under the toolbar</strong> instead of stopping at it, with the first line of a document still clear of the controls.",
+          "<strong>What the diff compares against is its own control now</strong> \u2014 a long branch name used to be cut off; it sits beside the diff toggle with room to read.",
+        ],
+      },
+      {
+        tag: "FIXED",
+        items: [
+          "<strong>Reading style, canvas width and export answer the pointer</strong> \u2014 none of the three lit up under the cursor the way every button beside them did, and only the icon itself took a click: the space around it looked live and was not.",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.20.2",
     date: "Sep 9, 2026",
-    badge: "LATEST",
     groups: [
       {
         tag: "IMPROVED",
