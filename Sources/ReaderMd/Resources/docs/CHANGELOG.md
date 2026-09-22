@@ -6,7 +6,29 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [1.20.2] - 2026-09-09
+## [1.21.0] - 2026-09-22
+
+### Changed
+
+- **The sidebar now runs the full height of the window.** The traffic lights sit
+  in it and the toolbar stays over the document alone, the way Finder looks on
+  macOS 26. The sidebar still drags to any width, but the window now remembers
+  that width itself — so the first launch after updating starts from the default
+  and keeps whatever you set from then on.
+- **The toolbar's controls are grouped into glass capsules.** Navigation, view,
+  diff, the document actions and search each read as their own cluster, and the
+  reading-style, canvas-width and export pull-downs are now the same shape and
+  size as the buttons beside them.
+- **The page scrolls under the toolbar** instead of stopping at it, with the
+  first line of a document still clear of the controls.
+- **What the diff compares against is its own control now.** A long branch name
+  used to be cut off; it sits beside the diff toggle with room to read.
+
+### Fixed
+
+- **Reading style, canvas width and export answer the pointer.** None of the
+  three lit up under the cursor the way every button beside them did, and only
+  the icon itself took a click — the space around it looked live and was not.
 
 ### Changed
 
