@@ -39,7 +39,11 @@ private enum ClusterMetrics {
     static let hoverFill: Double = 0.07
 }
 
-/// A pull-down inside a cluster. `.menuStyle(.button)` is what centres the glyph
+/// A pull-down inside a cluster. The cell is the *label's* frame, via
+/// `toolbarClusterIcon()` — sizing the `Menu` from outside only centres the
+/// control in a larger box, leaving the space around the glyph unclickable
+/// while the hover pill said otherwise.
+/// `.menuStyle(.button)` is what centres the glyph
 /// in its cell — `.borderlessButton` reserves room for the indicator it was told
 /// to hide and leaves the label sitting left of centre — but it then draws the
 /// system's own bordered background, a rounded rect where every button beside it
@@ -52,11 +56,8 @@ private struct ToolbarClusterMenu: ViewModifier {
     func body(content: Content) -> some View {
         content
             .buttonStyle(.plain)
-            .font(.system(size: ClusterMetrics.iconSize, weight: .regular))
-            .frame(width: ClusterMetrics.width, height: ClusterMetrics.height)
             .background(Capsule().fill(
                 Color.primary.opacity(hovering ? ClusterMetrics.hoverFill : 0)))
-            .contentShape(Capsule())
             .onHover { hovering = $0 && isEnabled }
     }
 }
@@ -90,6 +91,15 @@ private struct ToolbarClusterDivider: View {
 
 private extension View {
     func toolbarClusterMenu() -> some View { modifier(ToolbarClusterMenu()) }
+
+    /// The cell a cluster control fills — the same one `ToolbarIconButtonStyle`
+    /// gives a `Button`, applied to a `Menu`'s label so the whole cell is the
+    /// control and not just the glyph.
+    func toolbarClusterIcon() -> some View {
+        font(.system(size: ClusterMetrics.iconSize, weight: .regular))
+            .frame(width: ClusterMetrics.width, height: ClusterMetrics.height)
+            .contentShape(Capsule())
+    }
 }
 
 /// A ViewModifier rather than a `ToolbarContent` type so the find field's
@@ -239,7 +249,7 @@ private struct ReaderToolbar: ViewModifier {
             Button("Share Markdown File…") { state.triggerShareSource() }
         } label: {
             if state.sharing {
-                ProgressView().controlSize(.small)
+                ProgressView().controlSize(.small).toolbarClusterIcon()
             } else {
                 // Optically matched, not nominally: at the same point size this
                 // glyph's ink is 11x14 against 14x17 for `arrow.clockwise` right
@@ -247,6 +257,7 @@ private struct ReaderToolbar: ViewModifier {
                 // arrow and is drawn narrow. `.large` levels the two.
                 Image(systemName: "square.and.arrow.up")
                     .imageScale(.large)
+                    .toolbarClusterIcon()
                     
             }
         }
@@ -280,6 +291,7 @@ private struct ReaderToolbar: ViewModifier {
         } label: {
             Image(systemName: "textformat.size")
                 .activeTint(state.readingTheme != .standard)
+                .toolbarClusterIcon()
         }
         // `activeTint` sits on the label now. It had to be on the `Menu` while
         // the pull-down was drawn by the toolbar — that took the label image as
@@ -305,6 +317,7 @@ private struct ReaderToolbar: ViewModifier {
         } label: {
             Image(systemName: "arrow.left.and.right")
                 .activeTint(state.contentWidth != .wide)
+                .toolbarClusterIcon()
         }
         .menuIndicator(.hidden)
         .toolbarClusterMenu()
