@@ -24,6 +24,7 @@
       "id": "03-find",
       "open": "field-notes/guides/setup.md",
       "actions": [
+        { "waitMs": 1000 },
         { "key": "f", "mods": ["command"] },
         { "waitMs": 500 },
         { "key": "install" }
