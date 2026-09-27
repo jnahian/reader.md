@@ -6,6 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Closing the window keeps Reader.md in the Dock**, the way Mac apps usually
+  behave, instead of quitting. Click the Dock icon, or open a file, to bring the
+  window back.
+- **⌘W with no document open closes the window** instead of asking whether to
+  quit. With a document open it still closes the document first.
+
 ## [1.21.1] - 2026-09-28
 
 ### Changed
