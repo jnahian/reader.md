@@ -22,9 +22,28 @@ export interface Release {
 
 export const releasesLog: Release[] = [
   {
+    version: "1.21.1",
+    date: "Sep 28, 2026",
+    badge: "LATEST",
+    groups: [
+      {
+        tag: "IMPROVED",
+        items: [
+          "<strong>Search in the toolbar is a magnifier until you need it</strong>, the way Finder\u2019s is. Click it or press \u2318F and it opens into the field; \u238b, or clicking away with nothing typed, folds it back. While it\u2019s open the view controls step aside to make room, so a narrow window no longer pushes search off its edge.",
+          "<strong>The toolbar's capsules have a gap between them</strong> instead of sitting flush.",
+        ],
+      },
+      {
+        tag: "FIXED",
+        items: [
+          "<strong>Opening a file when Reader.md isn't running opens one window, not two.</strong> Double-clicking a markdown file (or <code>reader &lt;file&gt;</code>) on a cold launch used to leave a second window stacked over the main one.",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.21.0",
     date: "Sep 22, 2026",
-    badge: "LATEST",
     groups: [
       {
         tag: "IMPROVED",
