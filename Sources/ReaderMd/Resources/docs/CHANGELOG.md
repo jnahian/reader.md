@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Opening a file when Reader.md isn't running opens one window, not two.**
+  Double-clicking a markdown file (or `reader open`) on a cold launch used to
+  leave a small second window stacked over the main one.
+
 ## [1.21.0] - 2026-09-22
 
 ### Changed

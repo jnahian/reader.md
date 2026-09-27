@@ -488,7 +488,7 @@ final class AppState: ObservableObject {
         showSidebar = Settings.loadShowSidebar()
         // Drop help-doc paths and directories. Folder paths land in both lists when
         // a file-URL open (`open -a`) used to treat them as documents — clicking one
-        // then opened a blank pane. See `openPath` / `onOpenURL`. Neither list is
+        // then opened a blank pane. See `openPath` / `handleOpenURL`. Neither list is
         // pruned to files that still exist, unlike positions: an entry on an
         // unmounted volume should come back with the volume, not vanish silently.
         recentFiles = Settings.loadRecents().filter { Self.shouldKeepListed($0) }
@@ -1158,6 +1158,37 @@ final class AppState: ObservableObject {
         reading.reset()
         loadMarksForCurrentFile()
         refreshDiff()
+    }
+
+    /// Route a URL the app was asked to open (Finder, `open`, the `reader` CLI).
+    /// Called by `AppDelegate.application(_:open:)`, never from a view.
+    func handleOpenURL(_ url: URL) {
+        if url.isFileURL {
+            // Folders become roots; files open. Treating every file URL as
+            // a document blanked the pane for `open -a Reader.md.app <dir>`
+            // and left folder paths in Recents. No extension filter here —
+            // unlike `readermd://open`, this URL is user-initiated.
+            openPath(url.path)
+            return
+        }
+        switch ReaderURL.action(for: url) {
+        case .open(let path, let diff):
+            // Before the open, so the file's first refreshDiff already
+            // computes the diff. Sticky, exactly like the toolbar toggle.
+            if diff, !diffMode { toggleDiffMode() }
+            // openDropped does the routing (folder -> root, markdown -> open)
+            // AND rejects non-markdown files — which is what keeps a hostile
+            // `readermd://open?path=/etc/passwd` from rendering.
+            openDropped(URL(fileURLWithPath: path))
+        case .addRemote(let spec):
+            // Never sync straight from a URL: rsync-over-ssh needs a human.
+            pendingRemote = spec
+            showAddRemote = true
+        case .remove(let token):
+            removeRoot(matching: token)
+        case nil:
+            break
+        }
     }
 
     /// Open a path from Recents, a relative link, or a file URL. Folders become
