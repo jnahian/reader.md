@@ -6,6 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Search in the toolbar is a magnifier until you need it**, the way Finder's
+  is. Click it or press ⌘F and it opens into the field; ⎋, or clicking away with
+  nothing typed, folds it back. While it's open the view controls step aside
+  to make room, so a narrow window no longer pushes search off its edge.
+- **The toolbar's capsules have a gap between them** instead of sitting flush.
+
 ### Fixed
 
 - **Opening a file when Reader.md isn't running opens one window, not two.**
