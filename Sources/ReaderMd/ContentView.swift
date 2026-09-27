@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 
 struct ContentView: View {
     @EnvironmentObject var state: AppState
+    @Environment(\.openWindow) private var openWindow
     @State private var dropTargeted = false
     @State private var topInset: CGFloat = 0
     @State private var documentWindow: NSWindow?
@@ -42,6 +43,7 @@ struct ContentView: View {
         .background(findStepShortcuts)
         .background(WindowAccessor {
             state.setDocumentWindow($0)
+            state.reopenDocumentWindow = { openWindow(id: "main") }
             extendContentUnderTitlebar($0)
             documentWindow = $0
             measureTitlebar()

@@ -132,7 +132,7 @@ the two from drifting: every shortcut in the app's copy has to appear here.
 | ⇧⌘E | Open in Editor |
 | ⌘E | Export as PDF… |
 | ⌘R | Reload |
-| ⌘W | Close the open document |
+| ⌘W | Close the open document (closes the window if none is open) |
 
 ### Navigation
 

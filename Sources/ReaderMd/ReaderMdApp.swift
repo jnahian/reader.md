@@ -251,7 +251,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             pendingURLs.append(contentsOf: urls)
             return
         }
-        MainActor.assumeIsolated { for url in urls { state.handleOpenURL(url) } }
+        MainActor.assumeIsolated {
+            for url in urls { state.handleOpenURL(url) }
+            // The window may be closed with the app still in the Dock.
+            if state.documentWindow == nil { state.reopenDocumentWindow?() }
+        }
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -267,25 +271,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         NSApp.activate(ignoringOtherApps: true)
 
-        // ⌘W should close the open document, not the window — closing the only window
-        // quits the app, which is a surprising way to lose your place. Intercepting the
+        // ⌘W should close the open document, not the window — the close button is
+        // there for the window. Intercepting the
         // key event rather than retargeting the File > Close item, because SwiftUI
         // rebuilds that menu whenever a command's `.disabled` state changes (opening a
         // file does exactly that) and the rebuild puts `performClose:` right back.
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
                   event.charactersIgnoringModifiers == "w",
-                  // A sheet or the quit alert is already up: leave ⌘W alone, or repeat
-                  // presses stack a second alert on top of the first.
+                  // A sheet or modal is up: leave ⌘W to it.
                   NSApp.modalWindow == nil, NSApp.keyWindow?.sheets.isEmpty ?? true,
                   let self,
                   // Only the document window closes documents. Settings (and any
                   // future window) gets AppKit's performClose.
                   MainActor.assumeIsolated({ self.shouldCloseDocument })
             else { return event }
-            // Deferred, not called inline: the quit path runs a modal alert, and
-            // spinning a modal loop from inside sendEvent() swallows it silently.
-            DispatchQueue.main.async { self.closeFileOrQuit(nil) }
+            DispatchQueue.main.async { self.closeFileOrWindow(nil) }
             return nil
         }
         // Return activates whatever control has focus. Installed here, beside the
@@ -293,7 +294,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ReturnKeyMonitor.install()
 
         // The menu item itself is rebuilt constantly, so re-point it each time the user
-        // pulls the menu bar down — otherwise clicking Close would still quit.
+        // pulls the menu bar down — otherwise clicking Close would close the window
+        // with a document still open.
         NotificationCenter.default.addObserver(
             forName: NSMenu.didBeginTrackingNotification, object: nil, queue: .main
         ) { [weak self] _ in
@@ -308,7 +310,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// ever landed. Before the first tag it's the tick between launch and
     /// ContentView's first update, when the document window is the only window
     /// there is — intercept, because letting `performClose` through would close
-    /// it, and closing the last window quits the app. After a tag, nil means
+    /// it. After a tag, nil means
     /// the document window is gone, so whatever is key now (Settings) owns ⌘W.
     @MainActor private var shouldCloseDocument: Bool {
         guard let state else { return true }
@@ -320,7 +322,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let items = NSApp.mainMenu?.items.compactMap(\.submenu).flatMap(\.items) ?? []
         guard let close = items.first(where: {
             $0.action == #selector(NSWindow.performClose(_:))
-                || $0.action == #selector(closeFileOrQuit(_:))
+                || $0.action == #selector(closeFileOrWindow(_:))
         }) else { return }
 
         // Restore, don't just skip: the retarget below is a persistent mutation,
@@ -334,33 +336,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Target is `self`, not nil: left to the responder chain the item validates as
         // disabled and the menu entry greys out.
         close.target = self
-        close.action = #selector(closeFileOrQuit(_:))
+        close.action = #selector(closeFileOrWindow(_:))
     }
 
-    @MainActor @objc func closeFileOrQuit(_ sender: Any?) {
+    @MainActor @objc func closeFileOrWindow(_ sender: Any?) {
         // The retarget above only refreshes when a menu opens, so the item can
         // still point here while another window is key: open Settings *from the
         // menu bar* and the retarget happens while the document is key, then
         // Settings takes over and ⌘W matches the stale key equivalent. Nothing
         // validates it away (there's no validateMenuItem), so re-check here and
-        // do what ⌘W means everywhere else — close the key window.
-        guard shouldCloseDocument else {
+        // do what ⌘W means everywhere else — close the key window. With no
+        // document open, that's the document window itself.
+        guard shouldCloseDocument, let state, state.selectedFile != nil else {
             NSApp.keyWindow?.performClose(sender)
             return
         }
-        if let state, state.selectedFile != nil {
-            state.closeFile()
-            return
-        }
-        let alert = NSAlert()
-        alert.messageText = "Quit Reader.md?"
-        alert.informativeText = "No document is open."
-        alert.addButton(withTitle: "Quit")
-        alert.addButton(withTitle: "Cancel")
-        if alert.runModal() == .alertFirstButtonReturn { NSApp.terminate(nil) }
+        state.closeFile()
     }
 
+    /// A Dock click with the window closed. SwiftUI doesn't reopen a `Window`
+    /// scene by itself.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag { MainActor.assumeIsolated { state?.reopenDocumentWindow?() } }
+        return true
+    }
+
+    /// The Mac default: the close button hides the window, the app stays in the
+    /// Dock, and clicking the Dock icon brings the window back.
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        true
+        false
     }
 }

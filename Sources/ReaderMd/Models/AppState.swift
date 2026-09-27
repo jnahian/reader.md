@@ -350,6 +350,10 @@ final class AppState: ObservableObject {
         documentWindowWasTagged = true
     }
 
+    /// Brings the document window back after its close button hid it. Set by
+    /// ContentView, the only place `openWindow` is reachable from.
+    var reopenDocumentWindow: (() -> Void)?
+
     // Reading feedback (posted from the web view). Scroll-rate values live on
     // `reading`, NOT here — see ReadingState. A plain `let`, so mutating it
     // never fires AppState's objectWillChange.
