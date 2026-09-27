@@ -12,7 +12,7 @@
 | ⇧⌘E | Open in Editor (pick one first in Settings, or File → Set Default Editor…) |
 | ⌘E | Export as PDF… |
 | ⌘R | Reload |
-| ⌘W | Close the open document (asks to quit if none is open) |
+| ⌘W | Close the open document (closes the window if none is open) |
 
 ## Navigation
 
