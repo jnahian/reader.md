@@ -50,6 +50,7 @@
       "id": "04-headings",
       "open": "field-notes/guides/setup.md",
       "actions": [
+        { "waitMs": 1000 },
         { "key": "p", "mods": ["command"] },
         { "waitMs": 500 },
         { "key": "#" }
