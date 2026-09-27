@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.21.1] - 2026-09-28
+
 ### Changed
 
 - **Search in the toolbar is a magnifier until you need it**, the way Finder's
@@ -17,8 +19,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - **Opening a file when Reader.md isn't running opens one window, not two.**
-  Double-clicking a markdown file (or `reader open`) on a cold launch used to
-  leave a small second window stacked over the main one.
+  Double-clicking a markdown file (or `reader <file>`) on a cold launch used to
+  leave a second window stacked over the main one.
 
 ## [1.21.0] - 2026-09-22
 
