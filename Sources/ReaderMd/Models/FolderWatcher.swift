@@ -3,7 +3,7 @@ import Foundation
 /// Watches a directory subtree for changes using FSEvents and fires a debounced callback.
 final class FolderWatcher {
     private var stream: FSEventStreamRef?
-    private let path: String
+    let path: String
     private let onChange: () -> Void
     private var debounceWork: DispatchWorkItem?
 
@@ -20,7 +20,8 @@ final class FolderWatcher {
             // The rescan this fires walks every root, so events that can't change the
             // tree must not fire it — see FileScanner.affectsTree.
             let paths = unsafeBitCast(eventPaths, to: NSArray.self) as? [String] ?? []
-            guard paths.isEmpty || paths.contains(where: FileScanner.affectsTree) else { return }
+            guard paths.isEmpty || paths.contains(where: { FolderWatcher.affectsTree($0, under: watcher.path) })
+            else { return }
             watcher.fire()
         }
 
@@ -50,6 +51,14 @@ final class FolderWatcher {
         self.stream = stream
         FSEventStreamSetDispatchQueue(stream, DispatchQueue.global(qos: .utility))
         FSEventStreamStart(stream)
+    }
+
+    /// `FileScanner.affectsTree`, judged on the path inside the watched folder: a
+    /// root that itself sits under `build/` or `.cache/` would otherwise have every
+    /// event dropped. FSEvents reports resolved paths, so under a symlinked root the
+    /// prefix won't match and the absolute path is judged, as before.
+    static func affectsTree(_ path: String, under root: String) -> Bool {
+        FileScanner.affectsTree(path.hasPrefix(root + "/") ? String(path.dropFirst(root.count)) : path)
     }
 
     private func fire() {

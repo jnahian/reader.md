@@ -29,4 +29,11 @@ final class WatchFilterTests: XCTestCase {
         XCTAssertFalse(FileScanner.affectsTree("/Users/x/repo/node_modules/pkg/README.md"))
         XCTAssertFalse(FileScanner.affectsTree("/Users/x/repo/.git/index"))
     }
+
+    /// Only the path inside the root counts: a root under a folder named like a
+    /// pruned one (`~/work/build/notes`) still reloads on its own edits.
+    func testPrunedNameAboveTheRootDoesNotMatter() {
+        XCTAssertTrue(FolderWatcher.affectsTree("/Users/x/build/notes/a.md", under: "/Users/x/build/notes"))
+        XCTAssertFalse(FolderWatcher.affectsTree("/Users/x/build/notes/dist/a.md", under: "/Users/x/build/notes"))
+    }
 }
