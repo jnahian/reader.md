@@ -14,6 +14,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **⌘W with no document open closes the window** instead of asking whether to
   quit. With a document open it still closes the document first.
 
+### Fixed
+
+- **A document opened from outside your folders now updates when it changes on
+  disk.** Files opened from Finder, `reader open`, ⌘O or Recents that weren't
+  inside an added folder never reloaded.
+- **Folders inside a directory named `build`, `dist` or `.cache` now reload.**
+  Edits under a folder like `~/work/build/notes` were ignored.
+
 ## [1.21.1] - 2026-09-28
 
 ### Changed
