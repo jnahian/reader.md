@@ -16,37 +16,12 @@ struct ReaderMdApp: App {
                 .environmentObject(state.reading)
                 .frame(minWidth: 720, minHeight: 460)
                 .preferredColorScheme(state.colorScheme)
-                .onOpenURL { url in
-                    if url.isFileURL {
-                        // Folders become roots; files open. Treating every file URL as
-                        // a document blanked the pane for `open -a Reader.md.app <dir>`
-                        // and left folder paths in Recents. No extension filter here —
-                        // unlike `readermd://open`, this URL is user-initiated.
-                        state.openPath(url.path)
-                        return
-                    }
-                    switch ReaderURL.action(for: url) {
-                    case .open(let path, let diff):
-                        // Before the open, so the file's first refreshDiff already
-                        // computes the diff. Sticky, exactly like the toolbar toggle.
-                        if diff, !state.diffMode { state.toggleDiffMode() }
-                        // openDropped does the routing (folder -> root, markdown -> open)
-                        // AND rejects non-markdown files — which is what keeps a hostile
-                        // `readermd://open?path=/etc/passwd` from rendering.
-                        state.openDropped(URL(fileURLWithPath: path))
-                    case .addRemote(let spec):
-                        // Never sync straight from a URL: rsync-over-ssh needs a human.
-                        state.pendingRemote = spec
-                        state.showAddRemote = true
-                    case .remove(let token):
-                        state.removeRoot(matching: token)
-                    case nil:
-                        break
-                    }
-                }
                 .onAppear {
-                    appDelegate.state = state
                     state.checkWhatsNew()
+                    // After checkWhatsNew, so a file that launched the app wins
+                    // over the changelog: this flushes any URLs the delegate
+                    // queued before the window existed.
+                    appDelegate.state = state
                 }
                 .onReceive(NotificationCenter.default.publisher(
                     for: NSApplication.didBecomeActiveNotification)) { _ in
@@ -56,8 +31,9 @@ struct ReaderMdApp: App {
                     state.refreshDiff()
                     state.refreshGitStatus()
                 }
-                // Without this, SwiftUI answers every incoming readermd:// URL by
-                // opening a *second* window instead of routing it to the existing one.
+                // Belt and braces: AppDelegate.application(_:open:) already takes
+                // every incoming URL away from SwiftUI's scene routing, but should
+                // one slip through, route it here instead of into a second window.
                 .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
         }
         .handlesExternalEvents(matching: ["*"])
@@ -249,7 +225,34 @@ private func showAboutPanel() {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    weak var state: AppState?
+    /// Set from the window's onAppear. Until then there is nothing to route an
+    /// opened URL to, so `application(_:open:)` parks it in `pendingURLs`.
+    weak var state: AppState? {
+        didSet {
+            guard let state, !pendingURLs.isEmpty else { return }
+            let urls = pendingURLs
+            pendingURLs = []
+            MainActor.assumeIsolated { for url in urls { state.handleOpenURL(url) } }
+        }
+    }
+    private var pendingURLs: [URL] = []
+
+    /// Every opened URL — a file from Finder or `open`, a folder, a `readermd://`
+    /// from the CLI — lands here rather than in SwiftUI's `.onOpenURL`.
+    ///
+    /// Implementing this is what stops SwiftUI routing the URL to a scene. Left to
+    /// SwiftUI, a cold launch (Reader.md not running, a file double-clicked) opened
+    /// *two* windows: the WindowGroup's default one, and — because that window had
+    /// not appeared yet to claim the event with `.handlesExternalEvents` — a
+    /// second, smaller one for the URL. On a cold launch this is called before the
+    /// window's onAppear, so the URLs wait for `state`.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        guard let state else {
+            pendingURLs.append(contentsOf: urls)
+            return
+        }
+        MainActor.assumeIsolated { for url in urls { state.handleOpenURL(url) } }
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Last launch's shared PDFs. Not cleaned up when a share finishes: an
