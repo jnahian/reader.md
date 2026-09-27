@@ -171,7 +171,7 @@ struct IndexedFile: Identifiable {
 @MainActor
 final class AppState: ObservableObject {
     @Published var roots: [RootFolder] = []
-    @Published var selectedFile: FileNode?
+    @Published var selectedFile: FileNode? { didSet { watchFileOutsideRoots() } }
     @Published var searchQuery: String = "" {
         didSet { refreshSearchResults() }
     }
@@ -460,6 +460,23 @@ final class AppState: ObservableObject {
     }
 
     private var watchers: [FolderWatcher] = []
+
+    /// The root watchers only see files inside a root. A file opened from Finder,
+    /// the CLI or ⌘O can live anywhere, so its folder gets a watcher of its own.
+    private var fileWatcher: FolderWatcher?
+
+    private func watchFileOutsideRoots() {
+        let dir = selectedFile.flatMap { file in
+            roots.contains { file.url.path.hasPrefix($0.url.path + "/") }
+                ? nil : file.url.deletingLastPathComponent().path
+        }
+        guard dir != fileWatcher?.path else { return }
+        fileWatcher = dir.map {
+            FolderWatcher(path: $0) { [weak self] in
+                Task { @MainActor in self?.handleFolderChange() }
+            }
+        }
+    }
 
     // MARK: - Appearance
 
