@@ -40,14 +40,17 @@ headings.
 
 ## Finding text in a document
 
-Find in Page (⌘F) opens a search field in the toolbar. It counts the matches as
-you type and highlights all of them, tinting the current match a stronger colour
-than the others so you can see where you are in the document.
+Find in Page (⌘F), or the magnifier at the end of the toolbar, opens a search
+field there. While it's open, the view controls (text size, canvas width,
+outline, focus) step aside to make room; their shortcuts still work. It counts
+the matches as you type and highlights all of them, tinting the current match a
+stronger colour than the others so you can see where you are in the document.
 
 ![In-page find, with the match count and step controls](../assets/screenshots/reading/03-find.png)
 
 Step through matches with the chevrons beside the count, with ⌘G and ⇧⌘G, or
-with ⌘↩ and ⇧⌘↩. Press ⎋ to clear the field.
+with ⌘↩ and ⇧⌘↩. Press ⎋ to clear the field and fold it back into the
+magnifier; clicking away with nothing typed does the same.
 
 This searches inside the open document. To search *across* files instead, filter
 the sidebar (⇧⌘F) or use Quick Open (⌘P).

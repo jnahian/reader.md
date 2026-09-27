@@ -76,6 +76,9 @@ private struct ToolbarCluster<Content: View>: View {
             .menuIndicator(.hidden)
             .fixedSize()
             .glassCapsule()
+            // Toolbar items sit flush under the split view; this is the gap
+            // between one capsule and the next.
+            .padding(.horizontal, 3)
     }
 }
 
@@ -106,6 +109,14 @@ private extension View {
 /// `@FocusState` and the `@EnvironmentObject` live in a real view scope.
 private struct ReaderToolbar: ViewModifier {
     @EnvironmentObject var state: AppState
+    /// Search is a magnifier until clicked or ⌘F, like Finder's: a standing
+    /// field was the first thing a narrow window pushed off its edge.
+    @State private var findExpanded = false
+    private var searchOpen: Bool { findExpanded || !state.findQuery.isEmpty }
+    /// One-shot: the magnifier click or ⌘F that opened search wants the new
+    /// field focused. Cleared once it is, because the toolbar recreates the
+    /// field whenever it rebuilds its items, and focus must not follow that.
+    @State private var focusNewField = false
 
     func body(content: Content) -> some View {
         titled(content)
@@ -139,23 +150,28 @@ private struct ReaderToolbar: ViewModifier {
                     OrphanedMarksBadge()
                 }
 
-                // View: reading style + canvas width + outline + focus.
+                // View: reading style + canvas width + outline + focus. Hidden
+                // while search is open, to make room for the field: SwiftUI's
+                // toolbar ignores visibility priority, so a narrow window would
+                // otherwise push search itself into `»`. Its shortcuts still work.
                 ToolbarItem(placement: .primaryAction) {
-                    ToolbarCluster {
-                        readingStyleMenu
-                        canvasWidthMenu
+                    if !searchOpen {
+                        ToolbarCluster {
+                            readingStyleMenu
+                            canvasWidthMenu
 
-                        if !state.toc.isEmpty {
-                            Button { state.setShowTOC(!state.showTOC) } label: {
-                                Image(systemName: "list.bullet").activeTint(state.showTOC)
+                            if !state.toc.isEmpty {
+                                Button { state.setShowTOC(!state.showTOC) } label: {
+                                    Image(systemName: "list.bullet").activeTint(state.showTOC)
+                                }
+                                .dockTooltip("Toggle outline (⇧⌘B)")
                             }
-                            .dockTooltip("Toggle outline (⇧⌘B)")
-                        }
 
-                        Button { state.toggleFocusMode() } label: {
-                            Image(systemName: "plus.viewfinder").activeTint(state.focusMode)
+                            Button { state.toggleFocusMode() } label: {
+                                Image(systemName: "plus.viewfinder").activeTint(state.focusMode)
+                            }
+                            .dockTooltip("Focus mode (⌥⌘F)")
                         }
-                        .dockTooltip("Focus mode (⌥⌘F)")
                     }
                 }
 
@@ -216,9 +232,25 @@ private struct ReaderToolbar: ViewModifier {
                     }
                 }
 
-                ToolbarItem(placement: .primaryAction) { findField }
+                ToolbarItem(placement: .primaryAction) {
+                    if searchOpen {
+                        findField
+                    } else {
+                        ToolbarCluster {
+                            Button { expandSearch() } label: {
+                                Image(systemName: "magnifyingglass")
+                            }
+                            .dockTooltip("Search (⌘F)")
+                        }
+                        .disabled(state.selectedFile == nil)
+                    }
+                }
             }
             .toolbar(state.focusToolbarHidden ? .hidden : .automatic, for: .windowToolbar)
+            .onChange(of: state.focusFind) { _ in
+                // An open field already takes ⌘F through `focusToken`.
+                if !searchOpen { expandSearch() }
+            }
     }
 
     /// The proxy icon: click the title to reveal in Finder, drag it to move the file.
@@ -324,6 +356,11 @@ private struct ReaderToolbar: ViewModifier {
         .dockTooltip("Canvas width (⇧⌘\\)")
     }
 
+    private func expandSearch() {
+        focusNewField = true
+        findExpanded = true
+    }
+
     /// Search stays inline in the toolbar, like Preview. Enter finds the next
     /// match, Escape clears; the chevrons and ⌘G / ⇧⌘G (or ⌘↩ / ⇧⌘↩) step the
     /// matches. Not `.searchable`: that can't show the match count, and focusing
@@ -339,7 +376,14 @@ private struct ReaderToolbar: ViewModifier {
                 focusToken: state.focusFind,
                 onSubmit: { state.triggerFindNext() },
                 onPrev: { state.triggerFindPrev() },
-                onCancel: { state.findQuery = "" }
+                onCancel: {
+                    state.findQuery = ""
+                    findExpanded = false
+                },
+                // Clicking away from an empty field folds it back to the icon.
+                onEndEditing: { if state.findQuery.isEmpty { findExpanded = false } },
+                focusOnCreate: focusNewField,
+                onFocused: { focusNewField = false }
             )
             .frame(width: 110, height: 18)
 
@@ -382,6 +426,7 @@ private struct ReaderToolbar: ViewModifier {
         .padding(.horizontal, 12)
         .frame(height: 32)
         .glassCapsule()
+        .padding(.horizontal, 3)
         .disabled(state.selectedFile == nil)
         .opacity(state.selectedFile == nil ? 0.5 : 1)
     }
@@ -409,6 +454,9 @@ private struct FindTextField: NSViewRepresentable {
     var onSubmit: () -> Void
     var onPrev: () -> Void
     var onCancel: () -> Void
+    var onEndEditing: () -> Void
+    var focusOnCreate: Bool
+    var onFocused: () -> Void
 
     func makeNSView(context: Context) -> FindField {
         let field = FindField()
@@ -418,6 +466,12 @@ private struct FindTextField: NSViewRepresentable {
         field.placeholderString = "Search"
         field.font = .systemFont(ofSize: 12.5)
         field.delegate = context.coordinator
+        if focusOnCreate {
+            DispatchQueue.main.async {
+                field.window?.makeFirstResponder(field)
+                onFocused()
+            }
+        }
         return field
     }
 
@@ -452,6 +506,10 @@ private struct FindTextField: NSViewRepresentable {
         func controlTextDidChange(_ note: Notification) {
             guard let field = note.object as? NSTextField else { return }
             parent.text = field.stringValue
+        }
+
+        func controlTextDidEndEditing(_ note: Notification) {
+            parent.onEndEditing()
         }
 
         func control(_ control: NSControl, textView: NSTextView, doCommandBy selector: Selector) -> Bool {
