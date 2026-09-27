@@ -117,6 +117,14 @@ private struct ReaderToolbar: ViewModifier {
     /// field focused. Cleared once it is, because the toolbar recreates the
     /// field whenever it rebuilds its items, and focus must not follow that.
     @State private var focusNewField = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Lags `searchOpen` on the way closed by one animation, so the toolbar
+    /// keeps the field's room (and the view cluster stays out) while the
+    /// capsule shrinks. AppKit resizes a toolbar item at once, not animated:
+    /// shrinking it with the capsule clipped the capsule mid-animation.
+    @State private var searchRoomHeld = false
+    private var searchRoom: Bool { searchOpen || searchRoomHeld }
+    private static let searchAnimation = 0.2
 
     func body(content: Content) -> some View {
         titled(content)
@@ -155,7 +163,7 @@ private struct ReaderToolbar: ViewModifier {
                 // toolbar ignores visibility priority, so a narrow window would
                 // otherwise push search itself into `»`. Its shortcuts still work.
                 ToolbarItem(placement: .primaryAction) {
-                    if !searchOpen {
+                    if !searchRoom {
                         ToolbarCluster {
                             readingStyleMenu
                             canvasWidthMenu
@@ -233,20 +241,17 @@ private struct ReaderToolbar: ViewModifier {
                 }
 
                 ToolbarItem(placement: .primaryAction) {
-                    if searchOpen {
-                        findField
-                    } else {
-                        ToolbarCluster {
-                            Button { expandSearch() } label: {
-                                Image(systemName: "magnifyingglass")
-                            }
-                            .dockTooltip("Search (⌘F)")
-                        }
-                        .disabled(state.selectedFile == nil)
-                    }
+                    findField
                 }
             }
             .toolbar(state.focusToolbarHidden ? .hidden : .automatic, for: .windowToolbar)
+            .onChange(of: searchOpen) { open in
+                guard !open else { searchRoomHeld = true; return }
+                let delay = reduceMotion ? 0 : Self.searchAnimation
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                    if !searchOpen { searchRoomHeld = false }
+                }
+            }
             .onChange(of: state.focusFind) { _ in
                 // An open field already takes ⌘F through `focusToken`.
                 if !searchOpen { expandSearch() }
@@ -356,9 +361,13 @@ private struct ReaderToolbar: ViewModifier {
         .dockTooltip("Canvas width (⇧⌘\\)")
     }
 
+    /// Room first, field a turn later: the toolbar widens the item at once, so
+    /// growing the capsule in the same pass started it from wherever AppKit
+    /// put the item mid-relayout rather than from the magnifier.
     private func expandSearch() {
         focusNewField = true
-        findExpanded = true
+        searchRoomHeld = true
+        DispatchQueue.main.async { findExpanded = true }
     }
 
     /// Search stays inline in the toolbar, like Preview. Enter finds the next
@@ -367,66 +376,88 @@ private struct ReaderToolbar: ViewModifier {
     /// it programmatically (⌘F) is macOS 14+.
     private var findField: some View {
         HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 13))
-                .foregroundStyle(.secondary)
-
-            FindTextField(
-                text: $state.findQuery,
-                focusToken: state.focusFind,
-                onSubmit: { state.triggerFindNext() },
-                onPrev: { state.triggerFindPrev() },
-                onCancel: {
-                    state.findQuery = ""
-                    findExpanded = false
-                },
-                // Clicking away from an empty field folds it back to the icon.
-                onEndEditing: { if state.findQuery.isEmpty { findExpanded = false } },
-                focusOnCreate: focusNewField,
-                onFocused: { focusNewField = false }
-            )
-            .frame(width: 110, height: 18)
-
-            if !state.findQuery.isEmpty {
-                Text(state.findCount > 0 ? "\(state.findIndex + 1)/\(state.findCount)" : "0")
-                    .font(.system(size: 11))
+            if searchOpen {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 13))
                     .foregroundStyle(.secondary)
-                    .monospacedDigit()
 
-                // Step the matches without leaving the mouse — the same actions
-                // the ⌘↩ / ⇧⌘↩ and ⌘G / ⇧⌘G shortcuts fire.
-                HStack(spacing: 2) {
-                    Button { state.triggerFindPrev() } label: {
-                        Image(systemName: "chevron.up")
-                            .font(.system(size: 10, weight: .semibold))
-                    }
-                    .dockTooltip("Previous match (⇧⌘↩)")
+                FindTextField(
+                    text: $state.findQuery,
+                    focusToken: state.focusFind,
+                    onSubmit: { state.triggerFindNext() },
+                    onPrev: { state.triggerFindPrev() },
+                    onCancel: {
+                        state.findQuery = ""
+                        findExpanded = false
+                    },
+                    // Clicking away from an empty field folds it back to the icon.
+                    onEndEditing: { if state.findQuery.isEmpty { findExpanded = false } },
+                    focusOnCreate: focusNewField,
+                    onFocused: { focusNewField = false }
+                )
+                .frame(width: 110, height: 18)
 
-                    Button { state.triggerFindNext() } label: {
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 10, weight: .semibold))
-                    }
-                    .dockTooltip("Next match (⌘↩)")
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
-                // `.plain` buttons don't dim themselves when disabled.
-                .opacity(state.findCount > 0 ? 1 : 0.4)
-                .disabled(state.findCount == 0)
-
-                Button { state.findQuery = "" } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 12))
+                if !state.findQuery.isEmpty {
+                    Text(state.findCount > 0 ? "\(state.findIndex + 1)/\(state.findCount)" : "0")
+                        .font(.system(size: 11))
                         .foregroundStyle(.secondary)
+                        .monospacedDigit()
+
+                    // Step the matches without leaving the mouse — the same actions
+                    // the ⌘↩ / ⇧⌘↩ and ⌘G / ⇧⌘G shortcuts fire.
+                    HStack(spacing: 2) {
+                        Button { state.triggerFindPrev() } label: {
+                            Image(systemName: "chevron.up")
+                                .font(.system(size: 10, weight: .semibold))
+                        }
+                        .dockTooltip("Previous match (⇧⌘↩)")
+
+                        Button { state.triggerFindNext() } label: {
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 10, weight: .semibold))
+                        }
+                        .dockTooltip("Next match (⌘↩)")
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                    // `.plain` buttons don't dim themselves when disabled.
+                    .opacity(state.findCount > 0 ? 1 : 0.4)
+                    .disabled(state.findCount == 0)
+
+                    Button { state.findQuery = "" } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .dockTooltip("Clear search")
                 }
-                .buttonStyle(.plain)
-                .dockTooltip("Clear search")
+            } else {
+                Button { expandSearch() } label: {
+                    Image(systemName: "magnifyingglass")
+                }
+                .buttonStyle(ToolbarIconButtonStyle(width: ClusterMetrics.width,
+                                                    height: ClusterMetrics.height,
+                                                    glass: false,
+                                                    iconSize: ClusterMetrics.iconSize,
+                                                    iconWeight: .regular))
+                .dockTooltip("Search (⌘F)")
             }
         }
-        .padding(.horizontal, 12)
+        // The magnifier sits where the collapsed button's glyph was, so the
+        // capsule appears to grow out of it rather than swap for another one.
+        .padding(.horizontal, searchOpen ? 12 : 0)
         .frame(height: 32)
         .glassCapsule()
         .padding(.horizontal, 3)
+        // One item that resizes, rather than two items swapped, so the toolbar
+        // has a width to animate. Reduce Motion gets the swap without the slide.
+        .animation(reduceMotion ? nil : .easeInOut(duration: Self.searchAnimation),
+                   value: searchOpen)
+        // Trailing, so the capsule grows from and shrinks back into the
+        // magnifier at the toolbar's end, whatever width AppKit has given the
+        // item. 160 covers the empty field, the width it closes from.
+        .frame(minWidth: searchRoom ? 160 : nil, alignment: .trailing)
         .disabled(state.selectedFile == nil)
         .opacity(state.selectedFile == nil ? 0.5 : 1)
     }
