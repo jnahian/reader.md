@@ -22,9 +22,29 @@ export interface Release {
 
 export const releasesLog: Release[] = [
   {
-    version: "1.21.1",
+    version: "1.22.0",
     date: "Sep 28, 2026",
     badge: "LATEST",
+    groups: [
+      {
+        tag: "IMPROVED",
+        items: [
+          "<strong>Closing the window keeps Reader.md in the Dock</strong>, the way Mac apps usually behave, instead of quitting. Click the Dock icon, or open a file, to bring the window back.",
+          "<strong>\u2318W with no document open closes the window</strong> instead of asking whether to quit. With a document open it still closes the document first.",
+        ],
+      },
+      {
+        tag: "FIXED",
+        items: [
+          "<strong>A document opened from outside your folders now updates when it changes on disk.</strong> Files opened from Finder, <code>reader open</code>, \u2318O or Recents that weren't inside an added folder never reloaded.",
+          "<strong>Folders inside a directory named <code>build</code>, <code>dist</code> or <code>.cache</code> now reload.</strong> Edits under a folder like <code>~/work/build/notes</code> were ignored.",
+        ],
+      },
+    ],
+  },
+  {
+    version: "1.21.1",
+    date: "Sep 28, 2026",
     groups: [
       {
         tag: "IMPROVED",
