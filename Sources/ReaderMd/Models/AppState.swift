@@ -323,7 +323,7 @@ final class AppState: ObservableObject {
     /// the window never wanted mouse-moved events for its own reasons.
     private var focusHoverMonitorPriorAcceptsMouseMovedEvents: Bool?
 
-    /// The WindowGroup's window, tagged by `WindowAccessor` on ContentView.
+    /// The main `Window` scene's window, tagged by `WindowAccessor` on ContentView.
     /// Deliberately not @Published — nothing renders from it, and republishing
     /// on every window change would churn the view tree. Weak so closing the
     /// window doesn't keep it alive.
@@ -333,11 +333,10 @@ final class AppState: ObservableObject {
     /// a nil on its own is ambiguous, and `shouldCloseDocument` needs both.
     ///
     /// One slot, deliberately: the app is single-window by construction — the
-    /// WindowGroup routes every `readermd://` URL to the existing window
-    /// (`handlesExternalEvents`) and `CommandGroup(replacing: .newItem)` drops
-    /// New Window. If a second document window ever becomes reachable, this
-    /// becomes last-writer-wins and ⌘W in the other window closes it instead of
-    /// the document.
+    /// scene is a single-instance `Window`, so neither an opened URL nor a
+    /// menu command can make a second one. If a second document window ever
+    /// becomes reachable, this becomes last-writer-wins and ⌘W in the other
+    /// window closes it instead of the document.
     private(set) weak var documentWindow: NSWindow?
 
     /// Whether `documentWindow` has ever been set. A weak reference can't tell
