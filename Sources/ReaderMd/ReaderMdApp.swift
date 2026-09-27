@@ -10,7 +10,10 @@ struct ReaderMdApp: App {
     @StateObject private var updater = Updater()
 
     var body: some Scene {
-        WindowGroup("Reader.md") {
+        // `Window`, not `WindowGroup`: on a cold launch SwiftUI opened a second
+        // WindowGroup window for the file that launched the app, before the first
+        // had appeared to claim it. A `Window` scene has only one instance.
+        Window("Reader.md", id: "main") {
             ContentView()
                 .environmentObject(state)
                 .environmentObject(state.reading)
@@ -31,9 +34,8 @@ struct ReaderMdApp: App {
                     state.refreshDiff()
                     state.refreshGitStatus()
                 }
-                // Belt and braces: AppDelegate.application(_:open:) already takes
-                // every incoming URL away from SwiftUI's scene routing, but should
-                // one slip through, route it here instead of into a second window.
+                // Claim every incoming URL for this window. The single `Window`
+                // scene already rules out a second one; this is belt and braces.
                 .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
         }
         .handlesExternalEvents(matching: ["*"])
@@ -240,12 +242,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Every opened URL — a file from Finder or `open`, a folder, a `readermd://`
     /// from the CLI — lands here rather than in SwiftUI's `.onOpenURL`.
     ///
-    /// Implementing this is what stops SwiftUI routing the URL to a scene. Left to
-    /// SwiftUI, a cold launch (Reader.md not running, a file double-clicked) opened
-    /// *two* windows: the WindowGroup's default one, and — because that window had
-    /// not appeared yet to claim the event with `.handlesExternalEvents` — a
-    /// second, smaller one for the URL. On a cold launch this is called before the
-    /// window's onAppear, so the URLs wait for `state`.
+    /// On a cold launch (Reader.md not running, a file double-clicked) this is
+    /// called before the window's onAppear, so the URLs wait for `state`. It does
+    /// not stop SwiftUI opening a window for the URL — the single-instance
+    /// `Window` scene is what keeps that to one.
     func application(_ application: NSApplication, open urls: [URL]) {
         guard let state else {
             pendingURLs.append(contentsOf: urls)
