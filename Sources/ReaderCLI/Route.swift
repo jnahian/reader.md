@@ -25,7 +25,7 @@ enum Route {
     /// Kept in sync with `FileScanner.markdownExtensions` in the app module by
     /// `RouteTests.testMarkdownExtensionsAgreeWithTheApp` — nothing else would catch
     /// the two drifting apart.
-    static let markdownExtensions: Set<String> = ["md", "markdown", "mdown", "mdx"]
+    static let markdownExtensions: Set<String> = ["md", "markdown", "mdown", "mdx", "mkd", "mkdn", "mdwn"]
 
     // MARK: - argv -> Command
 

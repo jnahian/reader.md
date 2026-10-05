@@ -577,8 +577,8 @@ final class GitStatusParseTests: XCTestCase {
     }
 
     func testEveryMarkdownExtensionIsKept() {
-        let out = " M a.md\n M b.markdown\n M c.mdown\n M d.mdx"
-        XCTAssertEqual(GitDiff.parseStatus(out, root: root).count, 4)
+        let out = " M a.md\n M b.markdown\n M c.mdown\n M d.mdx\n M e.mkd\n M f.mkdn\n M g.mdwn"
+        XCTAssertEqual(GitDiff.parseStatus(out, root: root).count, 7)
     }
 
     /// A path with a space arrives quoted.

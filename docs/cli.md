@@ -30,7 +30,8 @@ write. Reader.md launches if it is not already running.
 ## Opening
 
 A path can be relative, absolute, or start with `~`. Anything that is not a
-folder has to be markdown — `.md`, `.markdown`, `.mdown`, or `.mdx` — and a path
+folder has to be markdown — `.md`, `.markdown`, `.mdown`, `.mdx`, `.mkd`,
+`.mkdn`, or `.mdwn` — and a path
 that does not exist fails before the app is bothered.
 
 `--diff` opens the file as a side-by-side diff, as ⇧⌘D does. It is position

@@ -148,4 +148,9 @@ final class RouteTests: XCTestCase {
     func testMarkdownExtensionsAgreeWithTheApp() {
         XCTAssertEqual(Route.markdownExtensions, FileScanner.markdownExtensions)
     }
+
+    /// The less common extensions GitHub also renders as markdown.
+    func testCLIAcceptsMkdMkdnAndMdwn() {
+        XCTAssertTrue(Route.markdownExtensions.isSuperset(of: ["mkd", "mkdn", "mdwn"]))
+    }
 }

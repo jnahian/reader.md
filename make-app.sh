@@ -133,7 +133,7 @@ cat > "${APP}/Contents/Info.plist" <<PLIST
       <key>UTTypeTagSpecification</key>
       <dict>
         <key>public.filename-extension</key>
-        <array><string>md</string><string>markdown</string><string>mdown</string><string>mdx</string></array>
+        <array><string>md</string><string>markdown</string><string>mdown</string><string>mdx</string><string>mkd</string><string>mkdn</string><string>mdwn</string></array>
       </dict>
     </dict>
   </array>

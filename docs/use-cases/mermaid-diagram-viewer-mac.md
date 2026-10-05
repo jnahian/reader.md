@@ -113,7 +113,7 @@ export. See [Convert markdown to PDF on your Mac, then share it](markdown-to-pdf
 - Reader.md does not edit diagrams or markdown; editing goes to your own editor.
 - Reader.md does not export a single diagram as PNG or SVG.
 - Reader.md opens Mermaid inside markdown files (`.md`, `.markdown`, `.mdown`,
-  `.mdx`), not standalone `.mmd` files.
+  `.mdx`, `.mkd`, `.mkdn`, `.mdwn`), not standalone `.mmd` files.
 
 ## Get Reader.md
 

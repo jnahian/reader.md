@@ -77,8 +77,8 @@ filter matches file names only. See
 
 ## Keep node_modules and generated docs out of the list
 
-Reader.md shows markdown files only (`.md`, `.markdown`, `.mdown`, `.mdx`)
-and skips folders like `node_modules` and `.git`, so vendored READMEs do not
+Reader.md shows markdown files only (`.md`, `.markdown`, `.mdown`, `.mdx`,
+`.mkd`, `.mkdn`, `.mdwn`) and skips folders like `node_modules` and `.git`, so vendored READMEs do not
 bury your own documents.
 
 Inside a git repository, Reader.md also respects `.gitignore`: markdown that

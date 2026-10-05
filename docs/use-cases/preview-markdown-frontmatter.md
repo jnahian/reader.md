@@ -70,7 +70,7 @@ generator does is missing:
 ## Can I preview MDX files on a Mac?
 
 Yes, as markdown. Reader.md lists and opens `.mdx` files alongside `.md`,
-`.markdown`, and `.mdown`, and renders their markdown. `import` lines show as
+`.markdown`, `.mdown`, `.mkd`, `.mkdn`, and `.mdwn`, and renders their markdown. `import` lines show as
 text and JSX components are not rendered, so an MDX post that leans on
 components reads with gaps where they would be.
 
