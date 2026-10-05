@@ -129,11 +129,12 @@ people. All of it is generated — none of it is a list to keep up to date by ha
   appears in it for the same reason it appears on the `/docs` hub. It links the
   `.md` twins below, not the pages: what follows an entry there is an agent.
   Use cases follow in their own section, linking their twins too.
-- **A `.md` twin of every docs page and use case**, from `src/pages/docs/[slug].md.ts`
-  and `src/pages/use-cases/[slug].md.ts` (link rewriting shared in `src/lib/markdown-twin.ts`):
-  `/docs/reading` is the page, `/docs/reading.md` is the markdown it was
-  rendered from. The "Copy .md" button on each page fetches its own twin,
-  so the HTML never carries a second copy of the prose. The body is served
+- **A `.md` twin of every docs page and use case**, from
+  `src/pages/docs/[slug].md.ts` and `src/pages/use-cases/[slug].md.ts`, which
+  share their link rewriting in `src/lib/markdown-twin.ts`: `/docs/reading` is
+  the page, `/docs/reading.md` is the markdown it was rendered from. The
+  "Copy .md" button on each page (`components/CopyMarkdown.astro`) fetches its
+  own twin, so the HTML never carries a second copy of the prose. The body is served
   verbatim except for its links, which are resolved to absolute URLs through the
   same `rewriteLink` the rendered page uses — exported from
   `remark-docs-assets.mjs` so a link cannot mean two things. It relies on the

@@ -1,7 +1,7 @@
 // Hands the reader the markdown the page was rendered from — the thing you
 // actually want in an LLM prompt, rather than the page's HTML scraped back into
-// prose. The text is fetched from the page's own .md twin
-// (pages/docs/[slug].md.ts) so the HTML doesn't carry a second copy of it.
+// prose. The text is fetched from the page's own .md twin (pages/docs/ and
+// pages/use-cases/ [slug].md.ts) so the HTML doesn't carry a second copy of it.
 const RESET = 2000;
 
 export function initCopyMarkdown() {
