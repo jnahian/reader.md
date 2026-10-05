@@ -39,6 +39,11 @@ as plain text and reads **Copied** for a moment afterwards.
 
 A code fence tagged `mermaid` is drawn as a diagram, and LaTeX renders both
 inline — `$\mu$` in the middle of a sentence — and as a centred display block.
+Inline math takes `$…$` or `\(…\)`. A display block takes `$$…$$`, or `\[…\]`
+when it starts its own line; mid-sentence, `\[1\]` stays a literal `[1]`. A `$`
+only closes inline math when there's no space before it and no digit after it,
+so "costs $5 and $10" reads as prices, and math inside a code span or fence
+stays literal.
 
 ![A Mermaid diagram and LaTeX math in the same document](../assets/screenshots/rendering/03-diagram.png)
 

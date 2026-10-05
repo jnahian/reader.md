@@ -1,4 +1,4 @@
-/* global marked, hljs, renderMathInElement, mermaid */
+/* global marked, hljs, katex, mermaid */
 // Bridge between the SwiftUI host and the markdown web view.
 
 const contentEl = document.getElementById('content');
@@ -41,6 +41,60 @@ function initMermaid() {
 
 marked.setOptions({ gfm: true, breaks: false });
 marked.use(markedFootnote({ footnoteDivider: true }));
+
+// Math is tokenized before marked sees it, then rendered by KaTeX directly.
+// Left to marked, `\(` / `\[` / `\\` lose their backslashes as escapes and
+// `*`/`_` turn into emphasis before any TeX engine gets a look. Extensions run
+// ahead of marked's own tokenizers, but code spans and fences are consumed
+// whole first, so math inside them stays literal. Inline `$…$` follows the
+// Pandoc rule — no space just inside either `$`, and no digit right after the
+// closing one — so "costs $5 and $10" is left as text; it also never spans a
+// backtick, so a stray `$` can't pair with one inside a following code span.
+// `\[…\]` is display math only as a block starting its own line: mid-sentence,
+// `\[1\]` is markdown's literal bracket and is left to marked.
+// One macros object per render, so `\gdef` in one formula carries to the next
+// (as it did under auto-render); `render()` resets it.
+let mathMacros = {};
+function katexHtml(tex, displayMode) {
+  return katex.renderToString(tex, { displayMode, throwOnError: false, macros: mathMacros });
+}
+const MATH_BLOCK = [
+  /^ {0,3}\$\$((?:(?!\$\$)[\s\S])+?)\$\$[ \t]*(?:\n+|$)/,
+  /^ {0,3}\\\[((?:(?!\\\])[\s\S])+?)\\\][ \t]*(?:\n+|$)/,
+];
+const MATH_INLINE = [
+  [/^\$\$([\s\S]+?)\$\$/, true],
+  [/^\\\(([\s\S]+?)\\\)/, false],
+  [/^\$(?!\s)((?:\\.|[^\\$`])*?(?:\\.|[^\s\\$`]))\$(?!\d)/, false],
+];
+marked.use({
+  extensions: [
+    {
+      name: 'mathBlock',
+      level: 'block',
+      start(src) { const i = src.search(/^ {0,3}(?:\$\$|\\\[)/m); return i < 0 ? undefined : i; },
+      tokenizer(src) {
+        for (const re of MATH_BLOCK) {
+          const m = re.exec(src);
+          if (m) return { type: 'mathBlock', raw: m[0], text: m[1] };
+        }
+      },
+      renderer(token) { return katexHtml(token.text, true) + '\n'; },
+    },
+    {
+      name: 'mathInline',
+      level: 'inline',
+      start(src) { const i = src.search(/\$|\\\(/); return i < 0 ? undefined : i; },
+      tokenizer(src) {
+        for (const [re, display] of MATH_INLINE) {
+          const m = re.exec(src);
+          if (m) return { type: 'mathInline', raw: m[0], text: m[1], display };
+        }
+      },
+      renderer(token) { return katexHtml(token.text, token.display); },
+    },
+  ],
+});
 
 // ---- Public API called from Swift via evaluateJavaScript ----
 
@@ -229,12 +283,12 @@ async function render(text, dir, keepScroll, resume) {
   if (!keepScroll) findFocus = 0;
 
   const { table, body } = splitFrontmatter(text);
+  mathMacros = {};
   contentEl.innerHTML = table + marked.parse(body);
 
   assignHeadingIds();
   fixRelativeImages();
   highlightCode();
-  renderMath();
   await renderMermaid();
   interceptLinks();
   postTOC();
@@ -371,7 +425,11 @@ function assignHeadingIds() {
   const seen = new Map();
   contentEl.querySelectorAll('h1,h2,h3,h4,h5,h6').forEach((h) => {
     if (h.closest('section[data-footnotes]')) return;
-    let slug = (h.textContent.trim().toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-')) || 'section';
+    // Slug from the TeX source, not KaTeX's rendered glyphs + MathML, so a
+    // heading's id is the same as before math was rendered at parse time.
+    const c = h.cloneNode(true);
+    c.querySelectorAll('.katex').forEach((k) => k.replaceWith(`$${k.querySelector('annotation')?.textContent ?? ''}$`));
+    let slug = (c.textContent.trim().toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-')) || 'section';
     const n = seen.get(slug) || 0;
     seen.set(slug, n + 1);
     h.id = n ? `${slug}-${n}` : slug;
@@ -382,20 +440,6 @@ function highlightCode() {
   contentEl.querySelectorAll('pre code').forEach((block) => {
     if ([...block.classList].includes('language-mermaid')) return;
     hljs.highlightElement(block);
-  });
-}
-
-function renderMath() {
-  if (typeof renderMathInElement !== 'function') return;
-  renderMathInElement(contentEl, {
-    delimiters: [
-      { left: '$$', right: '$$', display: true },
-      { left: '\\[', right: '\\]', display: true },
-      { left: '$', right: '$', display: false },
-      { left: '\\(', right: '\\)', display: false },
-    ],
-    ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
-    throwOnError: false,
   });
 }
 
