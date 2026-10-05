@@ -669,7 +669,7 @@ function interceptLinks() {
         post('openExternal', href);
       } else if (href.startsWith('#')) {
         window.ReaderMd.scrollToHeading(href.slice(1));
-      } else if (/\.(md|markdown|mdown|mdx)(#.*)?$/i.test(href)) {
+      } else if (/\.(md|markdown|mdown|mdx|mkd|mkdn|mdwn)(#.*)?$/i.test(href)) {
         const clean = href.split('#')[0];
         const target = clean.startsWith('/') ? clean : normalize(`${currentDir}/${clean}`);
         post('openFile', target);

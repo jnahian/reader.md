@@ -20,7 +20,7 @@ folder the user has added.
 ## When
 
 - **On your own:** you wrote or substantially rewrote a `.md`, `.markdown`,
-  `.mdown`, or `.mdx` file whose audience is the user — a plan, spec, design
+  `.mdown`, `.mdx`, `.mkd`, `.mkdn`, or `.mdwn` file whose audience is the user — a plan, spec, design
   doc, report, or review.
 - **When asked:** the user asks to open, show, or preview a markdown file in
   Reader.md.

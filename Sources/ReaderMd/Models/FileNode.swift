@@ -27,7 +27,7 @@ final class FileNode: Identifiable, Hashable {
 }
 
 enum FileScanner {
-    static let markdownExtensions: Set<String> = ["md", "markdown", "mdown", "mdx"]
+    static let markdownExtensions: Set<String> = ["md", "markdown", "mdown", "mdx", "mkd", "mkdn", "mdwn"]
     static let ignoredDirs: Set<String> = ["node_modules", ".git", ".svn", "dist", "build", ".next", ".cache"]
 
     /// Whether a changed path could alter the scanned tree. The tree only ever holds

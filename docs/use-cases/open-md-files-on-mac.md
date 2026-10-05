@@ -58,7 +58,7 @@ default.
 
 ## Which file extensions does Reader.md open?
 
-Reader.md opens markdown under all four common extensions:
+Reader.md opens markdown under all seven common extensions:
 
 | Extension | Example |
 |---|---|
@@ -66,6 +66,9 @@ Reader.md opens markdown under all four common extensions:
 | `.markdown` | `notes.markdown` |
 | `.mdown` | `draft.mdown` |
 | `.mdx` | `page.mdx` |
+| `.mkd` | `notes.mkd` |
+| `.mkdn` | `notes.mkdn` |
+| `.mdwn` | `index.mdwn` |
 
 ## Open a whole folder of markdown files
 

@@ -117,7 +117,7 @@ that workflow, see [Review what your coding agent writes](review-ai-agent-docs.m
 No. Reader.md runs `git` read-only, only to ask what changed. Reader.md never
 stages, commits, or discards anything, and never writes to your markdown.
 Reader.md works with markdown files only (`.md`, `.markdown`, `.mdown`,
-`.mdx`), and markdown excluded by `.gitignore` stays out of the sidebar.
+`.mdx`, `.mkd`, `.mkdn`, `.mdwn`), and markdown excluded by `.gitignore` stays out of the sidebar.
 
 ## Get Reader.md
 
