@@ -5,7 +5,7 @@ import SwiftUI
 /// branches.
 ///
 /// A popover rather than the pull-down `Picker` it replaces. `GitDiff.branches`
-/// offers up to 50 refs, and an NSMenu-backed picker shows them as one flat run
+/// offers every ref in the repo, and an NSMenu-backed picker shows them as one flat run
 /// of rows with no way to narrow it — you scroll the whole repo looking for a
 /// branch you already know the name of. The popover keeps the branches in their
 /// own scrolling section under a filter field, separates them from the three
@@ -111,7 +111,7 @@ struct DiffScopePicker: View {
         } else {
             ScrollViewReader { proxy in
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
+                    LazyVStack(alignment: .leading, spacing: 0) {
                         ForEach(filtered, id: \.self) { name in
                             ScopeRow(title: name,
                                      selected: state.diffScope == .ref(name)) { pick(.ref(name)) }
@@ -120,7 +120,7 @@ struct DiffScopePicker: View {
                     }
                 }
                 .frame(maxHeight: 220)
-                // 50 refs don't fit; open on the one in use rather than at the top.
+                // A long ref list doesn't fit; open on the one in use rather than at the top.
                 .onAppear {
                     guard case .ref(let name) = state.diffScope else { return }
                     DispatchQueue.main.async { proxy.scrollTo(name, anchor: .center) }
