@@ -82,6 +82,11 @@ for b in "${BIN_DIR}"/*.bundle; do
   fi
 done
 
+# zsh completion for `reader`. The Homebrew cask links it from here; DMG users
+# link it by hand (docs/cli.md).
+mkdir -p "${APP}/Contents/Resources/completions"
+cp completions/_reader "${APP}/Contents/Resources/completions/_reader"
+
 # App icon: PNG -> .icns
 ICON_SRC="Sources/ReaderMd/Resources/AppIcon.png"
 if [ -f "${ICON_SRC}" ]; then

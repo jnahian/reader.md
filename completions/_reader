@@ -1,0 +1,34 @@
+#compdef reader
+
+# zsh completion for `reader`, the CLI inside Reader.md.app. The verbs and the
+# extension list mirror Sources/ReaderCLI/Route.swift.
+
+local md='*.(#i)(md|markdown|mdown|mdx|mkd|mkdn|mdwn)(-.)'
+
+_reader_roots() {
+  local -a names
+  local line
+  # `reader ls` pads the name column and puts two spaces before the detail, so
+  # the name is everything before the first double space.
+  for line in ${(f)"$(${words[1]} ls 2>/dev/null)"}; do
+    [[ $line == 'No folders.'* ]] && continue
+    names+=("${line%%  *}")
+  done
+  compadd -a names
+}
+
+if (( CURRENT == 2 )); then
+  _alternative \
+    'commands:command:((ls\:"list configured folders" rm\:"remove a folder" remote\:"add a remote (SSH) folder" help\:"show usage" -\:"open markdown piped on stdin"))' \
+    'options:option:((--diff\:"open a file as a git diff" --help\:"show usage" --version\:"print the version"))' \
+    "files:markdown file or folder:_files -g '$md'"
+  return
+fi
+
+case $words[2] in
+  rm)     (( CURRENT == 3 )) && _reader_roots ;;
+  remote) (( CURRENT == 3 )) && _message 'user@host:/absolute/path' ;;
+  --diff) (( CURRENT == 3 )) && _files -g "$md" ;;
+  ls|help|-h|--help|-V|--version|-) ;;
+  *)      (( CURRENT == 3 )) && compadd -- --diff ;;
+esac
