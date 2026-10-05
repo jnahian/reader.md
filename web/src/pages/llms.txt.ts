@@ -26,6 +26,10 @@ export const GET: APIRoute = async () => {
     (a, b) => a.data.order - b.data.order
   );
 
+  const useCases = (await getCollection("useCases")).sort(
+    (a, b) => a.data.order - b.data.order
+  );
+
   const sections = [...byCategory(pages)].map(
     ([category, group]) =>
       `## ${category}\n\n` +
@@ -46,6 +50,10 @@ export const GET: APIRoute = async () => {
     "the only network access is the auto-update check.",
     "",
     ...sections.flatMap((s) => [s, ""]),
+    "## Use cases",
+    "",
+    ...useCases.map((u) => `- [${u.data.title}](${website}/use-cases/${u.id}): ${u.data.summary}`),
+    "",
     "## Optional",
     "",
     `- [Home](${website}/): what the app is, with screenshots.`,

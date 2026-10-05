@@ -14,7 +14,7 @@ export const author = "Julkar Naen Nahian";
 export const description =
   "Reader.md opens plans, specs and READMEs in a native macOS reading window — outline, search across every folder, highlights, live reload, Mermaid diagrams and LaTeX math.";
 
-export type Page = "home" | "docs" | "changelog";
+export type Page = "home" | "docs" | "changelog" | "use-cases";
 
 // Nav links shown per page (the current page is surfaced as a badge instead).
 export const navLinksFor = (page: Page) => {
@@ -22,14 +22,17 @@ export const navLinksFor = (page: Page) => {
   const docs = { href: "/docs", label: "Docs" };
   const faq = { href: "/docs/faq", label: "FAQ" };
   const changelog = { href: "/changelog", label: "Changelog" };
+  const useCases = { href: "/use-cases", label: "Use cases" };
   // No Home link: the brand on the left is already one.
   if (page === "docs") return [faq, changelog];
   if (page === "changelog") return [faq, docs];
-  return [features, docs, changelog];
+  if (page === "use-cases") return [docs, changelog];
+  return [features, useCases, docs, changelog];
 };
 
 export const footerLinks = [
   { href: "/docs", label: "Docs" },
+  { href: "/use-cases", label: "Use cases" },
   { href: "/changelog", label: "Changelog" },
   { href: repo, label: "GitHub" },
   { href: website, label: "Website" },

@@ -61,8 +61,10 @@ key actually does — check them rather than copying an existing table.
   feature area under `docs/features/` (`reading.md`, `library.md`, `git.md`, …)
   with screenshots in `docs/assets/screenshots/<slug>/`. `README.md` is only an
   index and highlights; detail belongs in `docs/`, not back in the README.
-  `docs/markup-model.md` and `docs/superpowers/{specs,plans}` are working
-  documents, not published pages.
+  `docs/use-cases/` holds the use-case pages, published on their own
+  `/use-cases/` route rather than under `/docs/` (written with the
+  `seo-content` skill). `docs/markup-model.md` and
+  `docs/superpowers/{specs,plans}` are working documents, not published pages.
 - `web/src/data/content.ts` — landing-page copy only (highlight cards, the
   compact shortcut strip). The `/docs/` pages are **not** mirrored: the site
   renders `docs/*.md` and `docs/features/*.md` directly, so the markdown is the

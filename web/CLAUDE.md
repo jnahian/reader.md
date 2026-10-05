@@ -26,6 +26,14 @@ from the collection, so a new page appears with no edit to the hub.
 convention, not part of the URL — and a collision with a root file of the same
 name fails the build by name rather than silently dropping a page.
 
+**Use cases** are a second collection on their own route: `docs/use-cases/<x>.md`
+publishes at `/use-cases/<x>` (`src/pages/use-cases/[slug].astro`, index at
+`/use-cases`), never under `/docs/`. Their pattern and id live in
+`docs-pages.mjs` beside the docs ones. Frontmatter is `title`, `order`,
+`summary`, optional `related` (docs page ids). They have no `.md` twin and no
+sidebar; the `seo-content` skill (`.claude/skills/seo-content`) is how they are
+researched and written.
+
 Links between those files are written as real relative paths (`cli.md`,
 `../CONTRIBUTING.md`) so they work in Reader.md and on GitHub;
 `plugins/remark-docs-assets.mjs` rewrites them at build time to a site path or a
@@ -120,6 +128,7 @@ people. All of it is generated — none of it is a list to keep up to date by ha
   built off the `docs` collection — so a new page under the repo's `docs/`
   appears in it for the same reason it appears on the `/docs` hub. It links the
   `.md` twins below, not the pages: what follows an entry there is an agent.
+  Use cases follow in their own section, linking the pages (they have no twin).
 - **A `.md` twin of every docs page**, from `src/pages/docs/[slug].md.ts`:
   `/docs/reading` is the page, `/docs/reading.md` is the markdown it was
   rendered from. The "Copy .md" button on each page fetches its own twin,
@@ -131,7 +140,8 @@ people. All of it is generated — none of it is a list to keep up to date by ha
   reformat the prose, and serving the source byte for byte is the point.
 - JSON-LD, passed to `Base.astro` as a `schema` prop by the page that knows what
   it is describing: `SoftwareApplication` from `index.astro`, `FAQPage` from
-  `docs/[...slug].astro`.
+  `docs/[...slug].astro`, `TechArticle` + `BreadcrumbList` from
+  `use-cases/[slug].astro`, `CollectionPage` from `use-cases.astro`.
 
 So the FAQ's answers now reach a reader three ways — the accordion, the JSON-LD,
 and `/docs/faq.md` — all three derived from `docs/faq.md` alone.
@@ -154,4 +164,5 @@ data edit.
 first.** The content cache keys on the markdown, not on the plugins, so a plugin
 edit alone re-emits the previous HTML — a passing build proving nothing. Confirm
 the output rather than the exit code: `grep -rl 'ld+json' dist` should list
-`dist/index.html` and `dist/docs/faq/index.html`.
+`dist/index.html`, `dist/docs/faq/index.html`, and every page under
+`dist/use-cases/`.
