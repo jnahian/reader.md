@@ -13,6 +13,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **`.mkd`, `.mkdn` and `.mdwn` files open as markdown.** They now show in the
   sidebar, open from Finder and from links in a document, and `reader` accepts
   them.
+- **zsh completion for `reader`.** Tab completes the verbs, markdown files and
+  folders, and the folder names `reader rm` takes. Homebrew installs it; DMG
+  users can link it by hand, as the command line docs describe.
 
 ### Fixed
 

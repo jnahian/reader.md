@@ -27,6 +27,20 @@ first so macOS clears quarantine from the bundle.
 `readermd://` URL to Reader.md, which does the work — including any preference
 write. Reader.md launches if it is not already running.
 
+Tab completion for zsh ships inside the app and covers the verbs, markdown
+files and folders, and the folder names `reader rm` takes. Homebrew installs it
+into its `site-functions` directory, which the `eval "$(brew shellenv)"` line
+Homebrew's installer adds to `~/.zprofile` already puts on your `fpath`. From the
+DMG, link it into a directory on your `fpath`:
+
+```sh
+mkdir -p ~/.zsh/completions
+ln -s /Applications/Reader.md.app/Contents/Resources/completions/_reader ~/.zsh/completions/
+```
+
+and add `fpath=(~/.zsh/completions $fpath)` to `~/.zshrc` before its `compinit`
+line (or before Oh My Zsh is sourced), then open a new shell.
+
 ## Opening
 
 A path can be relative, absolute, or start with `~`. Anything that is not a
