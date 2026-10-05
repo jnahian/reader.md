@@ -22,9 +22,30 @@ export interface Release {
 
 export const releasesLog: Release[] = [
   {
+    version: "1.23.0",
+    date: "Oct 5, 2026",
+    badge: "LATEST",
+    groups: [
+      {
+        tag: "ADDED",
+        items: [
+          "<strong><code>reader --version</code>.</strong> Prints the installed version, e.g. <code>reader 1.23.0</code>, instead of failing as an unknown option. <code>-V</code> works too.",
+          "<strong><code>.mkd</code>, <code>.mkdn</code> and <code>.mdwn</code> files open as markdown.</strong> They now show in the sidebar, open from Finder and from links in a document, and <code>reader</code> accepts them.",
+          "<strong>zsh completion for <code>reader</code>.</strong> Tab completes the verbs, markdown files and folders, and the folder names <code>reader rm</code> takes. Homebrew installs it; DMG users can link it by hand, as the command line docs describe.",
+        ],
+      },
+      {
+        tag: "FIXED",
+        items: [
+          "<strong>Every branch is reachable in the diff scope picker.</strong> The branch list stopped at 50 refs with no hint, and filtering searched only those 50, so in a busy repo the branch you wanted could be missing. It now lists every branch.",
+          "<strong>LaTeX math renders as written.</strong> Inline <code>\\(\u2026\\)</code> and display <code>\\[\u2026\\]</code> blocks now render instead of showing as plain brackets, <code>\\\\</code> line breaks in matrices, <code>aligned</code> and <code>cases</code> survive, and <code>*</code> or <code>_</code> inside math no longer turns into italics. Prices like \u201ccosts $5 and $10\u201d and literal brackets like <code>\\[1\\]</code> mid-sentence stay plain text.",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.22.0",
     date: "Sep 28, 2026",
-    badge: "LATEST",
     groups: [
       {
         tag: "IMPROVED",
