@@ -6,6 +6,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **`reader --version`.** Prints the installed version, e.g. `reader 1.22.0`,
+  instead of failing as an unknown option. `-V` works too.
+
 ### Fixed
 
 - **LaTeX math renders as written.** Inline `\(…\)` and display `\[…\]` blocks

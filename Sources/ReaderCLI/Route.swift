@@ -10,6 +10,8 @@ enum Command: Equatable {
     case stdin
     /// The user asked for the usage text: stdout, exit 0.
     case help
+    /// `--version`: the app's version on stdout, exit 0.
+    case version
     /// The user got the invocation wrong: message on stderr, exit 1. Kept distinct
     /// from `help` so `reader remote "$HOST" || handle_error` can actually see the
     /// failure instead of reading usage text off stdout and exiting 0.
@@ -43,6 +45,9 @@ enum Route {
         switch first {
         case "-h", "--help", "help":
             return .help
+        case "-V", "--version":
+            guard extras == 0 else { return .misuse("--version takes no arguments") }
+            return .version
         case "-":
             guard extras == 0 else { return .misuse("`-` reads the document from stdin and takes no arguments") }
             return .stdin
@@ -120,7 +125,7 @@ enum Route {
         case .remove(let token):
             components.host = "remove"
             components.percentEncodedQueryItems = encoded(["match": token])
-        case .list, .stdin, .help, .misuse:
+        case .list, .stdin, .help, .version, .misuse:
             return nil
         }
         return components.url
