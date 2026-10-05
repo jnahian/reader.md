@@ -6,9 +6,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.23.0] - 2026-10-05
+
 ### Added
 
-- **`reader --version`.** Prints the installed version, e.g. `reader 1.22.0`,
+- **`reader --version`.** Prints the installed version, e.g. `reader 1.23.0`,
   instead of failing as an unknown option. `-V` works too.
 - **`.mkd`, `.mkdn` and `.mdwn` files open as markdown.** They now show in the
   sidebar, open from Finder and from links in a document, and `reader` accepts
