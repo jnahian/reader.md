@@ -91,7 +91,8 @@ More on piping, from pandoc to an LLM CLI, in
 A bad path, an unknown option, or a malformed command exits **1** with the
 reason on stderr, so `reader remote "$HOST:$DIR" || handle_error` sees the
 failure. `reader` with no arguments, or `--help`, prints usage to stdout and
-exits **0**.
+exits **0**. `reader --version` (or `-V`) prints the version, such as
+`reader 1.22.0`, and exits **0**.
 
 ## With a coding agent
 

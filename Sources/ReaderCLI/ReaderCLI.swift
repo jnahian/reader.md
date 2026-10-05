@@ -22,6 +22,11 @@ struct ReaderCLI {
         switch command {
         case .help:
             print(usage)
+        case .version:
+            // Shipped inside Reader.md.app/Contents/MacOS, so Bundle.main is the app's
+            // bundle; a bare `swift build` binary has no Info.plist to read.
+            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+            print("reader \(version ?? "(dev build)")")
         case .misuse(let problem):
             // stderr + exit 1: a script must be able to tell misuse from success.
             FileHandle.standardError.write(Data("reader: \(problem)\n\n\(usage)\n".utf8))
@@ -77,5 +82,6 @@ struct ReaderCLI {
       reader ls                 list configured folders
       reader rm <name|path>     remove a folder
       cat x.md | reader -       open piped markdown
+      reader --version          print the version
     """
 }

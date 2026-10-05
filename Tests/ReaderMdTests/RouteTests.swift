@@ -17,6 +17,14 @@ final class RouteTests: XCTestCase {
         XCTAssertEqual(Route.parse(["-h"], cwd: cwd), .help)
     }
 
+    func testVersionFlag() {
+        XCTAssertEqual(Route.parse(["--version"], cwd: cwd), .version)
+        XCTAssertEqual(Route.parse(["-V"], cwd: cwd), .version)
+        guard case .misuse = Route.parse(["--version", "extra"], cwd: cwd) else {
+            return XCTFail("--version with an argument should be .misuse")
+        }
+    }
+
     /// The distinction that makes the tool scriptable: `reader remote "$X" || fail`
     /// must actually see a failure, not read usage text off stdout and exit 0.
     func testMisuseIsNotHelp() {
@@ -127,6 +135,7 @@ final class RouteTests: XCTestCase {
     func testCommandsWithNoURL() {
         XCTAssertNil(Route.url(for: .list))
         XCTAssertNil(Route.url(for: .help))
+        XCTAssertNil(Route.url(for: .version))
         XCTAssertNil(Route.url(for: .misuse("nope")))
         XCTAssertNil(Route.url(for: .stdin))   // resolved to .open once the temp file exists
     }
