@@ -1,0 +1,103 @@
+---
+import { getCollection } from "astro:content";
+import Base from "../layouts/Base.astro";
+import { website } from "../data/site";
+
+// Adding a file under the repo's docs/use-cases/ puts a card here with no edit
+// to this page — see src/content.config.ts.
+const pages = (await getCollection("useCases")).sort(
+  (a, b) => a.data.order - b.data.order
+);
+
+const summary =
+  "How people use Reader.md, the free native Mac markdown reader: agent output, READMEs, docs on servers, diagrams, math, PDFs, runbooks, design reviews and more.";
+
+const schema = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  name: "Reader.md use cases",
+  description: summary,
+  url: `${website}/use-cases`,
+  mainEntity: {
+    "@type": "ItemList",
+    itemListElement: pages.map((p, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: p.data.title,
+      url: `${website}/use-cases/${p.id}`,
+    })),
+  },
+};
+---
+
+<Base title="Use cases — Reader.md" description={summary} page="use-cases" schema={schema}>
+  <div class="cases">
+    <header class="cases__hero">
+      <div class="pill">Use cases</div>
+      <h1 class="cases__title">What people read with Reader.md</h1>
+      <p class="cases__lead">{summary}</p>
+    </header>
+    <div class="cases__grid">
+      {pages.map((p) => (
+        <a href={`/use-cases/${p.id}`} class="cases__card card frost">
+          <span class="cases__name">{p.data.title}</span>
+          <span class="cases__summary">{p.data.summary}</span>
+        </a>
+      ))}
+    </div>
+  </div>
+</Base>
+
+<style>
+  .cases {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding: calc(var(--nav-h) + 48px) var(--pad-x) 96px;
+  }
+
+  .cases__hero {
+    max-width: var(--maxw-prose);
+    margin-bottom: 40px;
+  }
+
+  .cases__title {
+    margin: 16px 0 12px;
+    font-size: clamp(32px, 4.5vw, 44px);
+    line-height: 1.08;
+    letter-spacing: -0.035em;
+    color: var(--fg);
+  }
+
+  .cases__lead {
+    margin: 0;
+    font-size: 17px;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+
+  .cases__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  .cases__card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 22px;
+    text-decoration: none;
+  }
+
+  .cases__name {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--fg);
+  }
+
+  .cases__summary {
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--faint);
+  }
+</style>

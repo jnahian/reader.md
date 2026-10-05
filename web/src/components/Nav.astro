@@ -13,7 +13,11 @@ interface Props {
 }
 const { page = "home", solid = false } = Astro.props;
 const links = navLinksFor(page);
-const badge = page === "docs" ? "Docs" : page === "changelog" ? "Changelog" : null;
+const badge =
+  page === "docs" ? "Docs"
+  : page === "changelog" ? "Changelog"
+  : page === "use-cases" ? "Use cases"
+  : null;
 const linkIcon: Record<string, "grid" | "book" | "help" | "history"> = {
   Features: "grid",
   Docs: "book",

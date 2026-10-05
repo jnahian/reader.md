@@ -4,7 +4,7 @@
 // by hand is where drift comes from.
 import { defineCollection, z } from "astro:content";
 import { glob } from "astro/loaders";
-import { DOC_PATTERNS, docId } from "../plugins/docs-pages.mjs";
+import { DOC_PATTERNS, docId, USE_CASE_PATTERN, useCaseId } from "../plugins/docs-pages.mjs";
 
 // Flattening features/<name>.md onto /docs/<name> can collide: a future
 // features/cli.md would land on the same URL as cli.md. Fail the build there
@@ -37,4 +37,22 @@ const docs = defineCollection({
   }),
 });
 
-export const collections = { docs };
+// Use cases publish on their own route, /use-cases/<slug>, from the repo's
+// docs/use-cases/ (declared in plugins/docs-pages.mjs, beside DOC_PATTERNS,
+// which they are not in — so they never also appear under /docs/). `related`
+// names docs page ids, checked by RelatedDocs.
+const useCases = defineCollection({
+  loader: glob({
+    pattern: USE_CASE_PATTERN,
+    base: "../docs",
+    generateId: ({ entry }) => useCaseId(entry),
+  }),
+  schema: z.object({
+    title: z.string(),
+    order: z.number(),
+    summary: z.string(),
+    related: z.array(z.string()).optional(),
+  }),
+});
+
+export const collections = { docs, useCases };

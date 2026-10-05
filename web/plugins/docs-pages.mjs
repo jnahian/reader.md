@@ -27,3 +27,11 @@ const EXACT = new Set(DOC_PATTERNS.filter((p) => !p.includes("*")));
 
 export const isDocPage = (docsRelPath) =>
   EXACT.has(docsRelPath) || /^features\/[^/]+\.md$/.test(docsRelPath);
+
+// Use cases are their own collection on their own route: use-cases/<slug>.md
+// publishes at /use-cases/<slug>, never under /docs/.
+export const USE_CASE_PATTERN = "use-cases/*.md";
+
+// The slug, or undefined for anything that is not a use-case page.
+export const useCaseId = (docsRelPath) =>
+  docsRelPath.match(/^use-cases\/([^/]+)\.md$/)?.[1];

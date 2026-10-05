@@ -30,7 +30,9 @@ const absolutize = (body: string, from: string) =>
     // A sibling docs page points at that page's markdown, so following a link
     // out of one .md lands in another rather than back in the HTML.
     const doc = rewritten.match(/^\/docs\/([^#]+)(#.*)?$/);
-    return `](${doc ? `${website}/docs/${doc[1]}.md${doc[2] ?? ""}` : rewritten})`;
+    if (doc) return `](${website}/docs/${doc[1]}.md${doc[2] ?? ""})`;
+    // Any other site path (a use case) still needs the host in a .md file.
+    return `](${rewritten.startsWith("/") ? website + rewritten : rewritten})`;
   });
 
 export async function getStaticPaths() {

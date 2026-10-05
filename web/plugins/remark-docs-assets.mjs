@@ -7,13 +7,13 @@
 // swapped to a <video> element here.
 //
 // Links between docs files are written as real relative paths for the same
-// reason, and are rewritten here too: to another docs page if it publishes, and
-// otherwise to the file on GitHub.
+// reason, and are rewritten here too: to another docs or use-case page if it
+// publishes, and otherwise to the file on GitHub.
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { visit } from "unist-util-visit";
-import { docId, isDocPage } from "./docs-pages.mjs";
+import { docId, isDocPage, useCaseId } from "./docs-pages.mjs";
 
 const PREFIX = /^\.\.\/assets\/screenshots\//;
 
@@ -39,6 +39,8 @@ export function rewriteLink(url, from) {
   if (!inDocs.startsWith("..") && isDocPage(inDocs)) {
     return `/docs/${docId(inDocs)}${hash}`;
   }
+  const useCase = useCaseId(inDocs);
+  if (useCase) return `/use-cases/${useCase}${hash}`;
   return `${BLOB}${path.relative(REPO_ROOT, abs)}${hash}`;
 }
 

@@ -1,0 +1,78 @@
+---
+import { getCollection, render } from "astro:content";
+import Base from "../../layouts/Base.astro";
+import RelatedDocs from "../../components/RelatedDocs.astro";
+import { website, author } from "../../data/site";
+
+export async function getStaticPaths() {
+  const pages = await getCollection("useCases");
+  return pages.map((page) => ({ params: { slug: page.id }, props: { page } }));
+}
+
+const { page } = Astro.props;
+const { Content } = await render(page);
+const url = `${website}/use-cases/${page.id}`;
+
+// Built from the same frontmatter the page renders its <title> and description
+// from, so the typed claim and the visible one cannot disagree.
+const schema = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "TechArticle",
+      headline: page.data.title,
+      description: page.data.summary,
+      url,
+      author: { "@type": "Person", name: author },
+      about: { "@type": "SoftwareApplication", name: "Reader.md", url: website },
+    },
+    {
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Use cases", item: `${website}/use-cases` },
+        { "@type": "ListItem", position: 2, name: page.data.title, item: url },
+      ],
+    },
+  ],
+};
+---
+
+<Base
+  title={`${page.data.title} — Reader.md`}
+  description={page.data.summary}
+  page="use-cases"
+  schema={schema}
+>
+  <div class="usecase">
+    <nav class="usecase__crumb" aria-label="Breadcrumb">
+      <a href="/use-cases">Use cases</a>
+    </nav>
+    <article class="doc__body">
+      <Content />
+    </article>
+    <RelatedDocs current={`use-cases/${page.id}`} related={page.data.related} />
+  </div>
+</Base>
+
+<style>
+  .usecase {
+    max-width: var(--maxw-prose);
+    margin: 0 auto;
+    padding: calc(var(--nav-h) + 32px) var(--pad-x) 96px;
+    box-sizing: content-box;
+  }
+
+  .usecase__crumb {
+    margin-bottom: 16px;
+    font-size: 13px;
+  }
+
+  .usecase__crumb a {
+    color: var(--muted);
+    text-decoration: none;
+  }
+
+  .usecase__crumb a:hover {
+    color: var(--fg);
+  }
+</style>
