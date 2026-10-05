@@ -6,6 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **LaTeX math renders as written.** Inline `\(…\)` and display `\[…\]` blocks
+  now render instead of showing as plain brackets, `\\` line breaks in
+  matrices, `aligned` and `cases` survive, and `*` or `_` inside math no longer
+  turns into italics. Prices like "costs $5 and $10" and literal brackets like
+  `\[1\]` mid-sentence stay plain text.
+
 ## [1.22.0] - 2026-09-28
 
 ### Changed
