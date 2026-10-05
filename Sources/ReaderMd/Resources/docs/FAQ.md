@@ -97,8 +97,9 @@ Yes. Mermaid fenced code blocks render as diagrams, and LaTeX (`$…$` /
 bundled, so none of it touches the network.
 
 **Can I change the theme or text size?**
-Light/dark follows the toggle in the topbar, which also picks a reading theme —
-Standard, Editorial, or Terminal. Text size is ⌘+ / ⌘- / ⌘0, and
+The appearance button in the toolbar cycles Light, Dark, and System. The
+reading theme — Standard, Editorial, or Terminal — is picked from the toolbar's
+**Reading style** menu or in Settings (⌘,). Text size is ⌘+ / ⌘- / ⌘0, and
 **View → Canvas Width** picks Narrow, Wide (the default), or Full Width (⇧⌘\ cycles them). Full Width fills the window, so wide tables stop scrolling sideways.
 
 All four also live in **Settings** (⌘,), if you'd rather set them in one place.

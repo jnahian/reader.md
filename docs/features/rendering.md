@@ -59,8 +59,9 @@ anchors, the copy buttons, nor the diagram controls appear in an exported PDF.
 
 ## Live reload
 
-Reader.md watches every folder you add. Save a file in your editor and the open
-document re-renders where it stands — your scroll position is kept, so a long
+Reader.md watches every folder you add, and the folder of a document you open
+from outside them — from Finder, `reader`, ⌘O, or Recents. Save a file in your
+editor and the open document re-renders where it stands — your scroll position is kept, so a long
 document does not jump back to the top. The tree refreshes too, so a file added
 or removed on disk appears or disappears without a manual reload.
 
