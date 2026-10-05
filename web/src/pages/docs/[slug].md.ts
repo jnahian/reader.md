@@ -10,30 +10,7 @@
 // page uses, so a link can't mean two different things.
 import type { APIRoute } from "astro";
 import { getCollection, type CollectionEntry } from "astro:content";
-import { rewriteLink } from "../../../plugins/remark-docs-assets.mjs";
-import { website } from "../../data/site";
-
-const SCREENSHOTS = /^\.\.\/assets\/screenshots\//;
-
-// Every destination in docs/ is a plain inline `](target)` — no titles, no
-// reference definitions — so this doesn't need a markdown parser, and not
-// having one is why the rest of the file survives byte for byte.
-const absolutize = (body: string, from: string) =>
-  body.replace(/\]\(([^)]+)\)/g, (whole, dest: string) => {
-    if (SCREENSHOTS.test(dest)) {
-      return `](${website}${dest.replace(SCREENSHOTS, "/screenshots/")})`;
-    }
-    const rewritten = rewriteLink(dest, from);
-    // Absolute URLs, site-absolute paths and bare fragments come back null:
-    // they are already right, in markdown as much as in HTML.
-    if (!rewritten) return whole;
-    // A sibling docs page points at that page's markdown, so following a link
-    // out of one .md lands in another rather than back in the HTML.
-    const doc = rewritten.match(/^\/docs\/([^#]+)(#.*)?$/);
-    if (doc) return `](${website}/docs/${doc[1]}.md${doc[2] ?? ""})`;
-    // Any other site path (a use case) still needs the host in a .md file.
-    return `](${rewritten.startsWith("/") ? website + rewritten : rewritten})`;
-  });
+import { absolutize } from "../../lib/markdown-twin";
 
 export async function getStaticPaths() {
   const pages = await getCollection("docs");

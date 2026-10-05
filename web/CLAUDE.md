@@ -30,8 +30,8 @@ name fails the build by name rather than silently dropping a page.
 publishes at `/use-cases/<x>` (`src/pages/use-cases/[slug].astro`, index at
 `/use-cases`), never under `/docs/`. Their pattern and id live in
 `docs-pages.mjs` beside the docs ones. Frontmatter is `title`, `order`,
-`summary`, optional `related` (docs page ids). They have no `.md` twin and no
-sidebar; the `seo-content` skill (`.claude/skills/seo-content`) is how they are
+`summary`, optional `related` (docs page ids). They get a `.md` twin like the
+docs pages, but no sidebar; the `seo-content` skill (`.claude/skills/seo-content`) is how they are
 researched and written.
 
 Links between those files are written as real relative paths (`cli.md`,
@@ -128,8 +128,9 @@ people. All of it is generated — none of it is a list to keep up to date by ha
   built off the `docs` collection — so a new page under the repo's `docs/`
   appears in it for the same reason it appears on the `/docs` hub. It links the
   `.md` twins below, not the pages: what follows an entry there is an agent.
-  Use cases follow in their own section, linking the pages (they have no twin).
-- **A `.md` twin of every docs page**, from `src/pages/docs/[slug].md.ts`:
+  Use cases follow in their own section, linking their twins too.
+- **A `.md` twin of every docs page and use case**, from `src/pages/docs/[slug].md.ts`
+  and `src/pages/use-cases/[slug].md.ts` (link rewriting shared in `src/lib/markdown-twin.ts`):
   `/docs/reading` is the page, `/docs/reading.md` is the markdown it was
   rendered from. The "Copy .md" button on each page fetches its own twin,
   so the HTML never carries a second copy of the prose. The body is served

@@ -90,7 +90,7 @@ Screenshots come only from a `<slug>.shots.json` manifest captured by the
 - Facts as lists or tables, not buried in prose. Exact names for keys, flags,
   file paths in code spans.
 - New pages appear in `/llms.txt` automatically — `summary` is the line an
-  agent sees first. Docs pages also get a `/docs/<id>.md` twin; use cases don't.
+  agent sees first. Every page also gets a `.md` twin at its URL plus `.md`.
 
 ## 6. Structured data
 
