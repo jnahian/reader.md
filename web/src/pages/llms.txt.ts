@@ -52,7 +52,7 @@ export const GET: APIRoute = async () => {
     ...sections.flatMap((s) => [s, ""]),
     "## Use cases",
     "",
-    ...useCases.map((u) => `- [${u.data.title}](${website}/use-cases/${u.id}): ${u.data.summary}`),
+    ...useCases.map((u) => `- [${u.data.title}](${website}/use-cases/${u.id}.md): ${u.data.summary}`),
     "",
     "## Optional",
     "",
