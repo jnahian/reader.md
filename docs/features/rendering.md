@@ -76,3 +76,6 @@ document to your editor with ⇧⌘E, and every save comes straight back.
 
 Reload (⌘R) is there for the cases the watcher cannot see — a file that changed
 on a remote volume, or one replaced underneath you.
+
+Using Reader.md as the preview beside a terminal editor is covered in
+[A markdown preview for Neovim, Vim, Helix, and Zed on Mac](../use-cases/markdown-preview-neovim-mac.md).

@@ -83,6 +83,9 @@ editor, and they are cleaned up a day later.
 A bare `reader -` on a terminal — with nothing piped in — says so and exits
 rather than waiting for you to work out that it wants ⌃D.
 
+More on piping, from pandoc to an LLM CLI, in
+[Render markdown from the terminal in a Mac window](use-cases/render-markdown-from-terminal.md).
+
 ## In scripts
 
 A bad path, an unknown option, or a malformed command exits **1** with the
@@ -124,3 +127,6 @@ command exists.
 
 The skill opens a file once and then leaves it alone: live reload shows every
 later edit the agent makes, with your scroll position kept.
+
+A walkthrough of the agent workflow is in
+[Review what your coding agent writes](use-cases/review-ai-agent-docs.md).
