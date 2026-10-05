@@ -16,6 +16,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Every branch is reachable in the diff scope picker.** The branch list
+  stopped at 50 refs with no hint, and filtering searched only those 50, so in
+  a busy repo the branch you wanted could be missing. It now lists every
+  branch.
 - **LaTeX math renders as written.** Inline `\(…\)` and display `\[…\]` blocks
   now render instead of showing as plain brackets, `\\` line breaks in
   matrices, `aligned` and `cases` survive, and `*` or `_` inside math no longer

@@ -997,21 +997,18 @@ final class GitBranchListTests: XCTestCase {
         XCTAssertTrue(GitDiff.parseBranches("", current: nil).isEmpty)
     }
 
-    /// The cap is silent — a branch past it is simply absent from the menu with no
-    /// way to reach it — so it has to sit past where real repos land. Local and
-    /// `origin/*` refs share the budget, and most branches have both.
-    func testTheCapLeavesRoomForBothLocalAndRemoteRefs() {
+    /// A branch past where the old 50-ref cap sat was absent from the popover,
+    /// and filtering only searched the refs that survived the cap.
+    func testEveryRefIsKeptAndFilterable() {
         let many = (0..<40).flatMap { ["b\($0)", "origin/b\($0)"] }.joined(separator: "\n")
         let branches = GitDiff.parseBranches(many, current: nil)
-        XCTAssertEqual(branches.count, 50)
-        // 25 distinct branches survive, not 10.
-        XCTAssertTrue(branches.contains("b24"), "\(branches.suffix(4))")
+        XCTAssertEqual(branches.count, 80)
+        XCTAssertEqual(GitDiff.filterBranches(branches, query: "origin/b39"), ["origin/b39"])
     }
 }
 
-/// The scope popover's branch filter. The list it narrows is capped at 50, so a
-/// filter that drops the branch you typed is the difference between reaching a
-/// ref and not.
+/// The scope popover's branch filter. In a repo with many refs, a filter that
+/// drops the branch you typed is the difference between reaching a ref and not.
 final class GitBranchFilterTests: XCTestCase {
     private let branches = ["main", "origin/main", "feature/Login", "dev"]
 

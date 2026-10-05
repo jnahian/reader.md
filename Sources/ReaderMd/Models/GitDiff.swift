@@ -613,22 +613,18 @@ extension GitDiff {
     /// `origin/HEAD` is a symbolic alias for whatever `origin`'s default branch
     /// is, already listed under its real name; the checked-out branch is dropped
     /// because diffing the working tree against its own tip is what `.all` is.
-    /// ponytail: capped at 50 — a menu, not a branch browser. The cap is silent,
-    /// so it has to sit past where real repos land: `origin/*` shares the budget,
-    /// and most branches have a matching remote ref, so 20 was ~10 distinct
-    /// branches and a repo could hide the one you wanted with no way to reach it.
-    /// A 50-row pull-down still scrolls fine.
+    /// Uncapped: any cap hides a branch you can't then reach, filter or not. The
+    /// popover renders its rows lazily, so a long list costs nothing.
     static func parseBranches(_ output: String, current: String?) -> [String] {
-        Array(output.components(separatedBy: "\n")
+        output.components(separatedBy: "\n")
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty && $0 != current && $0 != "origin/HEAD" }
-            .prefix(50))
     }
 
     /// The branch rows the scope popover shows for `query`. Case-insensitive
     /// substring, so "main" finds both `main` and `origin/main` — a fuzzy
     /// subsequence match would also return every branch containing those
-    /// letters in order, which on a 50-ref list is noise rather than help.
+    /// letters in order, which on a long ref list is noise rather than help.
     static func filterBranches(_ branches: [String], query: String) -> [String] {
         let trimmed = query.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return branches }
