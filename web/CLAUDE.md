@@ -141,9 +141,10 @@ people. All of it is generated — none of it is a list to keep up to date by ha
   docs corpus having no link titles and no reference definitions; a parser would
   reformat the prose, and serving the source byte for byte is the point.
 - JSON-LD, passed to `Base.astro` as a `schema` prop by the page that knows what
-  it is describing: `SoftwareApplication` from `index.astro`, `FAQPage` from
-  `docs/[...slug].astro`, `TechArticle` + `BreadcrumbList` from
-  `use-cases/[slug].astro`, `CollectionPage` from `use-cases.astro`.
+  it is describing: `SoftwareApplication` from `index.astro`, `TechArticle` +
+  `BreadcrumbList` from `docs/[...slug].astro` and `use-cases/[slug].astro`
+  (plus `FAQPage` in the same `@graph` on the FAQ page), `CollectionPage` from
+  `docs.astro` and `use-cases.astro`.
 
 So the FAQ's answers now reach a reader three ways — the accordion, the JSON-LD,
 and `/docs/faq.md` — all three derived from `docs/faq.md` alone.
@@ -151,7 +152,7 @@ and `/docs/faq.md` — all three derived from `docs/faq.md` alone.
 The `FAQPage` one has a **silent** failure mode. Its questions are collected by
 `rehype-faq-accordion.mjs` as it builds the accordion and handed over as
 `render()`'s `remarkPluginFrontmatter` — so the markup and the structured data
-can't disagree, but a stale Astro content cache drops the JSON-LD with the build
+can't disagree, but a stale Astro content cache drops the `FAQPage` node with the build
 still exiting 0 (see Verify below). It also treats every `### heading` under a
 `## section` of `docs/faq.md` as a real question, so a `###` that isn't one lands
 in `mainEntity` as a question with whatever prose follows it.
@@ -165,6 +166,5 @@ data edit.
 **After editing a remark or rehype plugin, `rm -rf .astro node_modules/.astro`
 first.** The content cache keys on the markdown, not on the plugins, so a plugin
 edit alone re-emits the previous HTML — a passing build proving nothing. Confirm
-the output rather than the exit code: `grep -rl 'ld+json' dist` should list
-`dist/index.html`, `dist/docs/faq/index.html`, and every page under
-`dist/use-cases/`.
+the output rather than the exit code: every page now carries JSON-LD, so check the
+FAQ one by type: `grep -c FAQPage dist/docs/faq/index.html` should be 1.
