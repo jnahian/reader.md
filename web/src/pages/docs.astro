@@ -1,7 +1,7 @@
 ---
 import { getCollection } from "astro:content";
 import Base from "../layouts/Base.astro";
-import { repo, releasesLatest } from "../data/site";
+import { repo, releasesLatest, website } from "../data/site";
 
 // The grid is the page inventory. Adding a file under the repo's docs/ puts a
 // card here with no edit to this page — see src/content.config.ts.
@@ -18,7 +18,28 @@ const hues: Record<string, string> = {
   Reference: "chip--purple",
 };
 
-const popular = ["install", "features", "cli", "reading"]
+const summary =
+  "Install it, learn the keys, and read one page per feature area — each with screenshots taken from the running app.";
+
+// Lists the pages in the order the grid shows them.
+const schema = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  name: "Reader.md documentation",
+  description: summary,
+  url: `${website}/docs`,
+  mainEntity: {
+    "@type": "ItemList",
+    itemListElement: pages.map((p, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: p.data.title,
+      url: `${website}/docs/${p.id}`,
+    })),
+  },
+};
+
+const popular =["install", "features", "cli", "reading"]
   .map((id) => pages.find((p) => p.id === id))
   .filter((p) => p !== undefined);
 
@@ -42,15 +63,12 @@ const steps = [
 ];
 ---
 
-<Base title="Docs — Reader.md" page="docs">
+<Base title="Docs — Reader.md" description={summary} page="docs" schema={schema}>
   <div class="hub">
     <header class="hub__hero">
       <div class="pill hub__eyebrow">Documentation</div>
       <h1 class="hub__title">Reader.md documentation</h1>
-      <p class="hub__lead">
-        Install it, learn the keys, and read one page per feature area — each
-        with screenshots taken from the running app.
-      </p>
+      <p class="hub__lead">{summary}</p>
 
       <div class="filter">
         <svg class="filter__icon" viewBox="0 0 24 24" width="17" height="17" fill="none"
