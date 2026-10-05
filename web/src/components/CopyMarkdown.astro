@@ -1,0 +1,68 @@
+---
+// The "Copy .md" control at the top of a docs page or use case. It fetches the
+// page's .md twin (see src/lib/markdown-twin.ts) rather than carrying the text.
+import Icon from "./Icon.astro";
+
+interface Props {
+  href: string;
+}
+const { href } = Astro.props;
+---
+
+{/* Floated rather than laid out in a row: the h1 it sits beside is rendered
+    markdown, so there is no wrapper to make a flex parent of. */}
+<div class="doctools">
+  <button type="button" class="doctools__copy" data-copy-md={href}>
+    <Icon name="copy" size={14} />
+    <Icon name="check" size={14} />
+    <span data-copy-md-label>Copy .md</span>
+  </button>
+</div>
+
+<script>
+  import { initCopyMarkdown } from "../scripts/copy-markdown";
+
+  initCopyMarkdown();
+</script>
+
+<style>
+  /* Reading controls, not content — quieter than anything inside the prose, and
+     sitting above the h1 rather than in the flow of it. */
+  .doctools {
+    float: right;
+    margin: 4px 0 12px 20px;
+  }
+
+  .doctools__copy {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 13px;
+    transition: color 0.2s ease, background 0.2s ease;
+  }
+
+  .doctools__copy:hover {
+    color: var(--fg);
+    background: var(--surface-3);
+  }
+
+  .doctools__copy.is-copied {
+    color: var(--cyan);
+    border-color: color-mix(in oklch, var(--cyan) 40%, transparent);
+  }
+
+  /* Both icons ship; the class picks which one is showing, so the label and the
+     mark can never disagree about whether the copy happened. */
+  .doctools__copy :global(.icon:nth-of-type(2)),
+  .doctools__copy.is-copied :global(.icon:nth-of-type(1)) {
+    display: none;
+  }
+  .doctools__copy.is-copied :global(.icon:nth-of-type(2)) {
+    display: inline;
+  }
+</style>
