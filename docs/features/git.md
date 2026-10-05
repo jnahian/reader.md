@@ -45,6 +45,9 @@ Diff mode is a setting, not a per-file one: it stays on as you move between
 documents, and a file with no changes says so. Outside a repository the control
 is not in the toolbar at all.
 
+For the review workflow end to end, see
+[Review documentation changes before they merge](../use-cases/review-markdown-changes.md).
+
 ## Hunks in the outline
 
 The outline (⇧⌘B) changes with it. In diff mode it lists the changed hunks

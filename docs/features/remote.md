@@ -34,6 +34,9 @@ only what changed.
 From a terminal, `reader remote me@vps:/srv/docs` opens this same sheet with
 the destination already filled in.
 
+For a walkthrough of reading a server's docs this way, see
+[Read markdown docs from a remote server on your Mac](../use-cases/read-markdown-over-ssh.md).
+
 ## A git repository
 
 The **Git** side takes a clone URL instead — `https://`, `git@`, `ssh://`, or a
