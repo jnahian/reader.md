@@ -109,9 +109,10 @@ Toggle it with ⇧⌘B. It tracks your scroll position, and clicking a heading j
 to it.
 
 ### Does it support diagrams and math?
-Yes. Mermaid fenced code blocks render as diagrams, and LaTeX (`$…$` / `$$…$$`)
-renders via KaTeX. Syntax highlighting is built in. All three are bundled, so
-none of it touches the network — see
+Yes. Mermaid fenced code blocks render as diagrams, and LaTeX renders via KaTeX:
+`$…$` or `\(…\)` inline, `$$…$$` or `\[…\]` (on its own line) as a display
+block. Syntax highlighting is built in. All three are bundled, so none of it
+touches the network — see
 [How a document is rendered](features/rendering.md).
 
 ### Can I change the theme or text size?
