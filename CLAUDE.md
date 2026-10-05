@@ -67,6 +67,10 @@ key actually does — check them rather than copying an existing table.
   compact shortcut strip). The `/docs/` pages are **not** mirrored: the site
   renders `docs/*.md` and `docs/features/*.md` directly, so the markdown is the
   only copy of that prose. See `web/CLAUDE.md`.
+- `skills/reader-md/SKILL.md` — the agent skill users install, a fourth copy of
+  the CLI contract (extensions, exit codes, `--diff` stickiness, piping). A CLI
+  change updates it along with `docs/cli.md`; copies already installed do not
+  update themselves.
 
 Each `docs/features/<slug>.md` has a `<slug>.shots.json` manifest beside it —
 plus two manifests with no page, which feed the site directly:

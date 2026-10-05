@@ -93,14 +93,18 @@ exits **0**.
 ## With a coding agent
 
 The repo ships an [agent skill](../skills/reader-md/SKILL.md) that teaches a
-coding agent to run `reader` on the plan, spec, or report it just wrote, so the
-document opens in a reading window as the agent finishes rather than scrolling
-past in the terminal. Install it for Claude Code, Codex, Cursor, and the other
-agents the [`skills`](https://github.com/vercel-labs/skills) installer knows:
+coding agent to run `reader` on the plan, spec, design doc, report, or review it
+just wrote, so the document opens in a reading window as the agent finishes
+rather than scrolling past in the terminal. Install it for Claude Code, Codex,
+Cursor, and the other agents the
+[`skills`](https://github.com/vercel-labs/skills) installer knows:
 
 ```bash
-npx skills add jnahian/reader.md --skill reader-md
+npx skills add jnahian/reader.md --skill reader-md -g
 ```
+
+`-g` installs it for every project; without it the skill lands in the directory
+you ran the command from, and only agents working there will see it.
 
 Or copy the one file into place by hand — for Claude Code:
 
@@ -113,8 +117,9 @@ curl -fsSL https://raw.githubusercontent.com/jnahian/reader.md/main/skills/reade
 An agent that reads `AGENTS.md` rather than skills needs only a line there:
 
 ```markdown
-After writing a markdown document for me to read (a plan, spec, or report),
-open it with `reader <path>` if the `reader` command exists.
+After writing a markdown document for me to read (a plan, spec, design doc,
+report, or review), open it with `reader <absolute path>` if the `reader`
+command exists.
 ```
 
 The skill opens a file once and then leaves it alone: live reload shows every
