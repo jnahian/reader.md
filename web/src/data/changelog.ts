@@ -32,6 +32,7 @@ export const releasesLog: Release[] = [
           "<strong><code>reader --version</code>.</strong> Prints the installed version, e.g. <code>reader 1.23.0</code>, instead of failing as an unknown option. <code>-V</code> works too.",
           "<strong><code>.mkd</code>, <code>.mkdn</code> and <code>.mdwn</code> files open as markdown.</strong> They now show in the sidebar, open from Finder and from links in a document, and <code>reader</code> accepts them.",
           "<strong>zsh completion for <code>reader</code>.</strong> Tab completes the verbs, markdown files and folders, and the folder names <code>reader rm</code> takes. Homebrew installs it; DMG users can link it by hand, as the command line docs describe.",
+          '<strong>An agent skill that opens what your coding agent writes.</strong> One command, <code>npx skills add jnahian/reader.md --skill reader-md -g</code>, teaches Claude Code, Codex, or Cursor to open the plan, spec, or report it just wrote in Reader.md. See <a href="/docs/agent-skill">Agent skill</a>.',
         ],
       },
       {
