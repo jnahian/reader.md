@@ -111,38 +111,5 @@ exits **0**. `reader --version` (or `-V`) prints the version, such as
 
 ## With a coding agent
 
-The repo ships an [agent skill](../skills/reader-md/SKILL.md) that teaches a
-coding agent to run `reader` on the plan, spec, design doc, report, or review it
-just wrote, so the document opens in a reading window as the agent finishes
-rather than scrolling past in the terminal. Install it for Claude Code, Codex,
-Cursor, and the other agents the
-[`skills`](https://github.com/vercel-labs/skills) installer knows:
-
-```bash
-npx skills add jnahian/reader.md --skill reader-md -g
-```
-
-`-g` installs it for every project; without it the skill lands in the directory
-you ran the command from, and only agents working there will see it.
-
-Or copy the one file into place by hand — for Claude Code:
-
-```bash
-mkdir -p ~/.claude/skills/reader-md
-curl -fsSL https://raw.githubusercontent.com/jnahian/reader.md/main/skills/reader-md/SKILL.md \
-  -o ~/.claude/skills/reader-md/SKILL.md
-```
-
-An agent that reads `AGENTS.md` rather than skills needs only a line there:
-
-```markdown
-After writing a markdown document for me to read (a plan, spec, design doc,
-report, or review), open it with `reader <absolute path>` if the `reader`
-command exists.
-```
-
-The skill opens a file once and then leaves it alone: live reload shows every
-later edit the agent makes, with your scroll position kept.
-
-A walkthrough of the agent workflow is in
-[Review what your coding agent writes](use-cases/review-ai-agent-docs.md).
+An [agent skill](agent-skill.md) teaches Claude Code, Codex, or Cursor to run
+`reader` on the plan or spec it just wrote.

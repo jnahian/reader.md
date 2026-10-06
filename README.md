@@ -17,7 +17,7 @@ reload — instead of one more tab in your code editor.
 - **Mermaid, LaTeX, and syntax highlighting** from bundled engines — no network access
 - **Remote folders** — `rsync`'d read-only from a VPS or cloned from a git URL, reusing your existing SSH and git credentials, storing none
 - **Hand off to your editor** with ⇧⌘E, which turns an editor beside Reader.md into a live preview
-- **Agent skill** — [one command](docs/cli.md#with-a-coding-agent) teaches Claude Code, Codex, or Cursor to open the plan it just wrote in Reader.md
+- **Agent skill** — [one command](docs/agent-skill.md) teaches Claude Code, Codex, or Cursor to open the plan it just wrote in Reader.md
 - **Settings in one window** (⌘,) — appearance, Standard / Editorial / Terminal reading themes, typography, and the default PDF layout
 - **Liquid Glass chrome** on macOS 26, falling back to `NSVisualEffectView` on 13–15
 

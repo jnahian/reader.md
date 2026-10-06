@@ -3,6 +3,7 @@ import { getCollection, render } from "astro:content";
 import Base from "../../layouts/Base.astro";
 import RelatedDocs from "../../components/RelatedDocs.astro";
 import CopyMarkdown from "../../components/CopyMarkdown.astro";
+import CopyCode from "../../components/CopyCode.astro";
 import { website, author } from "../../data/site";
 
 export async function getStaticPaths() {
@@ -51,6 +52,7 @@ const schema = {
     <article class="doc__body">
       <CopyMarkdown href={`/use-cases/${page.id}.md`} />
       <Content />
+      <CopyCode />
     </article>
     <RelatedDocs current={`use-cases/${page.id}`} related={page.data.related} />
   </div>

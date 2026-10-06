@@ -14,6 +14,7 @@ export const DOC_PATTERNS = [
   "features.md",
   "features/*.md",
   "cli.md",
+  "agent-skill.md",
   "architecture.md",
   "building.md",
 ];

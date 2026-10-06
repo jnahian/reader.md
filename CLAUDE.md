@@ -57,7 +57,7 @@ key actually does — check them rather than copying an existing table.
   Bundled into the app and opened from the Help menu, so they ship to users; the
   changelog also drives Sparkle's release notes (below).
 - `docs/` — `features.md` (the one-line-per-feature list + shortcut tables),
-  `install.md`, `cli.md`, `architecture.md`, `building.md`, and one page per
+  `install.md`, `cli.md`, `agent-skill.md`, `architecture.md`, `building.md`, and one page per
   feature area under `docs/features/` (`reading.md`, `library.md`, `git.md`, …)
   with screenshots in `docs/assets/screenshots/<slug>/`. `README.md` is only an
   index and highlights; detail belongs in `docs/`, not back in the README.
@@ -71,8 +71,9 @@ key actually does — check them rather than copying an existing table.
   only copy of that prose. See `web/CLAUDE.md`.
 - `skills/reader-md/SKILL.md` — the agent skill users install, a fourth copy of
   the CLI contract (extensions, exit codes, `--diff` stickiness, piping). A CLI
-  change updates it along with `docs/cli.md`; copies already installed do not
-  update themselves.
+  change updates it along with `docs/cli.md` and `docs/agent-skill.md` (the
+  user-facing page for the skill); copies already installed do not update
+  themselves.
 
 Each `docs/features/<slug>.md` has a `<slug>.shots.json` manifest beside it —
 plus two manifests with no page, which feed the site directly:

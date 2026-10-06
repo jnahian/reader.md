@@ -6,6 +6,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Agent skill docs** — a new [Agent skill](https://reader-md.jnahian.me/docs/agent-skill) page covers the skill that has Claude Code, Codex, or Cursor open the plan it just wrote in Reader.md: install, when it opens a file, updating, and removing it.
+
 ## [1.23.0] - 2026-10-05
 
 ### Added
