@@ -114,6 +114,7 @@ No page of its own — this is the whole of it.
   isn't a bug
 - **Keyboard navigation** — ⇥ moves focus through the sidebar, outline, and toolbar; ␣ or ⏎ activates whatever has it
 - **A command-line companion** — see [the CLI reference](cli.md)
+- **Agent skill** — Claude Code, Codex, or Cursor opens the plan it just wrote in Reader.md. See [Agent skill](agent-skill.md)
 
 ## Keyboard shortcuts
 

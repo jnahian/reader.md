@@ -78,6 +78,12 @@ Yes. **File → Install `reader` Command Line Tool…** puts `reader` on your PA
 `reader README.md` a single file, and `git diff | reader -` piped markdown. See
 [the CLI reference](cli.md).
 
+### Can my coding agent open what it writes?
+Yes. `npx skills add jnahian/reader.md --skill reader-md -g` installs a skill
+that has Claude Code, Codex, or Cursor open the plan, spec, or report it just
+wrote in Reader.md, with live reload showing its later edits. See
+[Agent skill](agent-skill.md).
+
 ### Can I edit files in Reader.md?
 No — Reader.md is a reader, and it hands editing to your editor. Choose one in
 **Settings ▸ Editing & Export** (⌘,), with **File → Set Default Editor…**, or by

@@ -74,7 +74,7 @@ export interface Faq {
   a: string; // HTML
 }
 
-// The six questions people ask before downloading, condensed from the "Before
+// The seven questions people ask before downloading, condensed from the "Before
 // you install" section of docs/faq.md. The rest of that page stays there.
 export const faqsHighlight: Faq[] = [
   {
@@ -92,6 +92,10 @@ export const faqsHighlight: Faq[] = [
   {
     q: "Can I edit files in it?",
     a: 'No. Reader.md reads, and hands editing to the editor you already use — <code class="tok">⇧⌘E</code> opens the current document there, and the folder watcher re-renders on save, so the two side by side behave like a live preview.',
+  },
+  {
+    q: "Can my coding agent open what it writes?",
+    a: 'Yes. <code class="tok">npx skills add jnahian/reader.md --skill reader-md -g</code> installs a skill that has Claude Code, Codex, or Cursor open the plan it just wrote in Reader.md, and live reload follows its later edits. <a href="/docs/agent-skill">Agent skill</a>.',
   },
   {
     q: "Does it phone home?",

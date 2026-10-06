@@ -44,7 +44,9 @@ notarized, so the first launch needs one right-click → **Open** — see
 [Clearing quarantine](#clearing-quarantine).
 
 For the `reader` command, use **File → Install `reader` Command Line Tool…**
-once the app is running. See [the CLI reference](cli.md).
+once the app is running. See [the CLI reference](cli.md). With `reader`
+installed, an [agent skill](agent-skill.md) lets your coding agent open what it
+writes.
 
 ## Updates
 

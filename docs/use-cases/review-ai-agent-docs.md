@@ -47,7 +47,7 @@ npx skills add jnahian/reader.md --skill reader-md -g
 An agent that reads `AGENTS.md` instead of skills needs only one line there,
 asking it to open finished documents with `reader <absolute path>` when the
 command exists. The full instructions, including a manual install for Claude
-Code, are in [With a coding agent](../cli.md#with-a-coding-agent).
+Code, are in [Agent skill](../agent-skill.md).
 
 ## Can I get a live preview while Cursor or Codex writes docs?
 
