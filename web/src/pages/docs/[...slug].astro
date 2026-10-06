@@ -4,6 +4,7 @@ import Base from "../../layouts/Base.astro";
 import DocsNav from "../../components/DocsNav.astro";
 import RelatedDocs from "../../components/RelatedDocs.astro";
 import CopyMarkdown from "../../components/CopyMarkdown.astro";
+import CopyCode from "../../components/CopyCode.astro";
 import { website, author } from "../../data/site";
 // Base.astro already renders Nav and Footer itself and takes a `page` prop —
 // importing them here would render each twice.
@@ -72,6 +73,7 @@ const schema = {
     <main class="doc__body">
       <CopyMarkdown href={`/docs/${page.id}.md`} />
       <Content />
+      <CopyCode />
       <RelatedDocs current={page.id} related={page.data.related} />
     </main>
   </div>
