@@ -22,6 +22,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **zsh completion for `reader`.** Tab completes the verbs, markdown files and
   folders, and the folder names `reader rm` takes. Homebrew installs it; DMG
   users can link it by hand, as the command line docs describe.
+- **An agent skill that opens what your coding agent writes.** One command,
+  `npx skills add jnahian/reader.md --skill reader-md -g`, teaches Claude Code,
+  Codex, or Cursor to open the plan, spec, or report it just wrote in
+  Reader.md. See [Agent skill](https://reader-md.jnahian.me/docs/agent-skill).
 
 ### Fixed
 
