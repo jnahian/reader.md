@@ -20,6 +20,27 @@ final class GitIgnoreParseTests: XCTestCase {
         XCTAssertEqual(GitDiff.parseIgnored("\"my notes/\"\n"), ["my notes"])
     }
 
+    /// `worktree list --porcelain`: the main worktree and any outside the folder
+    /// are dropped; the rest come back relative to it.
+    func testOnlyWorktreesInsideTheFolderSurvive() {
+        let out = """
+            worktree /repo
+            HEAD 1111111111111111111111111111111111111111
+            branch refs/heads/main
+
+            worktree /repo/.claude/worktrees/x
+            HEAD 2222222222222222222222222222222222222222
+            branch refs/heads/worktree-x
+
+            worktree /elsewhere/y
+            HEAD 3333333333333333333333333333333333333333
+            detached
+
+            """
+        XCTAssertEqual(GitDiff.parseWorktrees(out, under: URL(fileURLWithPath: "/repo")),
+                       [".claude/worktrees/x"])
+    }
+
     func testNoIgnoresYieldsAnEmptySet() {
         XCTAssertTrue(GitDiff.parseIgnored("").isEmpty)
     }
@@ -158,5 +179,87 @@ final class GitIgnoreRepoTests: XCTestCase {
         try FileManager.default.createDirectory(at: plain, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: plain) }
         XCTAssertTrue(FileScanner.ignoredPaths(under: plain).isEmpty)
+    }
+}
+
+/// Claude Code checks worktrees out under `<repo>/.claude/worktrees/<name>` (#105),
+/// and its docs suggest ignoring that folder. Each worktree is a nested repo the
+/// parent's `ls-files` never enters.
+final class GitIgnoreWorktreeTests: XCTestCase {
+    private var repo: URL!
+    private var worktree: URL!
+    private var wasAvailable = false
+
+    override func setUpWithError() throws {
+        let fm = FileManager.default
+        repo = fm.temporaryDirectory.appendingPathComponent("git-worktree-\(UUID().uuidString)")
+        worktree = repo.appendingPathComponent(".claude/worktrees/x")
+        try fm.createDirectory(at: repo, withIntermediateDirectories: true)
+        try "x".write(to: repo.appendingPathComponent("keep.md"), atomically: true, encoding: .utf8)
+        try ".build/\n".write(to: repo.appendingPathComponent(".gitignore"), atomically: true, encoding: .utf8)
+        // `worktree add` needs a commit; the -c flags keep a global signing or
+        // identity config out of it.
+        for args in [["init"], ["add", "keep.md", ".gitignore"],
+                     ["-c", "user.name=x", "-c", "user.email=x", "-c", "commit.gpgsign=false",
+                      "commit", "-qm", "init"],
+                     ["worktree", "add", "-q", ".claude/worktrees/x"]] {
+            guard case .output = GitDiff.run(args, in: repo) else {
+                throw XCTSkip("git \(args.last!) failed in this environment")
+            }
+        }
+        wasAvailable = GitDiff.available
+        GitDiff.available = true
+    }
+
+    override func tearDownWithError() throws {
+        GitDiff.available = wasAvailable
+        try? FileManager.default.removeItem(at: repo)
+    }
+
+    private func ignoreWorktrees() throws {
+        try ".build/\n.claude/worktrees/\n".write(to: repo.appendingPathComponent(".gitignore"),
+                                                  atomically: true, encoding: .utf8)
+    }
+
+    private func write(_ path: String) throws {
+        let url = repo.appendingPathComponent(path)
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
+                                                withIntermediateDirectories: true)
+        try "x".write(to: url, atomically: true, encoding: .utf8)
+    }
+
+    /// Every file the root lists, relative to it, composed as `RootFolder.rescan` does.
+    private func listed(_ root: URL) -> [String] {
+        let worktrees = FileScanner.worktrees(under: root)
+        let tree = FileScanner.scan(root, ignoring: FileScanner.ignoredPaths(under: root, worktrees: worktrees),
+                                    worktrees: worktrees)
+        func files(_ nodes: [FileNode], _ prefix: String) -> [String] {
+            nodes.flatMap { $0.isDirectory ? files($0.children, prefix + $0.name + "/") : [prefix + $0.name] }
+        }
+        return files(tree, "")
+    }
+
+    func testAWorktreeNobodyIgnoresIsListed() {
+        XCTAssertEqual(listed(repo), [".claude/worktrees/x/keep.md", "keep.md"])
+    }
+
+    /// The setup Claude Code's docs suggest — which used to drop the worktree
+    /// with every other ignored path. Anything else in the ignored folder stays out.
+    func testAnIgnoredWorktreeIsStillListed() throws {
+        try ignoreWorktrees()
+        try write(".claude/worktrees/stray/s.md")
+        XCTAssertEqual(listed(repo), [".claude/worktrees/x/keep.md", "keep.md"])
+    }
+
+    /// The parent's `.build/` rule never reaches inside the nested repo; the
+    /// worktree's own copy of it has to be looked up there.
+    func testAWorktreeKeepsItsOwnIgnores() throws {
+        try write(".claude/worktrees/x/.build/checkouts/dep/README.md")
+        XCTAssertEqual(listed(repo), [".claude/worktrees/x/keep.md", "keep.md"])
+    }
+
+    func testAWorktreeAddedAsItsOwnRootIsListedEvenWhenIgnored() throws {
+        try ignoreWorktrees()
+        XCTAssertEqual(listed(worktree), ["keep.md"])
     }
 }
