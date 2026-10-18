@@ -78,3 +78,8 @@ several files against the same branch.
 Markdown that `.gitignore` excludes never appears in the tree at all — not
 greyed out, not badged, just absent. Generated documentation and vendored
 folders stay out of the sidebar without you listing them anywhere else.
+
+The repository's own worktrees are the exception. A worktree checked out inside
+the folder, such as the ones Claude Code keeps in `.claude/worktrees/`, is
+listed even when `.gitignore` covers it, and its own `.gitignore` decides what
+inside it is left out. Anything else in that ignored folder stays hidden.

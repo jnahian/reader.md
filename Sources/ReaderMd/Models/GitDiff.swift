@@ -669,6 +669,27 @@ extension GitDiff {
         return paths
     }
 
+    /// The repo's linked worktrees that sit inside `folder`, relative to it —
+    /// Claude Code checks them out under `.claude/worktrees/<name>` (#105).
+    /// Callers must be off the main actor.
+    static func worktreePaths(in folder: URL) -> Set<String> {
+        guard case .output(let out) = run(["worktree", "list", "--porcelain"], in: folder)
+        else { return [] }
+        return parseWorktrees(out, under: folder)
+    }
+
+    /// Git reports worktrees as absolute paths, so both sides go through
+    /// `canonical`: the folder may have been added as `/var/…`, git says `/private/var/…`.
+    static func parseWorktrees(_ output: String, under folder: URL) -> Set<String> {
+        let root = canonical(folder) + "/"
+        var paths: Set<String> = []
+        for line in output.components(separatedBy: "\n") where line.hasPrefix("worktree ") {
+            let path = canonical(URL(fileURLWithPath: String(line.dropFirst("worktree ".count))))
+            if path.hasPrefix(root) { paths.insert(String(path.dropFirst(root.count))) }
+        }
+        return paths
+    }
+
     private static func status(forCode code: String) -> GitFileStatus {
         if code == "??" { return .untracked }
         // Any unmerged combination, per git-status(1): DD AU UD UA DU AA UU.

@@ -44,13 +44,27 @@ enum FileScanner {
         return ext.isEmpty || markdownExtensions.contains(ext)
     }
 
-    /// Paths git ignores under `directory`, for `scan(_:ignoring:)`. Empty when
+    /// Paths git ignores under `directory`, for `scan(_:ignoring:worktrees:)`. Empty when
     /// git is missing or the folder isn't a repo. Shells out — off the main actor.
-    static func ignoredPaths(under directory: URL) -> Set<String> {
+    /// Each of `worktrees` is a nested repo the parent's `ls-files` never enters,
+    /// so its own ignores are looked up in it and folded in under its path.
+    static func ignoredPaths(under directory: URL, worktrees: Set<String> = []) -> Set<String> {
         // isDirectory: true because a URL rebuilt from a saved path doesn't always
         // know it's a folder, and git is run *in* this directory.
         guard GitDiff.available else { return [] }
-        return GitDiff.ignoredPaths(in: URL(fileURLWithPath: directory.path, isDirectory: true))
+        let folder = URL(fileURLWithPath: directory.path, isDirectory: true)
+        var ignored = GitDiff.ignoredPaths(in: folder)
+        for tree in worktrees {
+            let inner = GitDiff.ignoredPaths(in: folder.appendingPathComponent(tree, isDirectory: true))
+            ignored.formUnion(inner.map { tree + "/" + $0 })
+        }
+        return ignored
+    }
+
+    /// Linked worktrees inside `directory`, for `scan(_:ignoring:worktrees:)`.
+    static func worktrees(under directory: URL) -> Set<String> {
+        guard GitDiff.available else { return [] }
+        return GitDiff.worktreePaths(in: URL(fileURLWithPath: directory.path, isDirectory: true))
     }
 
     /// Recursively build a pruned tree containing only markdown files.
@@ -58,8 +72,11 @@ enum FileScanner {
     /// repo's build output and vendored docs stay out of the tree the way
     /// `ignoredDirs` keeps node_modules out. ponytail: no "show ignored files"
     /// toggle, matching `ignoredDirs`, which has always pruned silently.
-    static func scan(_ directory: URL, ignoring: Set<String> = [],
-                     relativeTo prefix: String = "", depth: Int = 0) -> [FileNode] {
+    /// `worktrees` are the exception: listed even when ignored (#105), along with
+    /// the ignored folders on the way to them, but nothing else inside those.
+    static func scan(_ directory: URL, ignoring: Set<String> = [], worktrees: Set<String> = [],
+                     relativeTo prefix: String = "", insideIgnored: Bool = false,
+                     depth: Int = 0) -> [FileNode] {
         guard depth <= 12 else { return [] }
         let fm = FileManager.default
         // Note: hidden (dot-prefixed) entries are included so folders like
@@ -74,12 +91,13 @@ enum FileScanner {
         for entry in entries {
             let name = entry.lastPathComponent
             let relative = prefix + name
-            if ignoring.contains(relative) { continue }
+            let ignored = !worktrees.contains(relative) && (insideIgnored || ignoring.contains(relative))
+            if ignored && !worktrees.contains(where: { $0.hasPrefix(relative + "/") }) { continue }
             let isDir = (try? entry.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
             if isDir {
                 if ignoredDirs.contains(name) { continue }
-                let children = scan(entry, ignoring: ignoring,
-                                    relativeTo: relative + "/", depth: depth + 1)
+                let children = scan(entry, ignoring: ignoring, worktrees: worktrees,
+                                    relativeTo: relative + "/", insideIgnored: ignored, depth: depth + 1)
                 if !children.isEmpty {
                     nodes.append(FileNode(url: entry, isDirectory: true, children: children))
                 }
@@ -123,15 +141,17 @@ final class RootFolder: Identifiable, ObservableObject {
     /// this launch: the git probe lands after `loadSavedRoots()`, so the first
     /// scan ran without git's ignores. Re-walking a root that turns out to have
     /// none is pure cost — and the walk is the expensive part, ~1.3s across seven
-    /// roots — so the cheap `ls-files` runs first and decides.
+    /// roots — so the cheap git calls run first and decide.
     func rescan(onlyIfIgnored: Bool = false, then completion: (@MainActor () -> Void)? = nil) {
         let url = self.url
         Task.detached(priority: .userInitiated) {
-            // One `git ls-files` per scan, alongside the walk. It is also the
-            // is-a-repo test, so a root outside one pays a single failed git call.
-            let ignoring = FileScanner.ignoredPaths(under: url)
+            // `worktree list` and `ls-files` per scan, plus one `ls-files` per
+            // worktree, alongside the walk. They double as the is-a-repo test, so
+            // a root outside one pays two failed git calls.
+            let worktrees = FileScanner.worktrees(under: url)
+            let ignoring = FileScanner.ignoredPaths(under: url, worktrees: worktrees)
             if onlyIfIgnored && ignoring.isEmpty { return }
-            let scanned = FileScanner.scan(url, ignoring: ignoring)
+            let scanned = FileScanner.scan(url, ignoring: ignoring, worktrees: worktrees)
             await MainActor.run {
                 self.children = scanned
                 completion?()
