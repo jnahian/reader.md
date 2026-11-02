@@ -72,7 +72,7 @@ See [Working in a git repository](features/git.md).
 - **Change badges** in the sidebar — `M` · `A` · `?` · `U`
 - **Side-by-side diff** (⇧⌘D) with word-level highlighting, and hunks in the outline instead of headings
 - **Diff scope** — **Unstaged**, **Staged**, **All**, or any branch in the repository
-- **`.gitignore` is respected** — ignored markdown never enters the tree
+- **`.gitignore` is respected** — ignored markdown never enters the tree, except the repository's own worktrees (e.g. Claude Code's `.claude/worktrees/`)
 
 ## Remote and cloned folders
 

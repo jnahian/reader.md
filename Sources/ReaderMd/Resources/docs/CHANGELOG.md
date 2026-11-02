@@ -6,6 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Markdown in a git worktree inside a folder, such as the ones Claude Code keeps
+  in `.claude/worktrees/`, was missing from the sidebar when `.gitignore`
+  covered it, which Claude Code's docs suggest. The repository's own worktrees
+  now show even when ignored, and each one leaves out what its own `.gitignore`
+  covers, such as a build folder.
+
 ## [1.23.0] - 2026-10-05
 
 ### Added

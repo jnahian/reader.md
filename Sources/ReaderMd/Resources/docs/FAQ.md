@@ -47,7 +47,8 @@ Drag a folder onto the window, or **File → Add Folder…** (⇧⌘A). Reader.m
 it recursively for markdown files (skipping `node_modules`, `.git`, and friends)
 and watches it for changes — edits re-render live. In a git repository it also
 skips anything your `.gitignore` covers, so vendored and generated markdown
-stays out of the sidebar.
+stays out of the sidebar. The repository's own worktrees, such as Claude Code's
+`.claude/worktrees/`, are listed even when ignored.
 
 **How do I open a single file?**
 **File → Open File…** (⌘O), or drag a `.md` file onto the window. Single files
