@@ -13,6 +13,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   covered it, which Claude Code's docs suggest. The repository's own worktrees
   now show even when ignored, and each one leaves out what its own `.gitignore`
   covers, such as a build folder.
+- A markdown file added to or removed from a folder inside a root didn't update
+  in the sidebar while the app was open, even when the folder was collapsed and
+  opened later. The tree now follows the disk at every level.
 
 ## [1.23.0] - 2026-10-05
 

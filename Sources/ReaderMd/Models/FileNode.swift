@@ -7,7 +7,9 @@ enum RemoteSyncStatus: Equatable {
 }
 
 /// A node in the markdown file tree — either a directory or a markdown file.
-final class FileNode: Identifiable, Hashable {
+/// Not Equatable on purpose: SwiftUI skips a row whose values compare equal, so an
+/// `==` on the path alone leaves an expanded folder showing its old children (#107).
+final class FileNode: Identifiable {
     let id: String          // full path, unique
     let name: String
     let url: URL
@@ -21,9 +23,6 @@ final class FileNode: Identifiable, Hashable {
         self.isDirectory = isDirectory
         self.children = children
     }
-
-    static func == (lhs: FileNode, rhs: FileNode) -> Bool { lhs.id == rhs.id }
-    func hash(into hasher: inout Hasher) { hasher.combine(id) }
 }
 
 enum FileScanner {
