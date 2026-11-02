@@ -6,16 +6,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.23.1] - 2026-11-02
+
 ### Fixed
 
-- Markdown in a git worktree inside a folder, such as the ones Claude Code keeps
-  in `.claude/worktrees/`, was missing from the sidebar when `.gitignore`
-  covered it, which Claude Code's docs suggest. The repository's own worktrees
-  now show even when ignored, and each one leaves out what its own `.gitignore`
-  covers, such as a build folder.
-- A markdown file added to or removed from a folder inside a root didn't update
-  in the sidebar while the app was open, even when the folder was collapsed and
-  opened later. The tree now follows the disk at every level.
+- **Git worktrees show in the sidebar even when ignored.** Markdown in a worktree
+  inside a folder, such as the ones Claude Code keeps in `.claude/worktrees/`,
+  was missing when `.gitignore` covered it, which Claude Code's docs suggest. The
+  repository's own worktrees now show, and each one leaves out what its own
+  `.gitignore` covers, such as a build folder.
+- **The sidebar keeps up with files inside folders.** A markdown file added to or
+  removed from a subfolder didn't update while the app was open, even if you
+  expanded that folder later. The tree now follows the disk at every level.
 
 ## [1.23.0] - 2026-10-05
 
