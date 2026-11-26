@@ -250,3 +250,27 @@ final class BranchViewGitTests: XCTestCase {
         XCTAssertEqual(b.additions, 1)
     }
 }
+
+/// A document read from a branch view is a copy of a commit, not the user's
+/// file: no editor, no pin, no marks.
+@MainActor
+final class BranchViewGateTests: XCTestCase {
+    private let copy = BranchCache.tree(forRoot: "/repo", sha: String(repeating: "a", count: 40))
+        .appendingPathComponent("notes.md")
+
+    func testABranchCopyIsNotEditable() {
+        XCTAssertFalse(AppState().isEditable(copy))
+    }
+
+    func testABranchCopyCannotBeAFavorite() {
+        XCTAssertFalse(AppState.canFavorite(copy))
+    }
+
+    func testABranchCopyTakesNoMarks() {
+        let state = AppState()
+        state.selectedFile = FileNode(url: copy, isDirectory: false)
+        XCTAssertFalse(state.canMark)
+        state.selectedFile = FileNode(url: URL(fileURLWithPath: "/repo/notes.md"), isDirectory: false)
+        XCTAssertTrue(state.canMark)
+    }
+}

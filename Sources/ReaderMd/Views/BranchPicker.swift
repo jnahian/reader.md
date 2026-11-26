@@ -12,7 +12,7 @@ struct BranchPicker: View {
     @State private var query = ""
 
     var body: some View {
-        Button { showing.toggle() } label: {
+        Button { toggle() } label: {
             HStack(spacing: 3) {
                 if root.extracting {
                     ProgressView().controlSize(.small).scaleEffect(0.55).frame(width: 10, height: 10)
@@ -33,9 +33,8 @@ struct BranchPicker: View {
         .dockTooltip(root.branch.map { "Showing \($0.ref), read-only" }
                      ?? "On \(root.head ?? ""). Show another branch")
         .popover(isPresented: $showing, arrowEdge: .bottom) { chooser }
-        .onChange(of: showing) { open in
-            if open { loadRefs() } else { query = "" }
-        }
+        // A stale query would silently hide branches the next time it opens.
+        .onChange(of: showing) { open in if !open { query = "" } }
     }
 
     private var chooser: some View {
@@ -53,14 +52,22 @@ struct BranchPicker: View {
         .frame(width: 270)
     }
 
-    /// Read each time it opens: the list is one git call, and a branch created
-    /// in a terminal should be there without anything else having to notice it.
-    private func loadRefs() {
+    /// Reads the branches, then opens. Read on each open: it's one git call,
+    /// and a branch created in a terminal should be there without anything else
+    /// having to notice it. Before opening, not after: a list that arrives once
+    /// the popover is up leaves it sized for none, and the Branches header
+    /// showed with no rows under it.
+    private func toggle() {
+        guard !showing else {
+            showing = false
+            return
+        }
         let url = root.url
         Task {
             refs = await Task.detached(priority: .userInitiated) {
                 GitDiff.branches(root: url, keepCurrent: true)
             }.value
+            showing = true
         }
     }
 
