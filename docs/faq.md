@@ -33,9 +33,12 @@ it once: right-click the app → **Open**, then **Open** in the dialog — or ru
 [Clearing quarantine](install.md#clearing-quarantine).
 
 ### Why does Homebrew need a `brew trust` step?
-The repository isn't named `homebrew-*`, so the tap is added by its explicit URL
-and the cask has to be trusted once before `brew install --cask reader-md` will
-run it. The three commands are in [Install](install.md#homebrew).
+Homebrew won't load a cask from a tap outside its own until you trust it, and
+Reader.md's cask lives in the app's repository rather than in Homebrew's.
+Without the step, `brew install --cask reader-md` stops with "Refusing to load
+cask … from untrusted tap". The repository also isn't named `homebrew-*`, which
+is why the tap is added by its explicit URL. The three commands are in
+[Install](install.md#homebrew).
 
 ### Does it phone home?
 No. Markdown, diagrams, math, and syntax highlighting all render from bundled

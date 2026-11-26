@@ -6,7 +6,7 @@ export const website = "https://reader-md.jnahian.me";
 // Repo isn't named homebrew-*, so the tap needs its explicit URL once.
 export const brewTap = "brew tap jnahian/reader.md https://github.com/jnahian/reader.md";
 // Trust the cask from this tap before installing.
-export const brewTrust = "brew trust --cask jnahian/reader.md/reader.md";
+export const brewTrust = "brew trust --cask jnahian/reader.md/reader-md";
 export const brewInstall = "brew install --cask reader-md";
 export const author = "Julkar Naen Nahian";
 // The site's one-sentence description: the default <meta name="description">,
