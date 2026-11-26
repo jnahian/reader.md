@@ -56,8 +56,11 @@ password request that has nowhere to appear.
 
 ## Reading the badges
 
-A remote root carries a small badge after its name: a cloud for an SSH folder,
-a branch for a cloned repository. While a sync runs, a spinner joins it. If a
+A remote root carries a small badge after its name: a cloud for an SSH folder.
+A cloned repository shows its branch name at the right instead, which also picks
+another branch to read (see
+[Reading another branch](git.md#reading-another-branch)). While a sync runs, a
+spinner joins the badge. If a
 sync fails, an amber triangle does instead, and hovering it gives you the error
 git or rsync reported.
 

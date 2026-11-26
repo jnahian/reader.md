@@ -2,7 +2,7 @@
 title: Working in a git repository
 category: Guides
 order: 14
-summary: Change badges, the side-by-side diff, hunks in the outline, and what the diff compares against.
+summary: Change badges, the side-by-side diff, hunks in the outline, what the diff compares against, and reading another branch.
 related: [library, reading, features]
 ---
 
@@ -12,8 +12,9 @@ When a folder you add is a git repository, Reader.md notices. Changed files get
 a badge in the sidebar, and any document can be read as a diff instead of as
 rendered markdown.
 
-Nothing here writes to your repository. Reader.md runs `git` only to ask what
-changed; it never stages, commits, or discards anything.
+Nothing here writes to your repository. Reader.md runs `git` only to read from
+it: what changed, and what a branch holds. It never stages, commits, checks out,
+or discards anything.
 
 ## Change badges
 
@@ -72,6 +73,47 @@ branches gets a filter field above the list.
 
 The scope applies to whatever you open next, so you can set it once and read
 several files against the same branch.
+
+## Reading another branch
+
+A folder that's a git repository names its checked-out branch at the right of
+its header in the sidebar. Click the name to read the folder as it is on another
+branch. The list starts with **Working copy**, then every branch, local and on
+`origin`, under the same filter field as the scope popover.
+
+Picking a branch checks nothing out. Reader.md copies the markdown and images in
+that branch's latest commit into a cache, and the folder shows that copy: its
+tree, its documents and their images. The branch name turns blue so you can see
+you aren't reading your working copy. Your working copy, uncommitted edits
+included, stays as it was.
+
+The open document follows to the same file on the branch. If the branch has no
+such file, the document closes and the window says so. Pick **Working copy**, or
+**Show Working Copy** from the folder's right-click menu, to go back.
+
+What you read on a branch is a copy of a commit, so a few things work
+differently:
+
+- Highlights, notes and comments are off. They're kept per file, and the copy
+  changes with every commit to the branch.
+- **Open in Editor** is off, since there is nothing of yours to edit.
+- Branch documents stay out of Recents and Favorites, and carry no change badges.
+- Only the folder's own files are copied, so an image a document reaches outside
+  the folder (`../assets/…`) doesn't show.
+
+The branch stays picked, across launches too, while its copy is cached. When the
+branch gets new commits, the folder moves to them the next time you come back to
+the window. If the branch is deleted, the folder goes back to the working copy.
+A cloned repository's branches move when it syncs.
+
+### What a branch changed
+
+While you read a branch, ⇧⌘D shows what that branch changed since it forked
+from your checked-out branch, the way a pull request lists its changes. What
+your checked-out branch did since then isn't mixed in, and neither are your
+uncommitted edits.
+The control beside the diff button names the branch the changes are measured
+from, and lists the others if you want a different one.
 
 ## What is left out
 

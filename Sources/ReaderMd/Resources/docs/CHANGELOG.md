@@ -6,6 +6,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Read a repository as it is on another branch.** A git folder's header in the
+  sidebar names the branch it has checked out. Click it and pick another branch,
+  and the folder shows that branch's documents without checking anything out:
+  Reader.md copies the branch's latest commit into a cache, and your working copy
+  and `.git` stay untouched. The branch stays picked across launches and moves to
+  new commits when you come back to the window. Pick **Working copy** to go back.
+  Cloned repositories get the same picker.
+- **See what a branch changed.** While you read a branch, ⇧⌘D shows what it
+  changed since it forked from your checked-out branch, the way a pull request
+  does. The control beside it picks a different branch to measure from.
+
 ## [1.23.1] - 2026-11-02
 
 ### Fixed

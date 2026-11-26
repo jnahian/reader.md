@@ -72,6 +72,7 @@ See [Working in a git repository](features/git.md).
 - **Change badges** in the sidebar — `M` · `A` · `?` · `U`
 - **Side-by-side diff** (⇧⌘D) with word-level highlighting, and hunks in the outline instead of headings
 - **Diff scope** — **Unstaged**, **Staged**, **All**, or any branch in the repository
+- **Read another branch** — pick a branch from the folder's header to read it without checking it out, and ⇧⌘D for what it changed since it forked
 - **`.gitignore` is respected** — ignored markdown never enters the tree, except the repository's own worktrees (e.g. Claude Code's `.claude/worktrees/`)
 
 ## Remote and cloned folders
@@ -80,7 +81,7 @@ See [Remote and cloned folders](features/remote.md).
 
 - **A folder over SSH** (⌥⌘A) — `rsync`ed read-only into a local cache, using your `~/.ssh` config and keys, with no credentials stored
 - **A cloned git repository** — the same sheet takes a clone URL, cloned read-only and `pull --ff-only`ed on launch, using your existing git credentials and never prompting
-- **Sync state in the sidebar** — a cloud or branch badge, a spinner while syncing, and an amber badge carrying the error if a sync fails
+- **Sync state in the sidebar** — a cloud badge (a cloned repository shows its branch picker instead), a spinner while syncing, and an amber badge carrying the error if a sync fails
 - **Edit connection**, **Re-sync**, and **Remove** on the root itself
 
 ## Exporting and editing
