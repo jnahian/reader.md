@@ -59,6 +59,16 @@ struct SidebarView: View {
                 .padding(.horizontal, 8)
                 .padding(.bottom, 12)
             }
+            // On the tree rather than beside "Sync failed" on the stack, so the
+            // two alerts sit on different views.
+            .alert("Couldn't show branch", isPresented: Binding(
+                get: { state.branchError != nil },
+                set: { if !$0 { state.branchError = nil } }
+            )) {
+                Button("OK") { state.branchError = nil }
+            } message: {
+                Text(state.branchError ?? "")
+            }
 
             Divider().opacity(0.5)
 
@@ -443,38 +453,49 @@ struct RootSectionView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
             HStack(spacing: 5) {
-                HStack(spacing: 5) {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .rotationEffect(.degrees(expanded ? 90 : 0))
-                    Image(systemName: "folder.fill")
-                        .font(.system(size: 12))
-                        .foregroundStyle(Color.accentColor)
-                    Text(root.name)
-                        .font(.system(size: 13, weight: .semibold))
-                        .lineLimit(1)
-                    if root.isRemote {
-                        Image(systemName: root.remote?.isGit == true ? "arrow.triangle.branch" : "cloud")
-                            .font(.system(size: 10))
+                RootHeaderLayout {
+                    HStack(spacing: 5) {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 9, weight: .semibold))
                             .foregroundStyle(.secondary)
-                            .dockTooltip(root.remote?.isGit == true ? "Cloned git repository" : "Remote folder")
-                        switch root.syncStatus {
-                        case .syncing:
-                            ProgressView().controlSize(.small).scaleEffect(0.7)
-                        case .failed(let msg):
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.system(size: 10))
-                                .foregroundStyle(.orange)
-                                .dockTooltip(msg)
-                        case .idle:
-                            EmptyView()
+                            .rotationEffect(.degrees(expanded ? 90 : 0))
+                        Image(systemName: "folder.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Color.accentColor)
+                        Text(root.name)
+                            .font(.system(size: 13, weight: .semibold))
+                            .lineLimit(1)
+                        if root.isRemote {
+                            // A cloned repository's branch picker carries the same glyph.
+                            if root.remote?.isGit != true || root.head == nil {
+                                Image(systemName: root.remote?.isGit == true ? "arrow.triangle.branch" : "cloud")
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(.secondary)
+                                    .dockTooltip(root.remote?.isGit == true ? "Cloned git repository" : "Remote folder")
+                            }
+                            switch root.syncStatus {
+                            case .syncing:
+                                ProgressView().controlSize(.small).scaleEffect(0.7)
+                            case .failed(let msg):
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(.orange)
+                                    .dockTooltip(msg)
+                            case .idle:
+                                EmptyView()
+                            }
                         }
+                        Spacer(minLength: 4)
                     }
-                    Spacer(minLength: 4)
+                    .contentShape(Rectangle())
+                    .rowButton { withAnimation(.easeInOut(duration: 0.12)) { expanded.toggle() } }
+
+                    // Beside the row's button rather than inside it, so the two
+                    // buttons don't nest.
+                    if root.head != nil {
+                        BranchPicker(root: root)
+                    }
                 }
-                .contentShape(Rectangle())
-                .rowButton { withAnimation(.easeInOut(duration: 0.12)) { expanded.toggle() } }
 
                 if hovering {
                     if let spec = root.remote {
@@ -519,6 +540,9 @@ struct RootSectionView: View {
                 Button("Reveal in Finder") {
                     NSWorkspace.shared.activateFileViewerSelecting([root.url])
                 }
+                if root.branch != nil {
+                    Button("Show Working Copy") { state.showBranch(nil, in: root) }
+                }
                 if let spec = root.remote {
                     Divider()
                     Button("Edit Connection…") { state.editingRemote = spec }
@@ -546,7 +570,51 @@ struct RootSectionView: View {
 
     private var holdsSelection: Bool {
         guard let path = state.selectedFile?.url.standardizedFileURL.path else { return false }
-        return path.hasPrefix(root.url.standardizedFileURL.path + "/")
+        return path.hasPrefix(root.treeURL.standardizedFileURL.path + "/")
+    }
+}
+
+/// A root header's row, then its branch picker (#110). The folder's name is
+/// what tells roots apart, so the row gets the width it needs first. The picker
+/// takes what's left, up to `pickerMax`, and truncates its branch below that.
+/// What remains goes back to the row, so the gap still toggles the folder.
+///
+/// Not an HStack: the row's Spacer makes it infinitely flexible, so it either
+/// takes every point the picker hasn't claimed (with the higher priority) or
+/// gets what the picker leaves (without), which cut "handbook" to "handbo…"
+/// beside a long branch name.
+struct RootHeaderLayout: Layout {
+    var spacing: CGFloat = 5
+    var pickerMax: CGFloat = 110
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width
+            ?? subviews.reduce(0) { $0 + $1.sizeThatFits(.unspecified).width }
+                + spacing * CGFloat(max(subviews.count - 1, 0))
+        let height = zip(subviews, widths(width, subviews))
+            .map { $0.sizeThatFits(ProposedViewSize(width: $1, height: proposal.height)).height }
+            .max() ?? 0
+        return CGSize(width: width, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var x = bounds.minX
+        for (view, width) in zip(subviews, widths(bounds.width, subviews)) {
+            view.place(at: CGPoint(x: x, y: bounds.midY), anchor: .leading,
+                       proposal: ProposedViewSize(width: width, height: bounds.height))
+            x += width + spacing
+        }
+    }
+
+    /// The row's width, then the picker's. A root outside a repository has no picker.
+    private func widths(_ total: CGFloat, _ subviews: Subviews) -> [CGFloat] {
+        guard subviews.count == 2 else { return subviews.map { _ in total } }
+        let row = subviews[0], picker = subviews[1]
+        let available = total - spacing
+        let wanted = min(picker.sizeThatFits(.unspecified).width, pickerMax)
+        let least = picker.sizeThatFits(ProposedViewSize(width: 0, height: nil)).width
+        let given = min(wanted, max(least, available - row.sizeThatFits(.unspecified).width))
+        return [available - given, given]
     }
 }
 

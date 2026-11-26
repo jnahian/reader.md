@@ -305,6 +305,15 @@ struct EmptyStateView: View {
                     .foregroundStyle(.tertiary)
             }
 
+            // Switching a root's branch closed the document it had no copy of.
+            if let notice = state.missingOnBranch {
+                Text(notice)
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 320)
+            }
+
             VStack(alignment: .leading, spacing: 3) {
                 ForEach(hints) { hint in
                     HintRow(hint: hint)

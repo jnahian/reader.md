@@ -13,7 +13,7 @@ reload — instead of one more tab in your code editor.
 - **Live reload** — the open file re-renders with scroll preserved the moment it changes on disk
 - **Highlights and notes** — five highlight colours, notes and comment threads with replies and Resolve, anchored to the words rather than a position and never written into your markdown
 - **Multi-folder browser** with ⌘P fuzzy quick-open across every root, plus a pinned Favorites section (⌘D) and a document that reopens where you left it
-- **Git-aware** — status badges in the sidebar, ⇧⌘D for a side-by-side diff against unstaged / staged / all / any branch, and `.gitignore`d files kept out of the tree
+- **Git-aware** — status badges in the sidebar, ⇧⌘D for a side-by-side diff against unstaged / staged / all / any branch, any branch readable without checking it out, and `.gitignore`d files kept out of the tree
 - **Mermaid, LaTeX, and syntax highlighting** from bundled engines — no network access
 - **Remote folders** — `rsync`'d read-only from a VPS or cloned from a git URL, reusing your existing SSH and git credentials, storing none
 - **Hand off to your editor** with ⇧⌘E, which turns an editor beside Reader.md into a live preview

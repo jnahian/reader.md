@@ -47,7 +47,6 @@ image simply renders narrower.
 | Shot | Page | State to reach | Shot? |
 |---|---|---|---|
 | Settings window | settings | ⌘, — a second window, and 420pt wide | yes |
-| Diff scope popover | git | ⇧⌘D, then click the scope button in the toolbar | yes |
 | Export dialog | exporting | ⌘E — `runModal()`, so a separate modal window | yes |
 | Context menu on a file | navigating | Right-click a file in the tree | yes |
 | Context menu on a root | library | Right-click a root header | not yet |
@@ -56,7 +55,9 @@ image simply renders narrower.
 
 The Add Remote sheet is no longer on this list: it is a sheet on the document
 window, so the harness captures it like any other state — see
-`docs/features/remote.shots.json`.
+`docs/features/remote.shots.json`. Nor are the diff scope popover and the
+branch picker: a `click` opens them, and `screencapture -l` on the document
+window takes the popover with it — see `docs/features/git.shots.json`.
 
 Check each for leaked personal data before it ships — a Finder-adjacent shot is
 the easiest place for a real path to appear, and the Add Remote sheet will show
@@ -66,7 +67,7 @@ One more trap: a manual shot leaves your pointer somewhere in the window, and a
 tooltip may be up when you press the shutter. Move the pointer well away and
 wait a beat before capturing.
 
-## Reproducing the four that exist
+## Reproducing the three that exist
 
 Each was driven from a script rather than by hand, so re-shooting after a UI
 change is a re-run and not a rediscovery. One helper lives beside the harness:
@@ -80,7 +81,7 @@ change is a re-run and not a rediscovery. One helper lives beside the harness:
 hand; the manifest actions of the same name take window points and let the
 harness do the conversion.
 
-Common preamble for all four: seed the shots domain the way `capture.sh` does
+Common preamble for all three: seed the shots domain the way `capture.sh` does
 (the block at the top of this file), launch, hide other apps, put the window at
 (120, 80) sized 1400×900, then open the fixture with the bundled `reader`.
 
@@ -94,5 +95,4 @@ its hover fill and a tooltip lands in the frame.
 |---|---|
 | `settings/01-window` | ⌘, then capture `winid-named.swift Reader.md Settings`. Seed `reader.md.editorBundleID` to `com.apple.TextEdit` first, or the External editor row reads "None". Kept at its native 840px |
 | `exporting/01-export` | ⌘E then capture `winid-named.swift Reader.md Save` — layer 8, so `winid.swift` returns the document window instead. The panel opens compact (name, Tags, Where, Layout), showing no browser and no personal paths. ⎋ afterwards, or the app cannot quit. Native 740px |
-| `git/04-scope` | ⇧⌘D, then `rclick`-free: a left click at screen (1212, 106) — the scope button, measured at (1872, 44) of `git/03-hunks.png`. Park the cursor, then capture the document window with `screencapture -l` as usual |
 | `navigating/01-menu` | `pointer.swift rclick 228 348` — the `setup.md` row. The menu is its own window, so `screencapture -l` on the document window misses it: capture the region instead (`-R 120,80,1400,900`) and crop to `1500:1000:0:240`, which keeps the sidebar and the menu and avoids the window's rounded corners, where the region capture shows desktop |

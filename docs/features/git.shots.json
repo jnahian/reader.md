@@ -32,9 +32,50 @@
     },
     {
       "id": "04-scope",
-      "manual": true,
       "open": "field-guide/README.md",
+      "actions": [
+        { "key": "d", "mods": ["shift", "command"] },
+        { "waitMs": 800 },
+        { "click": [1196, 26] },
+        { "waitMs": 1500 }
+      ],
       "caption": "The scope popover, choosing what the diff compares against"
+    },
+    {
+      "id": "05-branches",
+      "open": "field-guide/decisions.md",
+      "actions": [
+        { "waitMs": 800 },
+        { "click": [207, 190] },
+        { "waitMs": 1500 }
+      ],
+      "caption": "The branch picker on a folder's header, listing its branches"
+    },
+    {
+      "id": "06-branch",
+      "open": "field-guide/decisions.md",
+      "actions": [
+        { "waitMs": 800 },
+        { "click": [207, 190] },
+        { "waitMs": 1200 },
+        { "click": [128, 329] },
+        { "waitMs": 2500 }
+      ],
+      "caption": "The folder as it is on the drafts branch, read without checking it out"
+    },
+    {
+      "id": "07-branch-diff",
+      "open": "field-guide/decisions.md",
+      "actions": [
+        { "waitMs": 800 },
+        { "click": [207, 190] },
+        { "waitMs": 1200 },
+        { "click": [128, 329] },
+        { "waitMs": 2500 },
+        { "key": "d", "mods": ["shift", "command"] },
+        { "waitMs": 1500 }
+      ],
+      "caption": "What drafts changed since it forked from main, with ⇧⌘D"
     }
   ]
 }

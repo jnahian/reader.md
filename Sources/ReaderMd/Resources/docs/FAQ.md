@@ -158,6 +158,14 @@ uncommitted edits included, against that branch's tip. In a repo with many
 branches the popover has a filter field, so you can type part of a branch name
 instead of scrolling for it.
 
+**Can I read another branch without checking it out?**
+Yes. A git folder's header in the sidebar names its checked-out branch. Click it
+and pick another, and the folder shows that branch's documents, read from a
+cached copy of its latest commit. Your working copy and uncommitted edits are
+untouched. ⇧⌘D then shows what the branch changed since it forked, and
+**Working copy** at the top of the list goes back. Highlights and notes are off
+while you read a branch.
+
 ## Remote folders
 
 **Can I read markdown on a remote server?**

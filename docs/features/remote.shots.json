@@ -34,7 +34,7 @@
       "actions": [
         { "key": "a", "mods": ["command", "option"] },
         { "waitMs": 1200 },
-        { "click": [550, 382] },
+        { "click": [808, 386] },
         { "waitMs": 800 },
         { "click": [736, 427] },
         { "waitMs": 300 },
@@ -52,7 +52,7 @@
       "actions": [
         { "key": "a", "mods": ["command", "option"] },
         { "waitMs": 1200 },
-        { "click": [550, 382] },
+        { "click": [808, 386] },
         { "waitMs": 800 },
         { "click": [736, 427] },
         { "waitMs": 300 },
@@ -66,7 +66,7 @@
         { "click": [23, 294] },
         { "waitMs": 1000 }
       ],
-      "caption": "The cloned repository in the sidebar, with its branch badge"
+      "caption": "The cloned repository in the sidebar, showing the branch it has checked out"
     }
   ]
 }

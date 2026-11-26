@@ -48,7 +48,7 @@ Reader.md clones it once and runs `git pull --ff-only` on each launch. Fast
 forward only: the cache is never sent anywhere, so a merge commit invented
 there would only be in the way.
 
-![The cloned repository in the sidebar, with its branch badge](../assets/screenshots/remote/03-cloned.png)
+![The cloned repository in the sidebar, showing the branch it has checked out](../assets/screenshots/remote/03-cloned.png)
 
 Your existing git credentials are used, and git is never allowed to prompt — a
 repository you cannot read fails with git's own error instead of hanging on a
@@ -56,8 +56,11 @@ password request that has nowhere to appear.
 
 ## Reading the badges
 
-A remote root carries a small badge after its name: a cloud for an SSH folder,
-a branch for a cloned repository. While a sync runs, a spinner joins it. If a
+A remote root carries a small badge after its name: a cloud for an SSH folder.
+A cloned repository shows its branch name at the right instead, which also picks
+another branch to read (see
+[Reading another branch](git.md#reading-another-branch)). While a sync runs, a
+spinner joins the badge. If a
 sync fails, an amber triangle does instead, and hovering it gives you the error
 git or rsync reported.
 
