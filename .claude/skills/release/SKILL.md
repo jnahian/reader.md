@@ -136,9 +136,9 @@ First confirm the signing key is in the Keychain:
 ```
 
 It must print `v/AMQNXY0TUehbfJxMtPNqnX2xO6VJ2NQpHIlPLdFSQ=` (the
-`SUPublicEDKey` in `make-app.sh`). If it reports no key, restore the backup with
-`generate_keys -f ~/.config/sparkle/reader-md-ed25519.key`, or from the password
-manager. **Never run plain `generate_keys`**: a new key is one that every
+`SUPublicEDKey` in `make-app.sh`). If it reports no key, ask the maintainer for
+the backup and restore it with `generate_keys -f <exported-key-file>`. **Never
+run plain `generate_keys`**: a new key is one that every
 installed copy rejects. macOS asks once to let `generate_appcast` use the key;
 choose **Always Allow**.
 
