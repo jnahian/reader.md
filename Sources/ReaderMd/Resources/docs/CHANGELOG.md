@@ -19,6 +19,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   changed since it forked from your checked-out branch, the way a pull request
   does. The control beside it picks a different branch to measure from.
 
+### Changed
+
+- **Reader.md tells you about updates instead of installing them.** Once a day
+  it checks GitHub for a newer release, and when there is one it says so and
+  links to the download page. **Check for Updates…** asks straight away. To
+  update, download the new version and replace the app in Applications. If you
+  came from 1.23.0 or earlier, this is the one version you download by hand:
+  the old updater can only point you to it.
+- **`brew upgrade` updates Reader.md.** The Homebrew cask no longer marks the
+  app as updating itself, so Homebrew upgrades it like any other app.
+
 ## [1.23.1] - 2026-11-02
 
 ### Fixed

@@ -42,8 +42,8 @@ NOTES="$(awk -v v="${VERSION}" '
 ' "${CHANGELOG}")"
 if [ -z "$(printf '%s' "${NOTES}" | tr -d '[:space:]')" ]; then
   echo "No '## ${VERSION}' section in ${CHANGELOG}."
-  echo "Sparkle's update prompt would show empty release notes, and the app's"
-  echo "post-update What's New would show the previous version's. Add the entry first."
+  echo "The release page would have no notes, and the app's post-update"
+  echo "What's New would show the previous version's. Add the entry first."
   exit 1
 fi
 

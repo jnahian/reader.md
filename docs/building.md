@@ -38,6 +38,7 @@ build to clears quarantine once on first launch — see
 
 ## Cut a release
 
-`./release.sh` publishes a signed DMG and the Sparkle appcast. It refuses to run
-if the `## <version>` changelog entry is missing or the build number didn't
-increase — the full checklist is in [CLAUDE.md](../CLAUDE.md#auto-update-sparkle).
+`./release.sh` publishes the DMG and an `appcast.xml` that tells installs from
+1.23.0 and earlier, which still run Sparkle, where to download it. It refuses to
+run if the `## <version>` changelog entry is missing or the build number didn't
+increase — the full checklist is in [CLAUDE.md](../CLAUDE.md#updates-and-releases).

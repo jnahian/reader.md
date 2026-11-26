@@ -10,8 +10,8 @@ import { releasesLatest, releases } from "../data/site";
     <div class="eyebrow">CHANGELOG</div>
     <h1 class="chead__title">What's new in Reader.md</h1>
     <p class="chead__sub">
-      Every release ships through the app's own Sparkle updater — so you're always one relaunch from
-      the latest. Notable changes, newest first.
+      The app checks for new releases once a day and links to the download. Notable changes,
+      newest first.
     </p>
     <div class="chead__pills">
       <span class="pill chead__latest">
@@ -28,10 +28,10 @@ import { releasesLatest, releases } from "../data/site";
     </div>
 
     <div class="clog__cta frost reveal">
-      <h3>Update from within the app</h3>
+      <h3>Get the latest version</h3>
       <p>
-        Sparkle checks for and installs new releases automatically — or grab the latest build
-        yourself.
+        Reader.md tells you when a new release is out. Download it here, or run
+        <code>brew upgrade</code> if you installed with Homebrew.
       </p>
       <a href={releasesLatest} class="btn btn--light">Download the latest .dmg</a>
     </div>

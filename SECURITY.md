@@ -2,8 +2,9 @@
 
 ## Supported versions
 
-Only the latest release receives security fixes. The packaged `.app` auto-updates
-via Sparkle, so keeping it up to date is the best protection.
+Only the latest release receives security fixes. The packaged `.app` checks
+GitHub for a newer release once a day and tells you when there is one; install
+it when it's offered.
 
 ## Reporting a vulnerability
 
@@ -21,6 +22,7 @@ Reader.md is an unsandboxed local viewer with no server component. Relevant area
 
 - The bundled `WKWebView` renders markdown and is granted broad `file://` read
   access so local images resolve. It loads only bundled assets; the only network
-  access is Sparkle's auto-update check (appcast + signed update DMG).
-- Sparkle updates are verified against an EdDSA public key pinned in the app's
-  `Info.plist`, and served over HTTPS from GitHub releases.
+  access is the daily update check, a request to GitHub's API for the latest
+  release's version.
+- The app never downloads or installs an update. Releases are DMGs on the
+  GitHub release page, served over HTTPS.

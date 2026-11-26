@@ -1,6 +1,6 @@
 ---
 name: release
-description: Cut a Reader.md release — bump versions, update the changelog, build the .app, and publish the Sparkle update. Use when the user wants to release, ship a new version, publish an update, or cut a build of Reader.md.
+description: Cut a Reader.md release — bump versions, update the changelog, build the .app, and publish it to GitHub Releases. Use when the user wants to release, ship a new version, publish an update, or cut a build of Reader.md.
 ---
 
 # Release Reader.md
@@ -15,8 +15,9 @@ numbered step.**
 - **Display version** (`CFBundleShortVersionString`): semver, e.g. `1.5.0`. This
   is the only version you choose.
 - **Build number** (`CFBundleVersion`): derived automatically from the build
-  time (`date +%Y%m%d%H%M`) in `make-app.sh` — nothing to bump. It's what Sparkle
-  compares, and being time-based it's always monotonic.
+  time (`date +%Y%m%d%H%M`) in `make-app.sh` — nothing to bump. It's what
+  installs still on Sparkle (1.23.0 and earlier) compare against `appcast.xml`,
+  and being time-based it's always monotonic.
 
 ## 2. Bump the display version in `make-app.sh`
 
@@ -42,8 +43,9 @@ Leave `build ... ?? "dev"` alone — "dev" is intentional for `swift run`.
 ## 4. Update `Sources/ReaderMd/Resources/docs/CHANGELOG.md`
 
 The changelog follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
-with semver versions. It is read by users, not machines: Sparkle shows the
-section in its update prompt and the app opens it as What's New after updating.
+with semver versions. It is read by users, not machines: the section becomes
+the GitHub release body, installs still on Sparkle show it in their update
+prompt, and the app opens it as What's New after updating.
 
 - Rename `## [Unreleased]` to `## [NEW_DISPLAY] - YYYY-MM-DD` — bracketed
   version, ISO date, today's.
@@ -135,9 +137,10 @@ version and **Help → Release Notes** shows the new changelog entry.
 
 `release.sh` re-checks that the time-based `CFBundleVersion` exceeds the
 published build (it always will, short of clock skew) and refuses otherwise. It
-signs the DMG, generates `appcast.xml`, and uploads both to the `vNEW_DISPLAY`
-GitHub release, whose body is set from the same changelog section Sparkle's
-prompt shows — nothing to paste in by hand. It then rewrites `Casks/reader-md.rb` with the new version and
+writes an informational `appcast.xml` (a link to the release page for installs
+still on Sparkle; nothing is signed) and uploads it with the DMG to the
+`vNEW_DISPLAY` GitHub release, whose body is set from the same changelog
+section — nothing to paste in by hand. It then rewrites `Casks/reader-md.rb` with the new version and
 the uploaded DMG's sha256 and commits that (`chore: update Homebrew cask …`), so
 the `brew install --cask` tap tracks the release automatically — nothing to bump
 by hand.
@@ -148,9 +151,10 @@ by hand.
 gh release view "vNEW_DISPLAY" --repo jnahian/reader.md
 ```
 
-The release must be the newest non-prerelease (so
-`releases/latest/download/appcast.xml` resolves) and carry both the `.dmg` and
-`appcast.xml` assets. Updates reach Apple-silicon Macs only (arm64 binary).
+The release must be the newest non-prerelease, and carry both the `.dmg` and
+`appcast.xml` assets: the app's own update check reads GitHub's latest release,
+and installs still on Sparkle read `releases/latest/download/appcast.xml`. A
+release without the appcast leaves those installs checking a missing file.
 
 ## 11. Sync the web changelog
 

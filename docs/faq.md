@@ -40,8 +40,8 @@ run it. The three commands are in [Install](install.md#homebrew).
 ### Does it phone home?
 No. Markdown, diagrams, math, and syntax highlighting all render from bundled
 assets, so a document renders the same with the network off. The only outbound
-request is Sparkle's update check — the appcast, and the DMG if you accept an
-update.
+request is the update check: once a day, Reader.md asks GitHub for the version
+number of the latest release.
 
 ### Is it sandboxed?
 No. Folder access is direct paths, which is why you can add any folder — and

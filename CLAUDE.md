@@ -55,7 +55,7 @@ key actually does — check them rather than copying an existing table.
 
 - `Sources/ReaderMd/Resources/docs/` — `FAQ.md`, `SHORTCUTS.md`, `CHANGELOG.md`.
   Bundled into the app and opened from the Help menu, so they ship to users; the
-  changelog also drives Sparkle's release notes (below).
+  changelog also becomes each release's notes (below).
 - `docs/` — `features.md` (the one-line-per-feature list + shortcut tables),
   `install.md`, `cli.md`, `agent-skill.md`, `architecture.md`, `building.md`, and one page per
   feature area under `docs/features/` (`reading.md`, `library.md`, `git.md`, …)
@@ -94,11 +94,27 @@ separate deploy step, and a Swift-only commit builds nothing.
 
 ## Conventions
 
-- The app is **not sandboxed** — folder access is direct paths, no security-scoped bookmarks. The `WKWebView` gets broad `file://` read access so markdown-referenced local images resolve. All rendering assets are bundled; the only network access is Sparkle's auto-update check (fetching the appcast + update DMG).
+- The app is **not sandboxed** — folder access is direct paths, no security-scoped bookmarks. The `WKWebView` gets broad `file://` read access so markdown-referenced local images resolve. All rendering assets are bundled; the only network access is the daily update check (GitHub's latest-release API).
 - Any macOS 26-only API needs an availability guard with a pre-26 fallback (deployment target is 13).
 
-## Auto-update (Sparkle)
+## Updates and releases
 
-`SPUStandardUpdaterController` (`ReaderMdApp.swift`) drives auto-update; it only starts in the packaged `.app` (gated on `SUFeedURL` in Info.plist) so `swift run` doesn't error. `make-app.sh` bundles `Sparkle.framework` into `Contents/Frameworks`, adds the `@executable_path/../Frameworks` rpath, and injects `SUFeedURL`/`SUPublicEDKey`. The feed is `releases/latest/download/appcast.xml` on GitHub, so the newest release's appcast is always served. `release.sh` signs the DMG (EdDSA private key in the login keychain), runs `generate_appcast`, and uploads the DMG + appcast to a `v<version>` GitHub release. **Release notes** come from the changelog, in three places: `release.sh` extracts the `## <version>` section of `Sources/ReaderMd/Resources/docs/CHANGELOG.md`, stages it beside the DMG as `Reader.md.md` (`generate_appcast` pairs release notes to an archive by basename), and passes `--embed-release-notes` so they land in the appcast as `<description sparkle:format="markdown">` — that's what Sparkle's update prompt shows. The same staged file is passed to `gh release create --notes-file`, so the GitHub release page reads the same as the prompt. And the same bundled changelog is what `AppState.checkWhatsNew()` opens on the first launch after an update. So the changelog entry must exist *before* the release: `release.sh` refuses to publish a version with no section, because all three would otherwise show the previous version's notes.
+The app never updates itself. `Updater` (`Models/Updater.swift`) asks GitHub's latest-release API once a day (at launch and on each return to the app, with the time kept in `Settings`) and on **Check for Updates…**. When the release's `tag_name` is newer than `CFBundleShortVersionString`, it shows an alert whose **Download…** opens the release page. It runs only in the packaged `.app`: under `swift run` there is no `CFBundleShortVersionString`, so the check is skipped and the menu item is disabled. Up to 1.23.0 this was Sparkle. Its EdDSA signing key was lost, and an ad-hoc-signed app can't rotate one, so Sparkle was removed in 1.24.0. Don't bring it back without a Developer ID and a key you have backed up.
 
-To cut a release: add the `## <version>` changelog entry, bump `CFBundleShortVersionString` (display) in `make-app.sh`, run `./make-app.sh`, then `./release.sh` (which refuses to publish if `CFBundleVersion` didn't increase past the published one, or if the changelog entry is missing). `release.sh` also rewrites `Casks/reader-md.rb` to the new version + DMG sha256 and commits it (`chore: update Homebrew cask to v<version>`), so the cask is not a manual step — but it is a commit to push. `CFBundleVersion` — the integer Sparkle actually compares — is derived from the build time (`date +%Y%m%d%H%M`) so it's always monotonic; no manual bump. Follow the `release` skill for the full checklist (changelog, About fallback, commit-before-tag). The binary is arm64-only, so updates are offered to Apple-silicon Macs only.
+**Old installs.** 1.23.0 and earlier still run Sparkle against `releases/latest/download/appcast.xml`, so `release.sh` writes and uploads an `appcast.xml` with every release, for as long as those installs exist. Its single item is *informational*:
+- no enclosure, so there is nothing to sign (1.23.0 never set `SURequireSignedFeed`, so the feed itself isn't checked either);
+- a `<link>` to the release page;
+- `<sparkle:version>` set to this build's `CFBundleVersion`;
+- the release notes, with a note asking the user to download once by hand.
+
+Sparkle shows it as "A new version of Reader.md is available!" with **Learn More…**, which was checked against a real 1.23.0 build pointed at a local feed. `generate_appcast` can't make this file, because it signs with the lost key.
+
+**Release notes** come from the changelog. `release.sh` extracts the `## <version>` section of `Sources/ReaderMd/Resources/docs/CHANGELOG.md` and uses it in two places: the GitHub release body (`gh release create --notes-file`) and the appcast's `<description sparkle:format="markdown">`. `AppState.checkWhatsNew()` also opens the same bundled changelog on the first launch after an update. So the changelog entry must exist *before* the release: `release.sh` refuses to publish a version that has no section.
+
+To cut a release:
+1. Add the `## <version>` changelog entry.
+2. Bump `CFBundleShortVersionString` (the display version) in `make-app.sh`.
+3. Run `./make-app.sh`.
+4. Run `./release.sh`. It refuses to publish if `CFBundleVersion` didn't increase past the published appcast's, or if the changelog entry is missing.
+
+`release.sh` also rewrites `Casks/reader-md.rb` to the new version and DMG sha256 and commits it (`chore: update Homebrew cask to v<version>`), so the cask is not a manual step, but it is a commit to push. The cask has no `auto_updates`, so `brew upgrade` installs new versions. `CFBundleVersion` is derived from the build time (`date +%Y%m%d%H%M`), so it always increases and needs no manual bump. It is what `checkWhatsNew()` and the old Sparkle installs compare. Follow the `release` skill for the full checklist (changelog, About fallback, commit-before-tag). The binary is arm64-only.

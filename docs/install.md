@@ -50,21 +50,25 @@ writes.
 
 ## Updates
 
-The packaged app checks for updates through Sparkle on launch and offers what
-it finds; accepting installs it in place. **Reader.md → Check for Updates…**
-asks straight away.
-
-**Remind Later** dismisses an offer without taking it; the next check offers it
-again. **Skip This Version** passes on that release for good.
+Once a day, the packaged app asks GitHub whether there's a newer release. When
+there is, it tells you, and **Download…** opens the release page: download the
+DMG and replace the app in Applications, as you did to install it. Reader.md
+never downloads or installs anything itself. **Later** dismisses the notice
+until the next day's check. **Reader.md → Check for Updates…** asks straight
+away, and also tells you when you're up to date.
 
 The first launch after an update opens the changelog, so you can see what
 changed without going looking for it.
 
-Homebrew defers to that (`auto_updates true`), so `brew upgrade` leaves an
-already-updated build alone rather than replacing it with the cask's version.
+With Homebrew, `brew upgrade` installs the new version.
 
-Updates are offered to Apple-silicon Macs only, for the same reason the install
-is.
+### Updating from 1.23.0 or earlier
+
+Up to 1.23.0, Reader.md installed its own updates through Sparkle. It stopped
+in 1.24.0, because the key that signed those updates was lost. An older version
+still checks, but when it finds 1.24.0 or later it offers **Learn More…**
+instead of installing: download that version once by hand, and from then on the
+app tells you about new versions itself.
 
 ## Uninstalling
 

@@ -23,7 +23,7 @@ browse: markdown editors, note-taking apps, documentation tools.
 **Product type:** Free, open-source (MIT) native desktop app.
 
 **Business model:** No pricing. Distributed via Homebrew cask and a direct DMG,
-updated in place by Sparkle. Not monetised; the return is GitHub stars,
+with a daily in-app check that links to new releases. Not monetised; the return is GitHub stars,
 contributors, and use. **[assumed]**
 
 **Requirements:** macOS 13+, Apple silicon only (the binary is arm64).
@@ -104,7 +104,7 @@ Mermaid/LaTeX rendering, a multi-root file tree, and git awareness. **[assumed]*
 - **Genuinely native shell** — SwiftUI/AppKit toolbar, sidebar, outline, find;
   Liquid Glass on macOS 26 with an `NSVisualEffectView` fallback on 13–15.
 - **Rendering with no network** — Mermaid, KaTeX, and highlight.js are bundled.
-  The only network access in the app is Sparkle's update check.
+  The only network access in the app is the daily update check.
 - **Remote and cloned folders** — add a folder over SSH (`rsync`, read-only) or
   by git clone URL, reusing existing SSH and git credentials and **storing
   none**.
@@ -195,9 +195,10 @@ ones exist.
 
 What can be stated factually today:
 - Free and MIT licensed
-- Ships with no telemetry; the only network call is Sparkle's update check
+- Ships with no telemetry; the only network call is the daily update check
 - Renders Mermaid, LaTeX, and syntax highlighting entirely offline
-- Auto-updates in place via Sparkle
+- Tells you about new releases and links to the download (it doesn't install
+  them itself)
 
 ## Goals
 

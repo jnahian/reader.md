@@ -26,10 +26,10 @@ JS engines, because Mermaid diagrams and LaTeX math have no native equivalent.
 ## Notes
 
 - The app is **not** sandboxed, so it reads user-selected folders directly (no security-scoped bookmarks). For Mac App Store distribution you'd enable the sandbox and wrap folder access in bookmarks.
-- The `WKWebView` is granted broad file read access so `file://` images referenced by your markdown resolve; all rendering assets are local — the only network access is Sparkle's auto-update check and, for remote folders, `rsync`/`ssh` or `git` to the hosts you add.
+- The `WKWebView` is granted broad file read access so `file://` images referenced by your markdown resolve; all rendering assets are local — the only network access is the daily update check (GitHub's latest-release API) and, for remote folders, `rsync`/`ssh` or `git` to the hosts you add.
 - **Remote folders** require `rsync` and `ssh` on your Mac (both ship with macOS) and rely on your `~/.ssh` config for reaching the host; cloned repositories require `git`. Sync is read-only and pull-based (on launch + manual re-sync); Reader.md never writes back to the remote, and a clone is only ever fast-forwarded.
 
 `CLAUDE.md` in the repo root goes deeper — the token-bump pattern for imperative
-actions, the `reader` CLI's URL-dispatch design, and how Sparkle releases are cut.
+actions, the `reader` CLI's URL-dispatch design, and how releases are cut.
 [`markup-model.md`](markup-model.md) is the design sketch for the anchored
 highlight / annotation / comment model.
