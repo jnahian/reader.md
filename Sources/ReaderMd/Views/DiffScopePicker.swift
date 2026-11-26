@@ -171,7 +171,7 @@ struct RefList: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
                         ForEach(filtered, id: \.self) { name in
-                            ScopeRow(title: name, selected: selected == name) { pick(name) }
+                            ScopeRow(title: name, selected: selected == name, tooltip: name) { pick(name) }
                                 .id(name)
                         }
                     }
@@ -206,6 +206,8 @@ struct PopoverHeader: View {
 struct ScopeRow: View {
     let title: String
     let selected: Bool
+    /// The full name, for a row whose title can be cut short: branches.
+    var tooltip: String? = nil
     let action: () -> Void
     @State private var hovering = false
 
@@ -233,9 +235,18 @@ struct ScopeRow: View {
         .onHover { hovering = $0 }
         .rowButton(action)
         .accessibilityAddTraits(traits)
+        .modifier(OptionalTooltip(text: tooltip))
     }
 
     /// `.isButton` used to be spelled out here because the row was an
     /// `.onTapGesture` on an `HStack`; as a real Button it carries that itself.
     private var traits: AccessibilityTraits { selected ? [.isSelected] : [] }
+}
+
+private struct OptionalTooltip: ViewModifier {
+    let text: String?
+
+    func body(content: Content) -> some View {
+        if let text { content.dockTooltip(text) } else { content }
+    }
 }
