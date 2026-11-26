@@ -103,6 +103,6 @@ export const faqsHighlight: Faq[] = [
   },
   {
     q: "Does it work on Intel Macs?",
-    a: 'The binary is arm64-only, so both the app and its updates are offered to Apple silicon only. <a href="/docs/install#requirements">Requirements</a>.',
+    a: 'The binary is arm64-only, so the app runs on Apple silicon only. <a href="/docs/install#requirements">Requirements</a>.',
   },
 ];

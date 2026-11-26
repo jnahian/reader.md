@@ -9,7 +9,7 @@ related: [install, features, reading]
 # FAQ
 
 Reader.md is a native macOS markdown viewer. Everything renders locally; the
-only network access is the auto-update check.
+only network access is the update check.
 
 ## Before you install
 
@@ -19,7 +19,7 @@ Yes. MIT-licensed, no account, no trial, no paid tier. The
 
 ### What does it need?
 macOS 13 or later, on an Apple-silicon Mac. The binary is arm64-only, so Intel
-Macs aren't supported — and neither are their updates. See
+Macs aren't supported. See
 [Install](install.md#requirements).
 
 ### Do I need macOS 26?
@@ -200,17 +200,22 @@ token of its own.
 ## Updates
 
 ### How do I update?
-Reader.md checks for updates automatically. You can also trigger it from
-**Reader.md → Check for Updates…**. Updates are delivered to Apple-silicon Macs.
+Reader.md checks GitHub for a newer release once a day, and **Reader.md → Check
+for Updates…** asks straight away. When there is one, **Download…** opens the
+release page: download the DMG and replace the app in Applications. If you
+installed with Homebrew, run `brew upgrade`. Reader.md doesn't install updates
+itself.
 
-### I dismissed the update prompt — how do I get it back?
-**Remind Later** only defers an offer, so the next check — automatic or from
-**Check for Updates…** — brings it back. **Skip This Version** is the one that
-passes on a release for good; a later release is still offered.
+### I clicked Later — how do I get the notice back?
+Choose **Reader.md → Check for Updates…**. Otherwise the next day's check shows
+it again.
 
-### Does `brew upgrade` fight with the in-app updater?
-No. The cask sets `auto_updates true`, so Homebrew leaves an already-updated
-build alone rather than replacing it with the cask's version.
+### Why did Reader.md stop updating itself?
+Up to 1.23.0 it installed its own updates through Sparkle, which checks each one
+against a signing key. That key was lost, so 1.24.0 replaced Sparkle with a
+check that only tells you about a release. On 1.23.0 or earlier, the update
+prompt offers **Learn More…** instead of installing: download 1.24.0 by hand
+once, and from then on the app tells you about new versions itself.
 
 ## Something's wrong
 

@@ -47,7 +47,7 @@ export const GET: APIRoute = async () => {
     "",
     "Reader.md is a free, MIT-licensed native macOS app — a reader, not an editor.",
     "It needs macOS 13 or later on an Apple-silicon Mac. Everything renders locally;",
-    "the only network access is the auto-update check.",
+    "the only network access is the update check.",
     "",
     ...sections.flatMap((s) => [s, ""]),
     "## Use cases",

@@ -10,8 +10,8 @@ related: [faq, features, cli, building]
 
 ## Requirements
 
-macOS 13 or later, on an Apple-silicon Mac. The binary is arm64-only, so both
-the app and its automatic updates are offered to Apple silicon only. If you are
+macOS 13 or later, on an Apple-silicon Mac. The binary is arm64-only, so the
+app runs on Apple silicon only. If you are
 not sure which you have,  → **About This Mac** says so on the first line.
 
 Liquid Glass appears on macOS 26 (Tahoe); 13 through 15 get the
