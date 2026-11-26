@@ -115,7 +115,7 @@ cat > "${APP}/Contents/Info.plist" <<PLIST
   <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>SUFeedURL</key><string>https://github.com/jnahian/reader.md/releases/latest/download/appcast.xml</string>
-  <key>SUPublicEDKey</key><string>tNhNMsfHkLZmnS/mTWYiAVIzYcj7yDjsHJWLgtB0Xe8=</string>
+  <key>SUPublicEDKey</key><string>v/AMQNXY0TUehbfJxMtPNqnX2xO6VJ2NQpHIlPLdFSQ=</string>
   <key>SUEnableAutomaticChecks</key><true/>
   <key>NSPrincipalClass</key><string>NSApplication</string>
   <key>CFBundleDocumentTypes</key>
