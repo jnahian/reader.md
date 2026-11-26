@@ -129,13 +129,28 @@ version and **Help → Release Notes** shows the new changelog entry.
 
 ## 9. Publish
 
+First confirm the signing key is in the Keychain:
+
+```
+.build/artifacts/sparkle/Sparkle/bin/generate_keys -p
+```
+
+It must print `v/AMQNXY0TUehbfJxMtPNqnX2xO6VJ2NQpHIlPLdFSQ=` (the
+`SUPublicEDKey` in `make-app.sh`). If it reports no key, ask the maintainer for
+the backup and restore it with `generate_keys -f <exported-key-file>`. **Never
+run plain `generate_keys`**: a new key is one that every
+installed copy rejects. macOS asks once to let `generate_appcast` use the key;
+choose **Always Allow**.
+
 ```
 ./release.sh
 ```
 
 `release.sh` re-checks that the time-based `CFBundleVersion` exceeds the
 published build (it always will, short of clock skew) and refuses otherwise. It
-signs the DMG, generates `appcast.xml`, and uploads both to the `vNEW_DISPLAY`
+signs the DMG, generates `appcast.xml` (marked informational for builds still on
+the key lost in November 2026, which sends them to the release page), and
+uploads both to the `vNEW_DISPLAY`
 GitHub release, whose body is set from the same changelog section Sparkle's
 prompt shows — nothing to paste in by hand. It then rewrites `Casks/reader-md.rb` with the new version and
 the uploaded DMG's sha256 and commits that (`chore: update Homebrew cask …`), so

@@ -24,12 +24,13 @@ Building from source needs more than running it does — see
 ## Homebrew
 
 Reader.md ships a [Homebrew Cask](../Casks/reader-md.rb) in this repo. Because
-the repo isn't named `homebrew-*`, tap it with its explicit URL once, trust the
+the repo isn't named `homebrew-*`, tap it with its explicit URL once. Homebrew
+won't load a cask from a tap outside its own until you trust it, so trust the
 cask, then install:
 
 ```bash
 brew tap jnahian/reader.md https://github.com/jnahian/reader.md
-brew trust --cask jnahian/reader.md/reader.md
+brew trust --cask jnahian/reader.md/reader-md
 brew install --cask reader-md
 ```
 
@@ -40,7 +41,7 @@ This also puts `reader` on your PATH.
 Grab `Reader.md.dmg` from the
 [latest release](https://github.com/jnahian/reader.md/releases/latest), open it,
 and drag **Reader.md** to **Applications**. The app is ad-hoc signed but not
-notarized, so the first launch needs one right-click → **Open** — see
+notarized, so macOS asks you to approve its first launch — see
 [Clearing quarantine](#clearing-quarantine).
 
 For the `reader` command, use **File → Install `reader` Command Line Tool…**
@@ -66,6 +67,16 @@ already-updated build alone rather than replacing it with the cask's version.
 Updates are offered to Apple-silicon Macs only, for the same reason the install
 is.
 
+### Updating from 1.23.0 or earlier
+
+From 1.24.0, updates are signed with a new key, because the one that 1.23.0 and
+earlier trust was lost. Those versions can't verify the new signature, so
+instead of installing the update they offer **Learn More…**, which opens the
+release page. Download the DMG there and replace the app in Applications, once:
+macOS asks you to approve its first launch, as it did when you installed it.
+With Homebrew, `brew upgrade` installs it instead. From then on, updates install
+themselves again.
+
 ## Uninstalling
 
 ```bash
@@ -84,12 +95,20 @@ way.
 ## Clearing quarantine
 
 The ad-hoc signature means a downloaded copy is **not** flagged as "damaged" —
-but because it isn't notarized with an Apple Developer ID, the first launch
-still shows *"Apple cannot check it for malicious software."* Clear it once,
-either way:
+but because it isn't notarized with an Apple Developer ID, macOS blocks the
+first launch with a warning that it can't check the app for malware. Approve it
+one of these ways:
 
-- **Right-click** the app → **Open** → **Open** in the dialog, or
-- Terminal: `xattr -dr com.apple.quarantine "/path/to/Reader.md.app"`
+- **macOS 15 or later:** open the app and close the warning, then go to
+  **System Settings → Privacy & Security**, click **Open Anyway** beside
+  Reader.md, and confirm. Right-clicking → **Open** no longer gets past the
+  warning on these versions.
+- **macOS 13 or 14:** right-click the app → **Open** → **Open** in the dialog.
+- **Any version**, in Terminal:
+  `xattr -dr com.apple.quarantine "/Applications/Reader.md.app"`
+
+Updates installed through **Check for Updates…** don't need this again. A copy
+you download yourself does, and so does one that `brew upgrade` installs.
 
 For a launch with no prompt at all, sign with a Developer ID and notarize
 (Xcode's Archive flow).

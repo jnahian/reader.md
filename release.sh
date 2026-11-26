@@ -9,6 +9,13 @@ cd "$(dirname "$0")"
 APP_NAME="Reader.md"
 REPO="jnahian/reader.md"
 GEN="$(pwd)/.build/artifacts/sparkle/Sparkle/bin/generate_appcast"
+# Builds before this one trust the signing key that was lost in November 2026
+# (SUPublicEDKey tNhNMsfH…), so they can't verify anything signed now. The appcast
+# marks every update as informational for them: Sparkle shows the release with a
+# Learn More button instead of failing to install it. Keep this in every release
+# for as long as those installs exist. Every build at or after it carries the
+# current key (v/AMQNXY…).
+OLD_KEY_BELOW="202611270000"
 
 APP="build/${APP_NAME}.app"
 DMG="build/${APP_NAME}.dmg"
@@ -54,12 +61,15 @@ fi
 
 # generate_appcast signs the DMG (private key pulled from the keychain) and writes
 # appcast.xml. Isolate the DMG so only this build becomes an update entry; the
-# download URL points at where gh will host it under this tag.
+# download URL points at where gh will host it under this tag. --link is where
+# installs on the lost key are sent instead (see OLD_KEY_BELOW).
 STAGE="$(mktemp -d)"
 cp "${DMG}" "${STAGE}/"
 NOTES_FILE="${STAGE}/${APP_NAME}.md"
 printf '%s\n' "${NOTES}" > "${NOTES_FILE}"
 "${GEN}" --embed-release-notes \
+  --informational-update-versions "<${OLD_KEY_BELOW}" \
+  --link "https://github.com/${REPO}/releases/tag/${TAG}" \
   --download-url-prefix "https://github.com/${REPO}/releases/download/${TAG}/" "${STAGE}"
 cp "${STAGE}/appcast.xml" build/appcast.xml
 
@@ -70,6 +80,12 @@ cp "${STAGE}/appcast.xml" build/appcast.xml
 grep -q "<description" build/appcast.xml || {
   echo "generate_appcast produced no <description> — release notes did not embed."
   echo "Check that ${APP_NAME}.md pairs with ${APP_NAME}.dmg by basename in ${STAGE}."
+  exit 1
+}
+# Without this, installs on the lost key download the update and then fail to
+# verify it, instead of being sent to the release page.
+grep -q "<sparkle:belowVersion>${OLD_KEY_BELOW}</sparkle:belowVersion>" build/appcast.xml || {
+  echo "appcast.xml doesn't mark the update informational below ${OLD_KEY_BELOW}."
   exit 1
 }
 

@@ -27,15 +27,21 @@ No. Liquid Glass chrome appears on macOS 26 (Tahoe); 13 through 15 fall back to
 `NSVisualEffectView` automatically, with nothing to configure.
 
 ### Why does macOS say it can't check it for malicious software?
-The app is ad-hoc signed but not notarized, so the first launch is gated. Clear
-it once: right-click the app → **Open**, then **Open** in the dialog — or run
-`xattr -dr com.apple.quarantine "/Applications/Reader.md.app"`. Full detail in
+The app is ad-hoc signed but not notarized, so macOS blocks the first launch.
+Approve it once in **System Settings → Privacy & Security → Open Anyway**
+(macOS 15 or later), with right-click → **Open** (macOS 13 or 14), or on any
+version by running
+`xattr -dr com.apple.quarantine "/Applications/Reader.md.app"`. Updates
+installed from inside the app don't ask again. Full detail in
 [Clearing quarantine](install.md#clearing-quarantine).
 
 ### Why does Homebrew need a `brew trust` step?
-The repository isn't named `homebrew-*`, so the tap is added by its explicit URL
-and the cask has to be trusted once before `brew install --cask reader-md` will
-run it. The three commands are in [Install](install.md#homebrew).
+Homebrew won't load a cask from a tap outside its own until you trust it, and
+Reader.md's cask lives in the app's repository rather than in Homebrew's.
+Without the step, `brew install --cask reader-md` stops with "Refusing to load
+cask … from untrusted tap". The repository also isn't named `homebrew-*`, which
+is why the tap is added by its explicit URL. The three commands are in
+[Install](install.md#homebrew).
 
 ### Does it phone home?
 No. Markdown, diagrams, math, and syntax highlighting all render from bundled
@@ -207,6 +213,12 @@ Reader.md checks for updates automatically. You can also trigger it from
 **Remind Later** only defers an offer, so the next check — automatic or from
 **Check for Updates…** — brings it back. **Skip This Version** is the one that
 passes on a release for good; a later release is still offered.
+
+### Why does 1.23.0 say Learn More instead of installing the update?
+Updates are signed, and the key that signed them up to 1.23.0 was lost. From
+1.24.0 they're signed with a new key, which older versions can't verify, so they
+send you to the release page instead. Download 1.24.0 from there once, or run
+`brew upgrade`, and from then on updates install themselves again.
 
 ### Does `brew upgrade` fight with the in-app updater?
 No. The cask sets `auto_updates true`, so Homebrew leaves an already-updated

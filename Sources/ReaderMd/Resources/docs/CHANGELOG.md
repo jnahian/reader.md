@@ -19,6 +19,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   changed since it forked from your checked-out branch, the way a pull request
   does. The control beside it picks a different branch to measure from.
 
+### Changed
+
+- **Updates are signed with a new key.** If you're on 1.23.0 or earlier, the
+  update prompt offers **Learn More…** instead of installing this version:
+  download it from the release page and replace the app in Applications, once.
+  macOS asks you to approve its first launch, as it did when you installed it.
+  With Homebrew, `brew upgrade` installs it. From this version on, updates
+  install themselves again.
+
 ## [1.23.1] - 2026-11-02
 
 ### Fixed
