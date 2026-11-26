@@ -24,12 +24,13 @@ Building from source needs more than running it does — see
 ## Homebrew
 
 Reader.md ships a [Homebrew Cask](../Casks/reader-md.rb) in this repo. Because
-the repo isn't named `homebrew-*`, tap it with its explicit URL once, trust the
+the repo isn't named `homebrew-*`, tap it with its explicit URL once. Homebrew
+won't load a cask from a tap outside its own until you trust it, so trust the
 cask, then install:
 
 ```bash
 brew tap jnahian/reader.md https://github.com/jnahian/reader.md
-brew trust --cask jnahian/reader.md/reader.md
+brew trust --cask jnahian/reader.md/reader-md
 brew install --cask reader-md
 ```
 

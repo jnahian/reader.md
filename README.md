@@ -25,7 +25,7 @@ reload — instead of one more tab in your code editor.
 
 ```bash
 brew tap jnahian/reader.md https://github.com/jnahian/reader.md
-brew trust --cask jnahian/reader.md/reader.md
+brew trust --cask jnahian/reader.md/reader-md
 brew install --cask reader-md
 ```
 
