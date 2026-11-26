@@ -125,8 +125,9 @@ built for something else.
 1. *"Why not just use my editor's preview?"* — Because it is a pane in a writing
    tool, without a file tree across folders, an outline, or offline diagrams.
 2. *"Apple silicon only, and it isn't notarized?"* — The build is arm64 and
-   ad-hoc signed, so the first launch needs right-click → Open. Documented in
-   the install guide.
+   ad-hoc signed, so macOS asks the user to approve the first launch (System
+   Settings → Privacy & Security → Open Anyway on macOS 15+). Documented in the
+   install guide.
 3. *"Another markdown app?"* — It is a viewer, not another editor, and it is
    free and MIT.
 
