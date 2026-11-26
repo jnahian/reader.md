@@ -1,14 +1,13 @@
 #!/bin/bash
-# Publish a Sparkle auto-update release: sign the DMG, generate appcast.xml,
-# and upload both to GitHub Releases under a v<version> tag.
+# Publish a release: upload the DMG and an informational appcast.xml to GitHub
+# Releases under a v<version> tag, then point the Homebrew cask at it.
 # Run ./make-app.sh first (bump the version in it), then ./release.sh.
-# Requires: gh (authenticated) and the Sparkle EdDSA private key in your keychain.
+# Requires: gh (authenticated).
 set -euo pipefail
 
 cd "$(dirname "$0")"
 APP_NAME="Reader.md"
 REPO="jnahian/reader.md"
-GEN="$(pwd)/.build/artifacts/sparkle/Sparkle/bin/generate_appcast"
 
 APP="build/${APP_NAME}.app"
 DMG="build/${APP_NAME}.dmg"
@@ -17,9 +16,9 @@ DMG="build/${APP_NAME}.dmg"
 VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "${APP}/Contents/Info.plist")"
 TAG="v${VERSION}"
 
-# Sparkle compares CFBundleVersion, not the display string. If it didn't increase
-# past the published build, every client sees "no update" — the classic silent
-# no-op. Refuse to publish in that case.
+# Installs still on Sparkle compare CFBundleVersion, not the display string. If it
+# didn't increase past the published build, they see "no update". Refuse to
+# publish in that case.
 NEW_BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "${APP}/Contents/Info.plist")"
 PUB_BUILD="$(curl -fsSL "https://github.com/${REPO}/releases/latest/download/appcast.xml" 2>/dev/null \
   | sed -n 's/.*<sparkle:version>\([0-9][0-9]*\)<.*/\1/p' | head -1 || true)"
@@ -29,11 +28,7 @@ if [ -n "${PUB_BUILD}" ] && [ "${NEW_BUILD}" -le "${PUB_BUILD}" ]; then
   exit 1
 fi
 
-# Release notes for Sparkle's update prompt. Without these the prompt shows a blank
-# notes pane. generate_appcast picks up a .md file named after the archive (minus its
-# extension), so "Reader.md.dmg" pairs with "Reader.md.md"; --embed-release-notes
-# inlines it as CDATA in the appcast, so there's no separate file to host.
-#
+# Release notes, for the GitHub release page and the old installs' update prompt.
 # The notes are the changelog's section for THIS version. A release whose version has
 # no changelog entry is a mistake, not a release — refuse it, the same way we refuse a
 # CFBundleVersion that didn't increase.
@@ -52,32 +47,50 @@ if [ -z "$(printf '%s' "${NOTES}" | tr -d '[:space:]')" ]; then
   exit 1
 fi
 
-# generate_appcast signs the DMG (private key pulled from the keychain) and writes
-# appcast.xml. Isolate the DMG so only this build becomes an update entry; the
-# download URL points at where gh will host it under this tag.
 STAGE="$(mktemp -d)"
-cp "${DMG}" "${STAGE}/"
 NOTES_FILE="${STAGE}/${APP_NAME}.md"
 printf '%s\n' "${NOTES}" > "${NOTES_FILE}"
-"${GEN}" --embed-release-notes \
-  --download-url-prefix "https://github.com/${REPO}/releases/download/${TAG}/" "${STAGE}"
-cp "${STAGE}/appcast.xml" build/appcast.xml
 
-# The notes are what the user reads before agreeing to install. If they didn't make it
-# into the feed, the prompt is blank and we'd rather know now than after publishing.
-# (The tag carries an attribute — `<description sparkle:format="markdown">` — so match
-# the opening tag, not "<description>".)
-grep -q "<description" build/appcast.xml || {
-  echo "generate_appcast produced no <description> — release notes did not embed."
-  echo "Check that ${APP_NAME}.md pairs with ${APP_NAME}.dmg by basename in ${STAGE}."
-  exit 1
-}
+# Installs from 1.23.0 and earlier still run Sparkle and fetch
+# releases/latest/download/appcast.xml, so every release has to carry one for as
+# long as those installs are out there. Sparkle's signing key is lost, so the item
+# is informational: no enclosure, just a <link>. Sparkle then shows "available"
+# with a Learn More button that opens the release page, and needs no signature
+# (1.23.0 never set SURequireSignedFeed, so the feed itself isn't checked either).
+RELEASE_PAGE="https://github.com/${REPO}/releases/tag/${TAG}"
+PUB_DATE="$(LC_ALL=C date -u '+%a, %d %b %Y %H:%M:%S +0000')"
+cat > build/appcast.xml <<APPCAST
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+  <channel>
+    <title>${APP_NAME}</title>
+    <item>
+      <title>${VERSION}</title>
+      <pubDate>${PUB_DATE}</pubDate>
+      <sparkle:version>${NEW_BUILD}</sparkle:version>
+      <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <link>${RELEASE_PAGE}</link>
+      <description sparkle:format="markdown"><![CDATA[**Reader.md no longer updates itself.** Click **Learn More**, download
+${APP_NAME}.dmg from the release page and replace the app in Applications. This
+is the last time you need to: from then on, Reader.md tells you about new
+versions itself.
+
+${NOTES}
+]]></description>
+    </item>
+  </channel>
+</rss>
+APPCAST
+# A stray "]]>" in the notes, or anything else malformed, would make old installs
+# fail the check quietly. Catch it here instead.
+xmllint --noout build/appcast.xml
 
 # Create the release (or replace assets if the tag already exists). Must be the
 # newest, non-prerelease release so releases/latest/download/appcast.xml resolves.
-# The body is the same changelog section Sparkle's prompt embeds — a release page
-# that summarized itself as "Reader.md 1.2.0" told a reader nothing. Re-running
-# against an existing tag rewrites it too, since that's when the notes changed.
+# The body is the changelog section — a release page that summarized itself as
+# "Reader.md 1.2.0" told a reader nothing. Re-running against an existing tag
+# rewrites it too, since that's when the notes changed.
 if ! gh release create "${TAG}" "${DMG}" build/appcast.xml \
        --repo "${REPO}" --title "${TAG}" --notes-file "${NOTES_FILE}"; then
   gh release upload "${TAG}" "${DMG}" build/appcast.xml --repo "${REPO}" --clobber

@@ -12,9 +12,6 @@ cask "reader-md" do
     strategy :github_latest
   end
 
-  # The packaged app updates itself through Sparkle, so let it manage upgrades
-  # rather than having Homebrew replace a Sparkle-updated build underneath it.
-  auto_updates true
   depends_on macos: :ventura
 
   app "Reader.md.app"

@@ -8,8 +8,9 @@ APP_NAME="Reader.md"
 # Overridable so the docs harness can build an isolated bundle (its own
 # UserDefaults domain) without touching the real app's saved folders.
 BUNDLE_ID="${BUNDLE_ID:-com.nahian.reader-md}"
-# CFBundleVersion is what Sparkle compares; derive it from the build time so it's
-# always monotonic — no manual bump, no silent "no update" from a stale integer.
+# CFBundleVersion is what tells the app it was updated (What's New) and what
+# installs still on Sparkle (1.23.0 and earlier) compare against appcast.xml.
+# Derived from the build time so it's always monotonic, with no manual bump.
 BUILD_NUMBER="$(date +%Y%m%d%H%M)"
 
 echo "Building release..."
@@ -33,40 +34,6 @@ cp "${EXE}" "${APP}/Contents/MacOS/${APP_NAME}"
 # its own executable path, so it must live at Contents/MacOS/reader — and it must
 # be copied before codesign, since it's nested code that has to be sealed.
 cp "${BIN_DIR}/reader" "${APP}/Contents/MacOS/reader"
-
-# Bundle Sparkle.framework (auto-update) and point the binary at ../Frameworks.
-SPARKLE_FW="$(find .build/artifacts/sparkle/Sparkle/Sparkle.xcframework -type d -name Sparkle.framework -path '*macos*' | head -1)"
-mkdir -p "${APP}/Contents/Frameworks"
-cp -R "${SPARKLE_FW}" "${APP}/Contents/Frameworks/"
-install_name_tool -add_rpath "@executable_path/../Frameworks" "${APP}/Contents/MacOS/${APP_NAME}" 2>/dev/null || true
-
-# Sparkle draws the update alert itself, and its dismiss button reads "Remind Me
-# Later" — we ship it as "Remind Later". The string comes from the framework's own
-# strings table (the prebuilt XCFramework is compiled with SPARKLE_COPY_LOCALIZATIONS,
-# so it never falls back to the app bundle and Swift can't override it), which
-# leaves patching the copy we ship. English lives in Base.lproj — Sparkle has no
-# en.lproj — and every other language keeps its own wording. Runs before the
-# codesign below, which re-seals the framework over the edit.
-PATCHED_STRINGS=0
-while IFS= read -r STRINGS; do
-  # Checked before the edit because `plutil -replace` *creates* a missing key and
-  # still exits 0 — so a Sparkle rename would otherwise ship the stock label plus
-  # a dead orphan key, with the build none the wiser.
-  plutil -extract "Remind Me Later" raw "${STRINGS}" >/dev/null 2>&1 || {
-    echo "error: Sparkle no longer has a \"Remind Me Later\" key in ${STRINGS}." >&2
-    echo "The update alert would ship Sparkle's stock label. Update make-app.sh." >&2
-    exit 1
-  }
-  plutil -replace "Remind Me Later" -string "Remind Later" "${STRINGS}"
-  PATCHED_STRINGS=$((PATCHED_STRINGS + 1))
-done < <(find "${APP}/Contents/Frameworks/Sparkle.framework/Versions" -name Sparkle.strings \
-           \( -path '*/Base.lproj/*' -o -path '*/en.lproj/*' \))
-if [ "${PATCHED_STRINGS}" -eq 0 ]; then
-  echo "error: found no English Sparkle.strings under Sparkle.framework to patch." >&2
-  echo "Sparkle moved its localizations; the update alert would ship the stock" >&2
-  echo "\"Remind Me Later\" label. Update make-app.sh." >&2
-  exit 1
-fi
 
 # Copy resources into Contents/Resources (standard, signable). Bundle.resources
 # loads them via Bundle.main there. Placing the SwiftPM .bundle at the .app root
@@ -114,9 +81,6 @@ cat > "${APP}/Contents/Info.plist" <<PLIST
   <key>CFBundleVersion</key><string>${BUILD_NUMBER}</string>
   <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>NSHighResolutionCapable</key><true/>
-  <key>SUFeedURL</key><string>https://github.com/jnahian/reader.md/releases/latest/download/appcast.xml</string>
-  <key>SUPublicEDKey</key><string>tNhNMsfHkLZmnS/mTWYiAVIzYcj7yDjsHJWLgtB0Xe8=</string>
-  <key>SUEnableAutomaticChecks</key><true/>
   <key>NSPrincipalClass</key><string>NSApplication</string>
   <key>CFBundleDocumentTypes</key>
   <array>

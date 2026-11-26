@@ -5,9 +5,6 @@ import AppKit
 struct ReaderMdApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var state = AppState()
-    // Auto-update via Sparkle. See Models/Updater.swift for why it's wrapped
-    // rather than an SPUStandardUpdaterController wired straight to the menu.
-    @StateObject private var updater = Updater()
 
     var body: some Scene {
         // `Window`, not `WindowGroup`: on a cold launch SwiftUI opened a second
@@ -25,6 +22,7 @@ struct ReaderMdApp: App {
                     // over the changelog: this flushes any URLs the delegate
                     // queued before the window existed.
                     appDelegate.state = state
+                    Updater.checkIfDue()
                 }
                 .onReceive(NotificationCenter.default.publisher(
                     for: NSApplication.didBecomeActiveNotification)) { _ in
@@ -35,6 +33,8 @@ struct ReaderMdApp: App {
                     state.refreshGitStatus()
                     // A commit or fetch moves a branch the same unwatched way.
                     state.refreshBranches()
+                    // An app left open for days still hears about a release.
+                    Updater.checkIfDue()
                 }
                 // Claim every incoming URL for this window. The single `Window`
                 // scene already rules out a second one; this is belt and braces.
@@ -44,8 +44,8 @@ struct ReaderMdApp: App {
         .commands {
             CommandGroup(replacing: .appInfo) {
                 Button("About Reader.md") { showAboutPanel() }
-                Button("Check for Updates…") { updater.checkForUpdates() }
-                    .disabled(!updater.hasFeed)
+                Button("Check for Updates…") { Updater.checkNow() }
+                    .disabled(Updater.currentVersion == nil)
             }
 
             CommandGroup(replacing: .newItem) {

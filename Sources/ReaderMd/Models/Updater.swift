@@ -1,91 +1,104 @@
-import Foundation
-import Sparkle
+import AppKit
 
-/// Sparkle's updater, wrapped so **Check for Updates…** can't become a dead menu
-/// item after an update session outlives the window it was showing.
-///
-/// `-[SPUUpdater checkForUpdates]` gives up silently whenever its driver still
-/// reports `showingUpdate`: the call is handed to `-showUpdateInFocus`, whose
-/// standard implementation falls through to nothing once the user driver has
-/// torn its windows down. The session stays flagged, so from then on every click
-/// of the menu item does nothing at all — no check, no window, no error, just a
-/// line in the system log.
-///
-/// ``checkForUpdates()`` recovers by rebuilding the controller: releasing the old
-/// updater aborts the stuck driver in `-[SPUUpdater dealloc]`, which is the only
-/// way back from outside Sparkle. The rebuild is gated on ``userDriverFinished``
-/// so a live alert, download, or install is left alone and simply refocused.
+/// Tells the user when a newer release is out and links to its page on GitHub.
+/// It never downloads or installs anything. Reader.md updated itself through
+/// Sparkle until 1.24.0; its signing key was lost, and an ad-hoc-signed app can't
+/// rotate one, so the update is now the user's to download.
 @MainActor
-final class Updater: NSObject, ObservableObject {
-    /// Only the packaged `.app` has a feed (`SUFeedURL` in Info.plist). Under
-    /// `swift run` there's nothing to check and starting Sparkle would error, so
-    /// the updater is never built and the menu item stays disabled.
-    ///
-    /// That is the *only* thing the menu item is disabled on. Sparkle's own
-    /// `canCheckForUpdates` — what `SPUStandardUpdaterController.validateMenuItem:`
-    /// greys AppKit menus out on — stays false for the whole of a silent
-    /// background download, which would leave the item dead with nothing on
-    /// screen to explain it.
-    let hasFeed = Bundle.main.object(forInfoDictionaryKey: "SUFeedURL") != nil
+enum Updater {
+    /// Only the packaged `.app` has a version in its Info.plist. Under `swift run`
+    /// there's nothing to compare, so no check runs and the menu item is disabled.
+    static let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
 
-    private var controller: SPUStandardUpdaterController?
+    private static let latestRelease = URL(string: "https://api.github.com/repos/jnahian/reader.md/releases/latest")!
+    private static let interval: TimeInterval = 24 * 60 * 60
+    private static var checking = false
 
-    /// Whether the user driver has announced the end of its session. Together
-    /// with a session Sparkle still believes is running, that's the wedge: the
-    /// windows are gone, so there is nothing left for `-showUpdateInFocus` to
-    /// bring forward. A healthy session only passes through the pair for the hop
-    /// between the teardown and the driver's completion handler.
-    private var userDriverFinished = false
-    private var sessionObserver: NSKeyValueObservation?
-
-    override init() {
-        super.init()
-        guard hasFeed else { return }
-        start()
+    /// At launch and on each return to the app: checks at most once a day, and
+    /// says nothing unless there is an update. The time is saved when a check
+    /// starts, so a failed check waits a day too instead of retrying on every
+    /// return to the app.
+    static func checkIfDue() {
+        if let last = Settings.loadLastUpdateCheck(), Date().timeIntervalSince(last) < interval { return }
+        check(userInitiated: false)
     }
 
-    /// The **Check for Updates…** action.
-    func checkForUpdates() {
-        // Sparkle exposes no way to clear a stuck session — `resetUpdateCycle()`
-        // deliberately does nothing while one is in progress — so the recovery is
-        // to drop the updater holding it and check on its replacement.
-        if isWedged { start() }
-        controller?.updater.checkForUpdates()
+    /// **Check for Updates…**: also says when there's nothing new, or the check failed.
+    static func checkNow() {
+        check(userInitiated: true)
     }
 
-    /// Kept in its own scope rather than bound in ``checkForUpdates()``, so the
-    /// updater it reads isn't named by a live local while ``start()`` drops the
-    /// controller out from under it.
-    private var isWedged: Bool {
-        guard let updater = controller?.updater else { return false }
-        return updater.sessionInProgress && userDriverFinished
-    }
-
-    /// Builds a fresh updater, replacing — and so aborting — any previous one.
-    private func start() {
-        sessionObserver = nil
-        controller = nil
-        userDriverFinished = false
-
-        let fresh = SPUStandardUpdaterController(
-            startingUpdater: true, updaterDelegate: nil, userDriverDelegate: self)
-        // A session ending is the one thing that clears ``userDriverFinished``;
-        // without it the first dismissal would mark every later session wedged.
-        sessionObserver = fresh.updater.observe(\.sessionInProgress, options: [.new]) {
-            [weak self] updater, _ in
-            MainActor.assumeIsolated {
-                if !updater.sessionInProgress { self?.userDriverFinished = false }
+    private static func check(userInitiated: Bool) {
+        guard let current = currentVersion, !checking else { return }
+        checking = true
+        Settings.saveLastUpdateCheck(Date())
+        Task {
+            defer { checking = false }
+            do {
+                let release = try await fetchLatest()
+                if isNewer(release.tagName, than: current) {
+                    offer(release, current: current)
+                } else if userInitiated {
+                    alert("Reader.md is up to date", "\(current) is the newest version.")
+                }
+            } catch {
+                if userInitiated {
+                    alert("Couldn't check for updates", error.localizedDescription)
+                }
             }
         }
-        controller = fresh
     }
-}
 
-// Sparkle calls this on the main thread (its user driver asserts as much), but
-// the protocol itself carries no isolation — so it's `nonisolated` and hops back
-// explicitly rather than making the whole conformance non-`@MainActor`.
-extension Updater: SPUStandardUserDriverDelegate {
-    nonisolated func standardUserDriverWillFinishUpdateSession() {
-        MainActor.assumeIsolated { self.userDriverFinished = true }
+    private struct Release: Decodable {
+        let tagName: String
+        let htmlUrl: URL
+    }
+
+    private static func fetchLatest() async throws -> Release {
+        var request = URLRequest(url: latestRelease)
+        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw URLError(.badServerResponse) }
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        return try decoder.decode(Release.self, from: data)
+    }
+
+    private static func offer(_ release: Release, current: String) {
+        let version = release.tagName.hasPrefix("v") ? String(release.tagName.dropFirst()) : release.tagName
+        let panel = NSAlert()
+        panel.messageText = "Reader.md \(version) is available"
+        panel.informativeText = "You have \(current). Download the new version from its release page and replace the app in Applications."
+        panel.addButton(withTitle: "Download…")
+        panel.addButton(withTitle: "Later")
+        if panel.runModal() == .alertFirstButtonReturn {
+            NSWorkspace.shared.open(release.htmlUrl)
+        }
+    }
+
+    private static func alert(_ title: String, _ message: String) {
+        let panel = NSAlert()
+        panel.messageText = title
+        panel.informativeText = message
+        panel.runModal()
+    }
+
+    /// Whether a release tag (`v1.24.0`) names a later version than `current`
+    /// (`1.23.0`), compared part by part as numbers, so 1.10 is later than 1.9. A
+    /// tag that isn't plain dotted numbers is never newer.
+    nonisolated static func isNewer(_ tag: String, than current: String) -> Bool {
+        func parts(_ version: String) -> [Int]? {
+            let trimmed = version.hasPrefix("v") ? version.dropFirst() : Substring(version)
+            let numbers = trimmed.split(separator: ".", omittingEmptySubsequences: false).map { Int($0) }
+            guard !numbers.isEmpty, !numbers.contains(nil) else { return nil }
+            return numbers.compactMap { $0 }
+        }
+        guard let new = parts(tag), let old = parts(current) else { return false }
+        for i in 0..<max(new.count, old.count) {
+            let a = i < new.count ? new[i] : 0
+            let b = i < old.count ? old[i] : 0
+            if a != b { return a > b }
+        }
+        return false
     }
 }

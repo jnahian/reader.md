@@ -26,6 +26,7 @@ enum Settings {
     private static let branchViewsKey = "reader.md.branchViews"
     private static let editorBundleIDKey = "reader.md.editorBundleID"
     private static let exportLayoutKey = "reader.md.exportLayout"
+    private static let lastUpdateCheckKey = "reader.md.lastUpdateCheck"
 
     static var defaults: UserDefaults { .standard }
 
@@ -236,5 +237,13 @@ enum Settings {
     }
     static func saveEditorBundleID(_ id: String?) {
         defaults.set(id, forKey: editorBundleIDKey)
+    }
+
+    /// When `Updater` last asked GitHub for the latest release, so it asks once a day.
+    static func loadLastUpdateCheck() -> Date? {
+        defaults.object(forKey: lastUpdateCheckKey) as? Date
+    }
+    static func saveLastUpdateCheck(_ date: Date) {
+        defaults.set(date, forKey: lastUpdateCheckKey)
     }
 }
