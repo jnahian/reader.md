@@ -33,6 +33,8 @@ struct ReaderMdApp: App {
                     // to the window is the signal that the index may have moved.
                     state.refreshDiff()
                     state.refreshGitStatus()
+                    // A commit or fetch moves a branch the same unwatched way.
+                    state.refreshBranches()
                 }
                 // Claim every incoming URL for this window. The single `Window`
                 // scene already rules out a second one; this is belt and braces.

@@ -598,13 +598,15 @@ extension GitDiff {
 
     /// Refs the diff scope menu offers, most recently committed first. Two git
     /// calls, so it is only run when diff mode is actually on.
+    /// `keepCurrent` is for the branch picker and the branch-view diff's bases
+    /// (#110), where the checked-out branch is a choice like any other.
     /// Callers must be off the main actor.
-    static func branches(root: URL) -> [String] {
+    static func branches(root: URL, keepCurrent: Bool = false) -> [String] {
         guard case .output(let refs) = run(
             ["for-each-ref", "--sort=-committerdate", "--format=%(refname:short)",
              "refs/heads", "refs/remotes/origin"], in: root) else { return [] }
         var current: String?
-        if case .output(let name) = run(["rev-parse", "--abbrev-ref", "HEAD"], in: root) {
+        if !keepCurrent, case .output(let name) = run(["rev-parse", "--abbrev-ref", "HEAD"], in: root) {
             current = name.trimmingCharacters(in: .whitespacesAndNewlines)
         }
         return parseBranches(refs, current: current)
@@ -774,6 +776,36 @@ extension GitDiff {
         let parsed = annotateWords(parse(raw))
         guard !parsed.isEmpty else { return nil }
         return annotateHeadings(parsed, newSideLines: newSideLines(file: file, scope: scope, repoRoot: repoRoot))
+    }
+
+    /// What `tip` changed since it forked from `base`, the way a pull request's
+    /// Files tab shows it, for a document read from a branch view (#110).
+    /// `relative` is the file's path from `root`, the folder the user added: git
+    /// reads pathspecs against the directory it runs in, so the root's place in
+    /// the repository needs no mapping. `file` is the extracted copy, which is
+    /// the tip's text, so the outline's headings resolve against it.
+    /// Callers must be off the main actor.
+    static func branchDiff(file: URL, relative: String, base: String, tip: String, root: URL) -> DiffFile? {
+        guard !base.hasPrefix("-") else { return nil }
+        var from = base
+        // Exit 1 with no output when the histories are unrelated: there is no
+        // fork point, so compare the two tips instead.
+        if case .output(let out) = run(["merge-base", base, tip], in: root) {
+            let mergeBase = out.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !mergeBase.isEmpty { from = mergeBase }
+        }
+        guard case .output(let raw) = run(branchDiffArguments(from: from, tip: tip, relative: relative), in: root)
+        else { return nil }
+        let parsed = annotateWords(parse(raw))
+        guard !parsed.isEmpty else { return nil }
+        let text = (try? String(contentsOf: file, encoding: .utf8)) ?? ""
+        return annotateHeadings(parsed, newSideLines: text.components(separatedBy: "\n"))
+    }
+
+    /// Two commits, so nothing uncommitted — in the working tree or the index —
+    /// can leak into a branch's changes.
+    static func branchDiffArguments(from: String, tip: String, relative: String) -> [String] {
+        ["diff", from, tip, "--", relative]
     }
 
     /// The post-change text the outline's headings are resolved against. For

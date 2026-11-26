@@ -421,6 +421,20 @@ final class AppState: ObservableObject {
     /// change rarely; toggling diff mode off and on clears it.
     private var branchCache: [String: [String]] = [:]
 
+    /// What a branch view's diff compares against (#110); nil is the checked-out
+    /// branch. Its own state rather than a `diffScope`: picking a base while
+    /// reading a branch must not change what the working copy's diff compares
+    /// against. Not persisted — it is a choice about the branch being read.
+    @Published private(set) var branchDiffBase: String?
+    /// Base candidates per root, cached like `branchCache` but kept apart from
+    /// it: these keep the checked-out branch, which the scope menu's list drops.
+    private var baseCache: [String: [String]] = [:]
+    /// Why the last branch pick failed, for the sidebar's alert.
+    @Published var branchError: String?
+    /// Shown in the empty state when switching a root's branch closed the open
+    /// document because the other tree has no such file.
+    @Published private(set) var missingOnBranch: String?
+
     /// Generation counters guarding against out-of-order async completions:
     /// bumped at dispatch, captured by the in-flight task, checked back before
     /// the result is applied — a stale completion (an older refresh landing
@@ -467,7 +481,7 @@ final class AppState: ObservableObject {
 
     private func watchFileOutsideRoots() {
         let dir = selectedFile.flatMap { file in
-            roots.contains { file.url.path.hasPrefix($0.url.path + "/") }
+            roots.contains { file.url.path.hasPrefix($0.treeURL.path + "/") }
                 ? nil : file.url.deletingLastPathComponent().path
         }
         guard dir != fileWatcher?.path else { return }
@@ -522,6 +536,9 @@ final class AppState: ObservableObject {
         positions = Settings.loadPositions().filter { FileManager.default.fileExists(atPath: $0.key) }
         loadSavedRoots()
         loadSavedRemotes()
+        // Drops the saved views whose extraction is gone, which `restoredBranch`
+        // just declined to restore.
+        persistBranches()
         diffMode = Settings.loadDiffMode()
         diffScope = Settings.loadDiffScope()
         // Probe git off the launch path, then do the first refresh once the
@@ -536,6 +553,7 @@ final class AppState: ObservableObject {
                 self.gitAvailable = true
                 self.refreshDiff()
                 self.refreshGitStatus()
+                self.refreshBranches()
                 // The roots above scanned before this answer landed, so they were
                 // built without git's ignores. Rescan once, now that they apply —
                 // `onlyIfIgnored` so a root with nothing to prune (most of them)
@@ -564,7 +582,10 @@ final class AppState: ObservableObject {
         Settings.saveDiffMode(diffMode)
         // Turning diff mode on is the branch list's refresh affordance — see
         // `branchCache`. Cheap: the very next refreshDiff repopulates it.
-        if diffMode { branchCache.removeAll() }
+        if diffMode {
+            branchCache.removeAll()
+            baseCache.removeAll()
+        }
         refreshDiff()
     }
 
@@ -615,6 +636,11 @@ final class AppState: ObservableObject {
             diffToken += 1
             return
         }
+        // Before `repoRoot(for:)`: an extracted copy is in no repository.
+        if let root = branchViewRoot, let view = root.branch {
+            refreshBranchDiff(file: file.url, root: root, view: view)
+            return
+        }
         let url = file.url
         let scope = diffScope
         let wantDiff = diffMode
@@ -650,22 +676,78 @@ final class AppState: ObservableObject {
                 self.diffBranches = branches
                 self.diffFile = computed
                 self.diffToken += 1
-                if wantDiff {
-                    // A conflicted file renders the "unresolved merge conflicts" notice
-                    // (see MarkdownWebView) instead of hunk rows — and `git diff` on an
-                    // unmerged path emits combined-diff format GitDiff.parse() doesn't
-                    // understand, so any hunks here would likely be garbled anyway. Keep
-                    // the outline empty rather than listing rows absent from the rendered DOM.
-                    if let computed, self.gitStatus(for: url.path) != .conflicted {
-                        self.toc = Self.diffOutline(for: computed)
-                        self.tocIsDiffOutline = true
-                    } else {
-                        self.toc = []
-                    }
-                    self.wordCount = 0        // meaningless for a diff
-                }
+                if wantDiff { self.showDiffOutline(computed, for: url) }
             }
         }
+    }
+
+    private func showDiffOutline(_ computed: DiffFile?, for url: URL) {
+        // A conflicted file renders the "unresolved merge conflicts" notice
+        // (see MarkdownWebView) instead of hunk rows — and `git diff` on an
+        // unmerged path emits combined-diff format GitDiff.parse() doesn't
+        // understand, so any hunks here would likely be garbled anyway. Keep
+        // the outline empty rather than listing rows absent from the rendered DOM.
+        if let computed, gitStatus(for: url.path) != .conflicted {
+            toc = Self.diffOutline(for: computed)
+            tocIsDiffOutline = true
+        } else {
+            toc = []
+        }
+        wordCount = 0        // meaningless for a diff
+    }
+
+    /// `refreshDiff` for a document read from a branch view: what the branch
+    /// changed since it forked from the base. `diffBranches` then lists bases
+    /// rather than scopes — the checked-out branch included, the viewed ref not,
+    /// since a branch compared with itself has nothing to show.
+    private func refreshBranchDiff(file url: URL, root: RootFolder, view: BranchView) {
+        let wantDiff = diffMode
+        let base = branchDiffBase ?? "HEAD"
+        let relative = String(url.standardizedFileURL.path.dropFirst(root.treeURL.standardizedFileURL.path.count + 1))
+        let repo = root.url
+        let cachedBases = baseCache[root.id]
+        diffRequest += 1
+        let generation = diffRequest
+
+        Task.detached(priority: .userInitiated) {
+            let computed = wantDiff
+                ? GitDiff.branchDiff(file: url, relative: relative, base: base, tip: view.sha, root: repo)
+                : nil
+            let bases = wantDiff ? (cachedBases ?? GitDiff.branches(root: repo, keepCurrent: true)) : []
+            await MainActor.run { [weak self] in
+                guard let self, self.diffRequest == generation, self.selectedFile?.url == url else { return }
+                if wantDiff { self.baseCache[root.id] = bases }
+                self.diffAvailable = true
+                self.diffBranches = bases.filter { $0 != view.ref }
+                self.diffFile = computed
+                self.diffToken += 1
+                if wantDiff { self.showDiffOutline(computed, for: url) }
+            }
+        }
+    }
+
+    /// The root whose branch view the open document was read from, if any.
+    var branchViewRoot: RootFolder? {
+        guard let path = selectedFile?.url.standardizedFileURL.path else { return nil }
+        return roots.first { $0.branch != nil && path.hasPrefix($0.treeURL.standardizedFileURL.path + "/") }
+    }
+
+    /// The base a branch view's diff names: the one picked, else the checked-out branch.
+    func branchDiffBaseName(for root: RootFolder) -> String {
+        branchDiffBase ?? root.head ?? "HEAD"
+    }
+
+    func setBranchDiffBase(_ name: String, for root: RootFolder) {
+        let base = name == root.head ? nil : name
+        guard base != branchDiffBase else { return }
+        branchDiffBase = base
+        refreshDiff()
+    }
+
+    /// What the diff pane says when the comparison has no changes for the file.
+    var diffEmptyMessage: String {
+        guard let root = branchViewRoot, let view = root.branch else { return diffScope.emptyMessage }
+        return "No changes on \(view.ref) since it forked from \(branchDiffBaseName(for: root))"
     }
 
     /// Refreshes the badge map for every root that is a git repo.
@@ -746,7 +828,7 @@ final class AppState: ObservableObject {
 
     private func addRoot(_ url: URL, persist: Bool) {
         guard !roots.contains(where: { $0.id == url.path }) else { return }
-        let root = RootFolder(url: url) { [weak self] in self?.didRescan() }
+        let root = RootFolder(url: url, branch: restoredBranch(for: url.path)) { [weak self] in self?.didRescan() }
         roots.append(root)
         let watcher = FolderWatcher(path: url.path) { [weak self] in
             Task { @MainActor in self?.handleFolderChange() }
@@ -754,6 +836,7 @@ final class AppState: ObservableObject {
         watchers.append(watcher)
         if persist { persistRoots() }
         refreshGitStatus()
+        refreshBranches([root])
     }
 
     /// Reorder roots by drag-and-drop in the sidebar.
@@ -767,7 +850,7 @@ final class AppState: ObservableObject {
 
     func removeRoot(_ root: RootFolder) {
         // Clear the open file if it lived inside the folder being removed.
-        if let file = selectedFile, file.url.path.hasPrefix(root.url.path + "/") {
+        if let file = selectedFile, file.url.path.hasPrefix(root.treeURL.path + "/") {
             selectedFile = nil
             toc = []
             loadMarksForCurrentFile()
@@ -778,6 +861,11 @@ final class AppState: ObservableObject {
         rebuildWatchers()
         persistRoots()
         persistRemotes()
+        if root.branch != nil {
+            persistBranches()
+            let id = root.id
+            Task.detached(priority: .utility) { BranchCache.prune(root: id, keeping: nil) }
+        }
     }
 
     /// Remove by whatever the user typed at the CLI: an absolute path, or a root's
@@ -867,13 +955,15 @@ final class AppState: ObservableObject {
     /// Creates the cache dir, appends a remote-tagged root + FSEvents watcher.
     private func registerRemote(_ spec: RemoteSpec) {
         try? FileManager.default.createDirectory(at: spec.cacheURL, withIntermediateDirectories: true)
-        roots.append(RootFolder(url: spec.cacheURL, remote: spec) { [weak self] in
+        let root = RootFolder(url: spec.cacheURL, remote: spec, branch: restoredBranch(for: spec.id)) { [weak self] in
             self?.didRescan()
-        })
+        }
+        roots.append(root)
         let watcher = FolderWatcher(path: spec.cacheURL.path) { [weak self] in
             Task { @MainActor in self?.handleFolderChange() }
         }
         watchers.append(watcher)
+        refreshBranches([root])
     }
 
     func syncRemote(_ spec: RemoteSpec, surfaceErrors: Bool = false) async {
@@ -884,13 +974,118 @@ final class AppState: ObservableObject {
         if result.success {
             root.syncStatus = .idle
             root.rescan { [weak self] in self?.didRescan() }
-            if let file = selectedFile, file.url.path.hasPrefix(root.url.path + "/") {
+            if let file = selectedFile, file.url.path.hasPrefix(root.treeURL.path + "/") {
                 reloadToken += 1
             }
+            // A pull fetches every branch, and that is the only way a cloned
+            // root's refs move, so this is where its branch view goes stale.
+            refreshBranches([root])
         } else {
             root.syncStatus = .failed(result.message)
             if surfaceErrors { syncAlertError = result.message }
         }
+    }
+
+    // MARK: - Branch view (#110)
+
+    /// Shows `root` as it is on `ref`, or as its working copy for nil. Nothing is
+    /// checked out: the ref's commit is extracted into `BranchCache` off the main
+    /// actor, and the root keeps showing what it showed until that's in place.
+    func showBranch(_ ref: String?, in root: RootFolder) {
+        root.branchRequest += 1
+        let generation = root.branchRequest
+        guard let ref else {
+            root.extracting = false
+            apply(nil, to: root)
+            return
+        }
+        root.extracting = true
+        let id = root.id, url = root.url
+        Task.detached(priority: .userInitiated) {
+            let sha = BranchCache.resolve(ref, in: url)
+            // nil once the tree is in place.
+            let failure: String? = sha.map { BranchCache.extract(sha: $0, ofRoot: id, from: url) }
+                ?? "\(ref) doesn't name a commit any more."
+            let view = failure == nil ? sha.map { BranchView(ref: ref, sha: $0) } : nil
+            await MainActor.run { [weak self] in
+                guard let self, root.branchRequest == generation else { return }
+                root.extracting = false
+                if let view { self.apply(view, to: root) } else { self.branchError = failure }
+            }
+        }
+    }
+
+    private func apply(_ view: BranchView?, to root: RootFolder) {
+        guard root.branch != view else { return }
+        let old = root.treeURL
+        root.branch = view
+        persistBranches()
+        root.rescan { [weak self] in self?.didRescan() }
+        follow(from: old, to: root.treeURL, missingFrom: view?.ref ?? "the working copy")
+        let id = root.id, keep = view?.sha
+        Task.detached(priority: .utility) { BranchCache.prune(root: id, keeping: keep) }
+    }
+
+    /// A root's tree moved, so the open document and the history follow it to the
+    /// same file in the new tree. History with no counterpart is dropped, so ⌘[
+    /// can't land on a pruned extraction. An open document with none closes, and
+    /// the empty state says why, rather than the pane going blank.
+    private func follow(from old: URL, to new: URL, missingFrom place: String) {
+        let fm = FileManager.default
+        func moved(_ node: FileNode) -> FileNode? {
+            guard let path = BranchCache.remap(node.url.path, from: old, to: new) else { return node }
+            return fm.fileExists(atPath: path) ? FileNode(url: URL(fileURLWithPath: path), isDirectory: false) : nil
+        }
+        backStack = backStack.compactMap(moved)
+        forwardStack = forwardStack.compactMap(moved)
+        guard let file = selectedFile, let path = BranchCache.remap(file.url.path, from: old, to: new) else { return }
+        if fm.fileExists(atPath: path) {
+            setCurrent(FileNode(url: URL(fileURLWithPath: path), isDirectory: false))
+        } else {
+            closeFile()
+            missingOnBranch = "“\(file.name)” isn't on \(place)."
+        }
+    }
+
+    /// Brings each root's branch state up to date: the checked-out branch its
+    /// picker names, and for a root showing another branch, whether the ref still
+    /// exists (else back to the working copy) and still names the extracted
+    /// commit (else the new one is extracted). A ref moves on a commit, a fetch
+    /// or a pull, none of which FSEvents reports — `.git` is never watched — so
+    /// this runs when the window activates, after the launch git probe, and after
+    /// a remote syncs.
+    func refreshBranches(_ only: [RootFolder]? = nil) {
+        guard gitAvailable else { return }
+        for root in only ?? roots {
+            let url = root.url, view = root.branch
+            Task.detached(priority: .utility) {
+                let head = BranchCache.head(in: url)
+                let sha = view.flatMap { BranchCache.resolve($0.ref, in: url) }
+                await MainActor.run { [weak self] in
+                    guard let self, self.roots.contains(where: { $0 === root }) else { return }
+                    if root.head != head { root.head = head }
+                    guard let view, root.branch == view, !root.extracting else { return }
+                    if sha == nil {
+                        self.showBranch(nil, in: root)
+                    } else if sha != view.sha {
+                        self.showBranch(view.ref, in: root)
+                    }
+                }
+            }
+        }
+    }
+
+    /// A root's saved branch view, if its extraction is still on disk. Caches can
+    /// be purged, and a view with no tree opens on the working copy instead.
+    private func restoredBranch(for id: String) -> BranchView? {
+        guard let view = Settings.loadBranchViews()[id], view.isValid,
+              FileManager.default.fileExists(atPath: BranchCache.tree(forRoot: id, sha: view.sha).path)
+        else { return nil }
+        return view
+    }
+
+    private func persistBranches() {
+        Settings.saveBranchViews(roots.reduce(into: [:]) { views, root in views[root.id] = root.branch })
     }
 
     // MARK: - Theme / TOC persistence
@@ -1137,8 +1332,10 @@ final class AppState: ObservableObject {
             forwardStack.removeAll()
         }
         setCurrent(node)
-        // Help docs / stdin temps / directories aren't documents worth remembering.
-        if !node.isDirectory, !Self.isBundledDoc(node.url), !Self.isStdinTemp(node.url) {
+        // Help docs / stdin temps / branch copies / directories aren't documents
+        // worth remembering.
+        if !node.isDirectory, !Self.isBundledDoc(node.url), !Self.isStdinTemp(node.url),
+           !BranchCache.contains(node.url) {
             pushRecent(node.url.path)
         }
     }
@@ -1173,6 +1370,7 @@ final class AppState: ObservableObject {
 
     /// Back to the empty state. History stacks survive, so ⌘[ still works.
     func closeFile() {
+        missingOnBranch = nil
         selectedFile = nil
         toc = []
         reading.reset()
@@ -1267,6 +1465,7 @@ final class AppState: ObservableObject {
     }
 
     private func setCurrent(_ node: FileNode) {
+        missingOnBranch = nil
         selectedFile = node
         toc = []
         reading.reset()
@@ -1286,7 +1485,7 @@ final class AppState: ObservableObject {
         guard !canShowDiff else { return }
         reading.progress = fraction
         guard let url = selectedFile?.url,
-              !Self.isBundledDoc(url), !Self.isStdinTemp(url) else { return }
+              !Self.isBundledDoc(url), !Self.isStdinTemp(url), !BranchCache.contains(url) else { return }
         let path = url.path
         guard abs((positions[path] ?? 0) - fraction) >= 0.01 else { return }
         positions[path] = fraction
@@ -1336,7 +1535,7 @@ final class AppState: ObservableObject {
     /// way a pin implies they aren't — same rule that keeps them out of Recents,
     /// which also rules out folders (a pinned row opens as a document).
     nonisolated static func canFavorite(_ url: URL) -> Bool {
-        shouldKeepListed(url.path) && !isStdinTemp(url)
+        shouldKeepListed(url.path) && !isStdinTemp(url) && !BranchCache.contains(url)
     }
 
     /// New favorites append rather than insert: a pinned list that reshuffled on
@@ -1498,11 +1697,11 @@ final class AppState: ObservableObject {
     }
 
     /// Files worth handing to an editor. Bundled help docs are app resources,
-    /// stdin docs are reaped temp files, and remote roots are sync caches whose
-    /// edits the next pull would overwrite.
+    /// stdin docs are reaped temp files, remote roots are sync caches whose
+    /// edits the next pull would overwrite, and a branch view is a copy of a commit.
     /// ponytail: no writability probe — the editor reports read-only itself.
     func isEditable(_ url: URL) -> Bool {
-        guard !Self.isBundledDoc(url), !Self.isStdinTemp(url) else { return false }
+        guard !Self.isBundledDoc(url), !Self.isStdinTemp(url), !BranchCache.contains(url) else { return false }
         let path = url.standardizedFileURL.path
         return !roots.contains {
             $0.remote != nil && path.hasPrefix($0.url.standardizedFileURL.path + "/")
@@ -1532,7 +1731,7 @@ final class AppState: ObservableObject {
     func allFilesIndexed() -> [IndexedFile] {
         var result: [IndexedFile] = []
         for root in roots {
-            let rootPath = root.url.path
+            let rootPath = root.treeURL.path
             func walk(_ nodes: [FileNode]) {
                 for n in nodes {
                     if n.isDirectory {
@@ -1599,6 +1798,12 @@ final class AppState: ObservableObject {
     var readingMinutes: Int { max(1, Int((Double(wordCount) / 220.0).rounded())) }
 
     // MARK: - Marks (highlighting / annotations / comments)
+
+    /// Marks are keyed by path, and a branch view's path changes with every
+    /// commit to the branch, so a mark made there would orphan on the next one.
+    var canMark: Bool {
+        selectedFile.map { !BranchCache.contains($0.url) } ?? false
+    }
 
     private func loadMarksForCurrentFile() {
         guard let path = selectedFile?.url.path else {

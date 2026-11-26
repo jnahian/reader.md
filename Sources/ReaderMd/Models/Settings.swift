@@ -23,6 +23,7 @@ enum Settings {
     private static let positionsKey = "reader.md.positions"
     private static let diffModeKey = "reader.md.diffMode"
     private static let diffScopeKey = "reader.md.diffScope"
+    private static let branchViewsKey = "reader.md.branchViews"
     private static let editorBundleIDKey = "reader.md.editorBundleID"
     private static let exportLayoutKey = "reader.md.exportLayout"
 
@@ -213,6 +214,18 @@ enum Settings {
     }
     static func saveDiffScope(_ value: DiffScope) {
         defaults.set(value.persisted, forKey: diffScopeKey)
+    }
+
+    /// The branch each root shows (#110), by root id. Only what was picked is
+    /// saved — `AppState` decides at launch whether its extraction is still there.
+    static func loadBranchViews() -> [String: BranchView] {
+        guard let data = defaults.data(forKey: branchViewsKey),
+              let views = try? JSONDecoder().decode([String: BranchView].self, from: data) else { return [:] }
+        return views
+    }
+    static func saveBranchViews(_ views: [String: BranchView]) {
+        guard let data = try? JSONEncoder().encode(views) else { return }
+        defaults.set(data, forKey: branchViewsKey)
     }
 
     /// External editor for "Open in Editor", stored as a bundle id so it survives

@@ -11,15 +11,14 @@ import SwiftUI
 /// own scrolling section under a filter field, separates them from the three
 /// scopes that exist in every repo, and scrolls the current selection into view
 /// when it opens.
+///
+/// For a document read from a branch view (#110) it picks the base instead: the
+/// diff is then what the branch changed since it forked from that base, and the
+/// three fixed scopes, which are about the working tree and the index, don't apply.
 struct DiffScopePicker: View {
     @EnvironmentObject var state: AppState
     @State private var showing = false
     @State private var query = ""
-    @FocusState private var filterFocused: Bool
-
-    /// Below this many branches the filter field is more chrome than help — the
-    /// whole list is on screen already.
-    private static let filterThreshold = 8
 
     var body: some View {
         Button { showing.toggle() } label: {
@@ -28,7 +27,7 @@ struct DiffScopePicker: View {
                     .font(.system(size: 11))
                 // A branch name has no bound; cap the label rather than let one
                 // ref push the find field off the toolbar.
-                Text(state.diffScope.displayName)
+                Text(label)
                     .font(.system(size: 12))
                     .lineLimit(1)
                     .truncationMode(.middle)
@@ -42,31 +41,58 @@ struct DiffScopePicker: View {
             // breathing room inside the hover pill comes from the label.
             .padding(.horizontal, 10)
         }
-        .dockTooltip("What the diff compares against")
+        .dockTooltip(state.branchViewRoot == nil
+                     ? "What the diff compares against"
+                     : "Where the diff starts: the fork point with this branch")
         .popover(isPresented: $showing, arrowEdge: .top) { chooser }
         // A stale query would silently hide branches the next time it opens.
         .onChange(of: showing) { open in if !open { query = "" } }
     }
 
+    private var label: String {
+        guard let root = state.branchViewRoot else { return state.diffScope.displayName }
+        return "vs \(state.branchDiffBaseName(for: root))"
+    }
+
     // MARK: - Popover
 
-    private var chooser: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            header("Compare against")
-            ForEach(DiffScope.fixed, id: \.self) { scope in
-                ScopeRow(title: scope.displayName,
-                         selected: scope == state.diffScope) { pick(scope) }
+    @ViewBuilder private var chooser: some View {
+        if let root = state.branchViewRoot {
+            VStack(alignment: .leading, spacing: 0) {
+                PopoverHeader(text: "Changes since forking from")
+                if state.diffBranches.isEmpty {
+                    Text("No other branches")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.tertiary)
+                        .padding(.vertical, 8)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                } else {
+                    RefList(refs: state.diffBranches, selected: state.branchDiffBaseName(for: root),
+                            query: $query) { name in
+                        state.setBranchDiffBase(name, for: root)
+                        showing = false
+                    }
+                }
             }
+            .padding(10)
+            .frame(width: 270)
+        } else {
+            VStack(alignment: .leading, spacing: 0) {
+                PopoverHeader(text: "Compare against")
+                ForEach(DiffScope.fixed, id: \.self) { scope in
+                    ScopeRow(title: scope.displayName,
+                             selected: scope == state.diffScope) { pick(scope) }
+                }
 
-            if !refs.isEmpty {
-                Divider().padding(.vertical, 6)
-                header("Branches")
-                if refs.count >= Self.filterThreshold { filterField }
-                branchList
+                if !refs.isEmpty {
+                    Divider().padding(.vertical, 6)
+                    PopoverHeader(text: "Branches")
+                    RefList(refs: refs, selected: selectedRef, query: $query) { pick(.ref($0)) }
+                }
             }
+            .padding(10)
+            .frame(width: 270)
         }
-        .padding(10)
-        .frame(width: 270)
     }
 
     /// Every ref the scope menu offers, taken from `diffScopeChoices` rather
@@ -79,7 +105,39 @@ struct DiffScopePicker: View {
         }
     }
 
+    private var selectedRef: String? {
+        guard case .ref(let name) = state.diffScope else { return nil }
+        return name
+    }
+
+    private func pick(_ scope: DiffScope) {
+        state.setDiffScope(scope)
+        showing = false
+    }
+}
+
+/// The branch section of a ref popover — the diff scope's, and the sidebar's
+/// branch picker: a filter field once the list is long, then the refs in a
+/// scrolling list that opens on the one selected.
+struct RefList: View {
+    let refs: [String]
+    let selected: String?
+    @Binding var query: String
+    let pick: (String) -> Void
+    @FocusState private var filterFocused: Bool
+
+    /// Below this many branches the filter field is more chrome than help — the
+    /// whole list is on screen already.
+    private static let filterThreshold = 8
+
     private var filtered: [String] { GitDiff.filterBranches(refs, query: query) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if refs.count >= Self.filterThreshold { filterField }
+            branchList
+        }
+    }
 
     private var filterField: some View {
         HStack(spacing: 6) {
@@ -113,8 +171,7 @@ struct DiffScopePicker: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
                         ForEach(filtered, id: \.self) { name in
-                            ScopeRow(title: name,
-                                     selected: state.diffScope == .ref(name)) { pick(.ref(name)) }
+                            ScopeRow(title: name, selected: selected == name) { pick(name) }
                                 .id(name)
                         }
                     }
@@ -122,14 +179,19 @@ struct DiffScopePicker: View {
                 .frame(maxHeight: 220)
                 // A long ref list doesn't fit; open on the one in use rather than at the top.
                 .onAppear {
-                    guard case .ref(let name) = state.diffScope else { return }
-                    DispatchQueue.main.async { proxy.scrollTo(name, anchor: .center) }
+                    guard let selected else { return }
+                    DispatchQueue.main.async { proxy.scrollTo(selected, anchor: .center) }
                 }
             }
         }
     }
+}
 
-    private func header(_ text: String) -> some View {
+/// A ref popover's section label.
+struct PopoverHeader: View {
+    let text: String
+
+    var body: some View {
         Text(text)
             .font(.system(size: 10, weight: .semibold))
             .foregroundStyle(.secondary)
@@ -137,16 +199,11 @@ struct DiffScopePicker: View {
             .padding(.horizontal, 6)
             .padding(.bottom, 4)
     }
-
-    private func pick(_ scope: DiffScope) {
-        state.setDiffScope(scope)
-        showing = false
-    }
 }
 
 /// One row of the chooser: a checkmark column so the rows stay aligned whether
 /// or not they're selected, and a hover fill matching the sidebar's.
-private struct ScopeRow: View {
+struct ScopeRow: View {
     let title: String
     let selected: Bool
     let action: () -> Void

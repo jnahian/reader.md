@@ -123,18 +123,41 @@ final class RootFolder: Identifiable, ObservableObject {
     @Published var children: [FileNode] = []
     @Published var syncStatus: RemoteSyncStatus = .idle
 
+    /// Set while the root shows another branch (#110). `url` stays the folder
+    /// the user added — git runs there, it is what's watched, revealed and saved
+    /// — while the tree, and every document opened from it, comes from `treeURL`.
+    @Published var branch: BranchView?
+    /// What the working copy has checked out, for the branch picker's label; nil
+    /// outside a repository, and until git has been probed.
+    @Published var head: String?
+    /// A branch is being extracted. Its own flag rather than `syncStatus`: a sync
+    /// already in flight would refuse to start, and its errors say "Sync failed".
+    @Published var extracting = false
+    /// Bumped per branch switch, so a slow extraction that lands after a newer
+    /// pick is dropped rather than applied — the same guard as `AppState.diffRequest`.
+    var branchRequest = 0
+
     /// Starts empty and fills in from a background scan. `FileScanner.scan` walks
     /// the whole subtree — measured at ~1.3s across seven roots — so it must never
     /// run on the main thread, not at launch and not on a folder change.
-    init(url: URL, remote: RemoteSpec? = nil, onScan: (@MainActor () -> Void)? = nil) {
+    /// `branch` is passed in, not set after, so a root restored onto a branch
+    /// scans that tree first rather than the working copy and then the branch.
+    init(url: URL, remote: RemoteSpec? = nil, branch: BranchView? = nil,
+         onScan: (@MainActor () -> Void)? = nil) {
         self.id = remote?.id ?? url.path
         self.url = url
         self.remote = remote
+        self.branch = branch
         rescan(then: onScan)
     }
 
     var name: String { remote?.name ?? url.lastPathComponent }
     var isRemote: Bool { remote != nil }
+
+    /// Where the tree is read from: the branch's extraction, or `url`.
+    var treeURL: URL {
+        branch.map { BranchCache.tree(forRoot: id, sha: $0.sha) } ?? url
+    }
 
     /// `onlyIfIgnored` is for the one caller that re-scans a root already scanned
     /// this launch: the git probe lands after `loadSavedRoots()`, so the first
@@ -142,16 +165,23 @@ final class RootFolder: Identifiable, ObservableObject {
     /// none is pure cost — and the walk is the expensive part, ~1.3s across seven
     /// roots — so the cheap git calls run first and decide.
     func rescan(onlyIfIgnored: Bool = false, then completion: (@MainActor () -> Void)? = nil) {
-        let url = self.url
+        let url = treeURL
+        // An extraction holds only tracked files, so git has nothing to prune
+        // from it — and it isn't a repository to ask.
+        let isBranch = branch != nil
+        if onlyIfIgnored && isBranch { return }
         Task.detached(priority: .userInitiated) {
             // `worktree list` and `ls-files` per scan, plus one `ls-files` per
             // worktree, alongside the walk. They double as the is-a-repo test, so
             // a root outside one pays two failed git calls.
-            let worktrees = FileScanner.worktrees(under: url)
-            let ignoring = FileScanner.ignoredPaths(under: url, worktrees: worktrees)
+            let worktrees = isBranch ? [] : FileScanner.worktrees(under: url)
+            let ignoring = isBranch ? [] : FileScanner.ignoredPaths(under: url, worktrees: worktrees)
             if onlyIfIgnored && ignoring.isEmpty { return }
             let scanned = FileScanner.scan(url, ignoring: ignoring, worktrees: worktrees)
             await MainActor.run {
+                // A scan of the tree the root showed before a branch switch can
+                // land after the scan of the one it shows now.
+                guard self.treeURL == url else { return }
                 self.children = scanned
                 completion?()
             }

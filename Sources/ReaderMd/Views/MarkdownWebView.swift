@@ -149,7 +149,7 @@ struct MarkdownWebView: NSViewRepresentable {
                     // once diffToken lands and tokenChanged fires on its own.
                     coord.pushDiff(nil, empty: "Loading diff…")
                 } else {
-                    coord.pushDiff(state.diffFile, empty: state.diffScope.emptyMessage)
+                    coord.pushDiff(state.diffFile, empty: state.diffEmptyMessage)
                 }
             }
         } else if let file = state.selectedFile, file.url.path != coord.loadedPath || coord.showingDiff {
@@ -836,7 +836,7 @@ struct MarkdownWebView: NSViewRepresentable {
                     if let path = state.selectedFile?.url.path, state.gitStatus(for: path) == .conflicted {
                         pushDiff(nil, empty: conflictNoticeMessage)
                     } else {
-                        pushDiff(state.diffFile, empty: state.diffScope.emptyMessage)
+                        pushDiff(state.diffFile, empty: state.diffEmptyMessage)
                     }
                 } else if loadedPath != nil {
                     pushCurrentFile(keepScroll: false)
@@ -900,7 +900,9 @@ struct MarkdownWebView: NSViewRepresentable {
                 }
 
             case "textSelected":
-                guard let payload = message.body as? [String: Any],
+                // Delivered on the main thread, like every script message.
+                guard MainActor.assumeIsolated({ state.canMark }),
+                      let payload = message.body as? [String: Any],
                       let quote = payload["quote"] as? String,
                       let prefix = payload["prefix"] as? String,
                       let suffix = payload["suffix"] as? String,

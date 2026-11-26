@@ -59,6 +59,16 @@ struct SidebarView: View {
                 .padding(.horizontal, 8)
                 .padding(.bottom, 12)
             }
+            // On the tree rather than beside "Sync failed" on the stack, so the
+            // two alerts sit on different views.
+            .alert("Couldn't show branch", isPresented: Binding(
+                get: { state.branchError != nil },
+                set: { if !$0 { state.branchError = nil } }
+            )) {
+                Button("OK") { state.branchError = nil }
+            } message: {
+                Text(state.branchError ?? "")
+            }
 
             Divider().opacity(0.5)
 
@@ -455,10 +465,13 @@ struct RootSectionView: View {
                         .font(.system(size: 13, weight: .semibold))
                         .lineLimit(1)
                     if root.isRemote {
-                        Image(systemName: root.remote?.isGit == true ? "arrow.triangle.branch" : "cloud")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.secondary)
-                            .dockTooltip(root.remote?.isGit == true ? "Cloned git repository" : "Remote folder")
+                        // A cloned repository's branch picker carries the same glyph.
+                        if root.remote?.isGit != true || root.head == nil {
+                            Image(systemName: root.remote?.isGit == true ? "arrow.triangle.branch" : "cloud")
+                                .font(.system(size: 10))
+                                .foregroundStyle(.secondary)
+                                .dockTooltip(root.remote?.isGit == true ? "Cloned git repository" : "Remote folder")
+                        }
                         switch root.syncStatus {
                         case .syncing:
                             ProgressView().controlSize(.small).scaleEffect(0.7)
@@ -475,6 +488,12 @@ struct RootSectionView: View {
                 }
                 .contentShape(Rectangle())
                 .rowButton { withAnimation(.easeInOut(duration: 0.12)) { expanded.toggle() } }
+
+                // Beside the row's button rather than inside it, so the two
+                // buttons don't nest.
+                if root.head != nil {
+                    BranchPicker(root: root)
+                }
 
                 if hovering {
                     if let spec = root.remote {
@@ -519,6 +538,9 @@ struct RootSectionView: View {
                 Button("Reveal in Finder") {
                     NSWorkspace.shared.activateFileViewerSelecting([root.url])
                 }
+                if root.branch != nil {
+                    Button("Show Working Copy") { state.showBranch(nil, in: root) }
+                }
                 if let spec = root.remote {
                     Divider()
                     Button("Edit Connection…") { state.editingRemote = spec }
@@ -546,7 +568,7 @@ struct RootSectionView: View {
 
     private var holdsSelection: Bool {
         guard let path = state.selectedFile?.url.standardizedFileURL.path else { return false }
-        return path.hasPrefix(root.url.standardizedFileURL.path + "/")
+        return path.hasPrefix(root.treeURL.standardizedFileURL.path + "/")
     }
 }
 
