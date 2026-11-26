@@ -103,7 +103,8 @@ differently:
 
 The branch stays picked, across launches too, while its copy is cached. When the
 branch gets new commits, the folder moves to them the next time you come back to
-the window. If the branch is deleted, the folder goes back to the working copy.
+the window. If the branch is deleted, or a new commit no longer has this folder, the
+folder goes back to the working copy.
 A cloned repository's branches move when it syncs.
 
 ### What a branch changed

@@ -100,16 +100,17 @@ extension BranchCache {
 
     /// What the working copy has checked out: the branch, or a short sha when
     /// HEAD is detached. Nil outside a repository. `--quiet` makes a detached
-    /// HEAD exit 1 with no output, which `GitDiff.run` reports as empty output.
-    /// Callers must be off the main actor.
+    /// HEAD exit 1 with no output, which `GitDiff.run` reports as empty output;
+    /// outside a repository it fails outright, and that is one git call, not two,
+    /// for every plain folder on every activation. Callers must be off the main actor.
     static func head(in root: URL) -> String? {
-        for args in [["symbolic-ref", "--quiet", "--short", "HEAD"], ["rev-parse", "--short", "HEAD"]] {
-            if case .output(let out) = GitDiff.run(args, in: root) {
-                let name = out.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !name.isEmpty { return name }
-            }
-        }
-        return nil
+        guard case .output(let branch) = GitDiff.run(["symbolic-ref", "--quiet", "--short", "HEAD"], in: root)
+        else { return nil }
+        let name = branch.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !name.isEmpty { return name }
+        guard case .output(let sha) = GitDiff.run(["rev-parse", "--short", "HEAD"], in: root) else { return nil }
+        let short = sha.trimmingCharacters(in: .whitespacesAndNewlines)
+        return short.isEmpty ? nil : short
     }
 
     /// Extracts the root's subtree at `sha` into `tree(forRoot:sha:)`. Returns nil
@@ -147,7 +148,15 @@ extension BranchCache {
             return error.localizedDescription
         }
 
-        let treeish = treeish(sha: sha, prefix: prefix.trimmingCharacters(in: .whitespacesAndNewlines))
+        let trimmedPrefix = prefix.trimmingCharacters(in: .whitespacesAndNewlines)
+        let treeish = treeish(sha: sha, prefix: trimmedPrefix)
+        // A root in a subfolder the commit doesn't have: say so, rather than
+        // git's "not a valid object name <sha>:docs".
+        if !trimmedPrefix.isEmpty,
+           case .output(let found) = GitDiff.run(["rev-parse", "--verify", "--quiet", treeish], in: root),
+           found.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "“\(root.lastPathComponent)” isn't on that branch."
+        }
         if case .failure(let message) = GitDiff.run(
             ["archive", "--format=tar", "--output=\(archive.path)", treeish],
             in: URL(fileURLWithPath: top, isDirectory: true)) {

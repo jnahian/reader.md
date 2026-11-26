@@ -1010,7 +1010,15 @@ final class AppState: ObservableObject {
             await MainActor.run { [weak self] in
                 guard let self, root.branchRequest == generation else { return }
                 root.extracting = false
-                if let view { self.apply(view, to: root) } else { self.branchError = failure }
+                if let view {
+                    self.apply(view, to: root)
+                } else {
+                    self.branchError = failure
+                    // The branch on screen moved to a commit that can't be shown
+                    // — one without this folder, say. Staying on the old commit
+                    // would retry, and alert, on every activation and launch.
+                    if root.branch?.ref == ref { self.apply(nil, to: root) }
+                }
             }
         }
     }

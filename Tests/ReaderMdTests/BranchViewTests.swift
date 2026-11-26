@@ -170,7 +170,10 @@ final class BranchViewGitTests: XCTestCase {
         _ = GitDiff.run(["checkout", "-q", "--detach"], in: repo)
         let detached = try XCTUnwrap(BranchCache.head(in: repo))
         XCTAssertTrue(try resolve("HEAD").hasPrefix(detached))
-        XCTAssertNil(BranchCache.head(in: cache.deletingLastPathComponent().appendingPathComponent("/")))
+        let plain = FileManager.default.temporaryDirectory.appendingPathComponent("not-a-repo-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: plain, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: plain) }
+        XCTAssertNil(BranchCache.head(in: plain))
     }
 
     func testBranchListCanKeepTheCheckedOutBranch() {
@@ -215,7 +218,8 @@ final class BranchViewGitTests: XCTestCase {
         let sha = try resolve("feature")
         let gone = repo.appendingPathComponent("gone")
         try FileManager.default.createDirectory(at: gone, withIntermediateDirectories: true)
-        XCTAssertNotNil(BranchCache.extract(sha: sha, ofRoot: gone.path, from: gone, in: cache))
+        XCTAssertEqual(BranchCache.extract(sha: sha, ofRoot: gone.path, from: gone, in: cache),
+                       "“gone” isn't on that branch.")
         XCTAssertFalse(FileManager.default.fileExists(
             atPath: BranchCache.tree(forRoot: gone.path, sha: sha, in: cache).path))
     }
