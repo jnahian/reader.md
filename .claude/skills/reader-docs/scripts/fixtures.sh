@@ -338,6 +338,40 @@ git -C "$REPO" commit -qm "Record the search decision"
 git -C "$REPO" branch release HEAD~1
 git -C "$REPO" branch drafts HEAD~1
 
+# drafts gets a commit of its own, so reading it as a branch (#110) has
+# something to show: a file main doesn't have, and a rewritten section that ⇧⌘D
+# shows as the branch's change since it forked — without main's later search
+# commit, which a plain diff against main would show reversed.
+git -C "$REPO" checkout -q drafts
+export GIT_AUTHOR_DATE="2026-01-22T11:00:00+00:00"
+export GIT_COMMITTER_DATE="2026-01-22T11:00:00+00:00"
+cat > "$REPO/decisions.md" <<'EOF'
+# Decisions
+
+## Storage
+
+We keep documents on disk and read them directly.
+
+## Rendering
+
+Rendering happens in one place so that it behaves the same everywhere.
+
+## Navigation
+
+The sidebar is a tree, with Recents and Favorites above it. Quick Open reaches
+any file by name.
+EOF
+cat > "$REPO/glossary.md" <<'EOF'
+# Glossary
+
+**Root** — a folder added to the sidebar.
+
+**Working copy** — the files on disk, as opposed to a branch's commit.
+EOF
+git -C "$REPO" add -A
+git -C "$REPO" commit -qm "Draft the glossary and navigation"
+git -C "$REPO" checkout -q main
+
 # Dirty state, so the sidebar badges and the diff view have something to show.
 # Modified (M). The working copy rewrites a sentence as well as appending a
 # section: an append-only change diffs as whole added lines, and the word-level

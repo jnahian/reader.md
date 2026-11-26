@@ -81,11 +81,15 @@ its header in the sidebar. Click the name to read the folder as it is on another
 branch. The list starts with **Working copy**, then every branch, local and on
 `origin`, under the same filter field as the scope popover.
 
+![The branch picker on a folder's header, listing its branches](../assets/screenshots/git/05-branches.png)
+
 Picking a branch checks nothing out. Reader.md copies the markdown and images in
 that branch's latest commit into a cache, and the folder shows that copy: its
-tree, its documents and their images. The branch name turns blue so you can see
-you aren't reading your working copy. Your working copy, uncommitted edits
+tree, its documents and their images. The branch name is highlighted, so you can
+see you aren't reading your working copy. Your working copy, uncommitted edits
 included, stays as it was.
+
+![The folder as it is on the drafts branch, read without checking it out](../assets/screenshots/git/06-branch.png)
 
 The open document follows to the same file on the branch. If the branch has no
 such file, the document closes and the window says so. Pick **Working copy**, or
@@ -103,18 +107,18 @@ differently:
 
 The branch stays picked, across launches too, while its copy is cached. When the
 branch gets new commits, the folder moves to them the next time you come back to
-the window. If the branch is deleted, or a new commit no longer has this folder, the
-folder goes back to the working copy.
-A cloned repository's branches move when it syncs.
+the window. If the branch is deleted, or a new commit no longer has this folder,
+the folder goes back to the working copy.
 
 ### What a branch changed
 
-While you read a branch, ⇧⌘D shows what that branch changed since it forked
-from your checked-out branch, the way a pull request lists its changes. What
-your checked-out branch did since then isn't mixed in, and neither are your
-uncommitted edits.
-The control beside the diff button names the branch the changes are measured
-from, and lists the others if you want a different one.
+While you read a branch, Toggle Diff (⇧⌘D) shows what that branch changed since
+it forked from your checked-out branch, the way a pull request lists its
+changes. What your checked-out branch did since then isn't mixed in, and neither
+are your uncommitted edits. The control beside the diff button names the branch
+the changes are measured from, and lists the others if you want a different one.
+
+![What drafts changed since it forked from main, with ⇧⌘D](../assets/screenshots/git/07-branch-diff.png)
 
 ## What is left out
 

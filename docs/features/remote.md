@@ -48,7 +48,7 @@ Reader.md clones it once and runs `git pull --ff-only` on each launch. Fast
 forward only: the cache is never sent anywhere, so a merge commit invented
 there would only be in the way.
 
-![The cloned repository in the sidebar, with its branch badge](../assets/screenshots/remote/03-cloned.png)
+![The cloned repository in the sidebar, showing the branch it has checked out](../assets/screenshots/remote/03-cloned.png)
 
 Your existing git credentials are used, and git is never allowed to prompt — a
 repository you cannot read fails with git's own error instead of hanging on a
