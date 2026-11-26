@@ -83,7 +83,7 @@ export const faqsHighlight: Faq[] = [
   },
   {
     q: "Why does macOS say it can't check it for malicious software?",
-    a: 'The app is ad-hoc signed but not notarized, so the first launch is gated. Right-click → <strong>Open</strong> once, or run <code class="tok">xattr -dr com.apple.quarantine</code> on it. <a href="/docs/install#clearing-quarantine">Details</a>.',
+    a: 'The app is ad-hoc signed but not notarized, so macOS blocks the first launch of each new copy, including each update. Approve it in System Settings → Privacy &amp; Security → <strong>Open Anyway</strong> (macOS 15 or later), with right-click → <strong>Open</strong> (macOS 13 or 14), or run <code class="tok">xattr -dr com.apple.quarantine</code> on it. <a href="/docs/install#clearing-quarantine">Details</a>.',
   },
   {
     q: "Does it need macOS 26?",

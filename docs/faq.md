@@ -27,8 +27,10 @@ No. Liquid Glass chrome appears on macOS 26 (Tahoe); 13 through 15 fall back to
 `NSVisualEffectView` automatically, with nothing to configure.
 
 ### Why does macOS say it can't check it for malicious software?
-The app is ad-hoc signed but not notarized, so the first launch is gated. Clear
-it once: right-click the app → **Open**, then **Open** in the dialog — or run
+The app is ad-hoc signed but not notarized, so macOS blocks the first launch of
+each new copy, including each update. Approve it in **System Settings → Privacy
+& Security → Open Anyway** (macOS 15 or later), with right-click → **Open**
+(macOS 13 or 14), or on any version by running
 `xattr -dr com.apple.quarantine "/Applications/Reader.md.app"`. Full detail in
 [Clearing quarantine](install.md#clearing-quarantine).
 
@@ -206,8 +208,9 @@ token of its own.
 Reader.md checks GitHub for a newer release once a day, and **Reader.md → Check
 for Updates…** asks straight away. When there is one, **Download…** opens the
 release page: download the DMG and replace the app in Applications. If you
-installed with Homebrew, run `brew upgrade`. Reader.md doesn't install updates
-itself.
+installed with Homebrew, run `brew upgrade`. Either way, macOS asks you to
+approve the new version's first launch, as it did when you installed it.
+Reader.md doesn't install updates itself.
 
 ### I clicked Later — how do I get the notice back?
 Choose **Reader.md → Check for Updates…**. Otherwise the next day's check shows

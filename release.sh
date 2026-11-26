@@ -72,9 +72,10 @@ cat > build/appcast.xml <<APPCAST
       <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
       <link>${RELEASE_PAGE}</link>
       <description sparkle:format="markdown"><![CDATA[**Reader.md no longer updates itself.** Click **Learn More**, download
-${APP_NAME}.dmg from the release page and replace the app in Applications. This
-is the last time you need to: from then on, Reader.md tells you about new
-versions itself.
+${APP_NAME}.dmg from the release page and replace the app in Applications. As
+with your first install, macOS asks you to approve it the first time it opens.
+This is the last time you need to go looking: from then on, Reader.md tells you
+about new versions itself.
 
 ${NOTES}
 ]]></description>

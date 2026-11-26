@@ -24,9 +24,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Reader.md tells you about updates instead of installing them.** Once a day
   it checks GitHub for a newer release, and when there is one it says so and
   links to the download page. **Check for Updates…** asks straight away. To
-  update, download the new version and replace the app in Applications. If you
-  came from 1.23.0 or earlier, this is the one version you download by hand:
-  the old updater can only point you to it.
+  update, download the new version and replace the app in Applications. macOS
+  asks you to approve each new version's first launch, as it did when you
+  installed it. If you came from 1.23.0 or earlier, this is the one version you
+  download by hand: the old updater can only point you to it.
 - **`brew upgrade` updates Reader.md.** The Homebrew cask no longer marks the
   app as updating itself, so Homebrew upgrades it like any other app.
 

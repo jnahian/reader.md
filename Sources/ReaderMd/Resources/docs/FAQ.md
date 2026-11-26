@@ -30,9 +30,10 @@ into your markdown; annotations and remote caches live in
 `~/Library/Application Support/Reader.md/`.
 
 **Why does macOS say it can't check a new copy for malicious software?**
-The app is ad-hoc signed but not notarized, so a fresh copy is gated on first
-launch. Clear it once: right-click the app → **Open**, then **Open** in the
-dialog — or run
+The app is ad-hoc signed but not notarized, so macOS blocks the first launch of
+each new copy, including each update. Approve it in **System Settings → Privacy
+& Security → Open Anyway** (macOS 15 or later), with right-click → **Open**
+(macOS 13 or 14), or on any version by running
 `xattr -dr com.apple.quarantine "/Applications/Reader.md.app"`.
 
 **Why does Homebrew need a `brew trust` step?**
@@ -191,8 +192,9 @@ token of its own.
 Reader.md checks GitHub for a newer release once a day, and **Reader.md → Check
 for Updates…** asks straight away. When there is one, **Download…** opens the
 release page: download the DMG and replace the app in Applications. If you
-installed with Homebrew, run `brew upgrade`. Reader.md doesn't install updates
-itself.
+installed with Homebrew, run `brew upgrade`. Either way, macOS asks you to
+approve the new version's first launch, as it did when you installed it.
+Reader.md doesn't install updates itself.
 
 **I clicked Later — how do I get the notice back?**
 Choose **Reader.md → Check for Updates…**. Otherwise the next day's check shows

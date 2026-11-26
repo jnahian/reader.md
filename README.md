@@ -31,8 +31,9 @@ brew install --cask reader-md
 
 Or download `Reader.md.dmg` from the
 [latest release](https://github.com/jnahian/reader.md/releases/latest). macOS 13+,
-Apple silicon. Full instructions — including clearing quarantine on a direct
-download — are in [the install guide](docs/install.md).
+Apple silicon. The app isn't notarized, so macOS asks you to approve its first
+launch, and each update's. Full instructions, including clearing quarantine,
+are in [the install guide](docs/install.md).
 
 ## Documentation
 

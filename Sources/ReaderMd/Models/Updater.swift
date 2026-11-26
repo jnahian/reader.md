@@ -68,7 +68,7 @@ enum Updater {
         let version = release.tagName.hasPrefix("v") ? String(release.tagName.dropFirst()) : release.tagName
         let panel = NSAlert()
         panel.messageText = "Reader.md \(version) is available"
-        panel.informativeText = "You have \(current). Download the new version from its release page and replace the app in Applications."
+        panel.informativeText = "You have \(current). Download the new version from its release page and replace the app in Applications. As with the first install, macOS asks you to approve it the first time it opens."
         panel.addButton(withTitle: "Download…")
         panel.addButton(withTitle: "Later")
         if panel.runModal() == .alertFirstButtonReturn {
