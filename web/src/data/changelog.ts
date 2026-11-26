@@ -22,9 +22,35 @@ export interface Release {
 
 export const releasesLog: Release[] = [
   {
+    version: "1.24.0",
+    date: "Nov 27, 2026",
+    badge: "LATEST",
+    groups: [
+      {
+        tag: "ADDED",
+        items: [
+          "<strong>Read a repository as it is on another branch.</strong> A git folder's header in the sidebar names the branch it has checked out. Click it and pick another branch, and the folder shows that branch's documents without checking anything out: Reader.md copies the branch's latest commit into a cache, and your working copy and <code>.git</code> stay untouched. The branch stays picked across launches and moves to new commits when you come back to the window. Pick <strong>Working copy</strong> to go back. Cloned repositories get the same picker.",
+          "<strong>See what a branch changed.</strong> While you read a branch, ⇧⌘D shows what it changed since it forked from your checked-out branch, the way a pull request does. The control beside it picks a different branch to measure from.",
+        ],
+      },
+      {
+        tag: "IMPROVED",
+        items: [
+          "<strong>Updates are signed with a new key.</strong> If you're on 1.23.0 or earlier, the update prompt offers <strong>Learn More…</strong> instead of installing this version: download it from the release page and replace the app in Applications, once. macOS asks you to approve its first launch, as it did when you installed it. With Homebrew, <code>brew upgrade</code> installs it. From this version on, updates install themselves again.",
+        ],
+      },
+      {
+        tag: "FIXED",
+        items: [
+          "<strong>Git worktrees show in the sidebar even when ignored.</strong> Markdown in a worktree inside a folder, such as the ones Claude Code keeps in <code>.claude/worktrees/</code>, was missing when <code>.gitignore</code> covered it, which Claude Code's docs suggest. The repository's own worktrees now show, and each one leaves out what its own <code>.gitignore</code> covers, such as a build folder.",
+          "<strong>The sidebar keeps up with files inside folders.</strong> A markdown file added to or removed from a subfolder didn't update while the app was open, even if you expanded that folder later. The tree now follows the disk at every level.",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.23.0",
     date: "Oct 5, 2026",
-    badge: "LATEST",
     groups: [
       {
         tag: "ADDED",
